@@ -10,6 +10,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Klassen", href: "/klassen" },
+  { label: "Lernziele", href: "/lernziele" },
   { label: "Design System", href: "/design-system" },
 ]
 

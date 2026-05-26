@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useData } from '@/contexts/DataContext'
+import { StudentVerlauf } from '@/components/analytics/StudentVerlauf'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -17,16 +18,12 @@ import { cn } from '@/lib/utils'
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 function getInitials(name: string) {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return name.slice(0, 2).toUpperCase()
 }
 
 // ── Status selector ───────────────────────────────────────────────────────
-// Three segmented buttons; the active one matches the current status.
 
 const STATUS_ACTIVE_CLASS: Record<Status, string> = {
   reached: 'bg-foreground text-primary-foreground border-foreground',
@@ -36,19 +33,18 @@ const STATUS_ACTIVE_CLASS: Record<Status, string> = {
 
 interface StatusSelectorProps {
   studentId: string
-  competencyId: string
+  itemId: string
   current: Status
+  onUpdate: (studentId: string, itemId: string, status: Status) => void
 }
 
-function StatusSelector({ studentId, competencyId, current }: StatusSelectorProps) {
-  const { updateCompetencyStatus } = useData()
-
+function StatusSelector({ studentId, itemId, current, onUpdate }: StatusSelectorProps) {
   return (
     <div className="flex gap-0.5">
       {STATUS_CYCLE.map((status) => (
         <button
           key={status}
-          onClick={() => updateCompetencyStatus(studentId, competencyId, status)}
+          onClick={() => onUpdate(studentId, itemId, status)}
           className={cn(
             'rounded-sm border px-2 py-0.5 text-xs font-medium transition-all',
             status === current
@@ -68,15 +64,27 @@ function StatusSelector({ studentId, competencyId, current }: StatusSelectorProp
 export default function SchuelerDetailPage() {
   const { klassId, studentId } = useParams<{ klassId: string; studentId: string }>()
   const router = useRouter()
-  const { getClass, getStudent, updateStudent, competencies } = useData()
+  const {
+    getClass,
+    getStudent,
+    updateStudent,
+    competencies,
+    updateCompetencyStatus,
+    updateLernzielStatus,
+    getThemenForKlasse,
+    getLernzieleForThema,
+    getFachForThema,
+    faecher,
+    lernziele,
+  } = useData()
 
   const klasse = getClass(klassId)
   const student = getStudent(studentId)
+  const assignedThemen = getThemenForKlasse(klassId)
 
   const [note, setNote] = useState(student?.note ?? '')
   const [noteSaved, setNoteSaved] = useState(true)
 
-  // Sync local note when student changes (e.g. navigating between students)
   useEffect(() => {
     setNote(student?.note ?? '')
     setNoteSaved(true)
@@ -139,11 +147,7 @@ export default function SchuelerDetailPage() {
             }}
           />
           <div className="flex items-center gap-3">
-            <Button
-              size="sm"
-              onClick={handleNoteSave}
-              disabled={noteSaved}
-            >
+            <Button size="sm" onClick={handleNoteSave} disabled={noteSaved}>
               Speichern
             </Button>
             {noteSaved && note !== '' && (
@@ -162,13 +166,10 @@ export default function SchuelerDetailPage() {
         className="py-8"
       >
         <div className="divide-y divide-border rounded-lg border border-border">
-          {/* Header row */}
           <div className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2 text-xs font-medium text-muted-foreground">
             <span>Kompetenz</span>
             <span>Status</span>
           </div>
-
-          {/* Competency rows */}
           {competencies.map((comp) => {
             const current = student.competencyStatus[comp.id] ?? 'not_reached'
             return (
@@ -179,13 +180,92 @@ export default function SchuelerDetailPage() {
                 <span className="text-sm">{comp.label}</span>
                 <StatusSelector
                   studentId={student.id}
-                  competencyId={comp.id}
+                  itemId={comp.id}
                   current={current}
+                  onUpdate={updateCompetencyStatus}
                 />
               </div>
             )
           })}
         </div>
+      </Section>
+
+      <Separator className="mb-2" />
+
+      {/* Lernziele */}
+      <Section
+        title="Lernziele"
+        description="Lernziele aus den zugewiesenen Themen der Klasse."
+        className="py-8"
+      >
+        {assignedThemen.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Dieser Klasse sind noch keine Themen zugewiesen.{' '}
+            <a href={`/klassen/${klassId}`} className="underline">
+              Themen zuweisen
+            </a>
+          </p>
+        ) : (
+          <div className="space-y-8">
+            {assignedThemen.map((thema) => {
+              const themaLernziele = getLernzieleForThema(thema.id)
+              const fach = getFachForThema(thema.id)
+              return (
+                <div key={thema.id}>
+                  <div className="mb-3">
+                    {fach && (
+                      <p className="text-xs text-muted-foreground">{fach.name}</p>
+                    )}
+                    <h3 className="text-sm font-semibold">{thema.name}</h3>
+                  </div>
+                  {themaLernziele.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Keine Lernziele vorhanden.</p>
+                  ) : (
+                    <div className="divide-y divide-border rounded-lg border border-border">
+                      <div className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2 text-xs font-medium text-muted-foreground">
+                        <span>Lernziel</span>
+                        <span>Status</span>
+                      </div>
+                      {themaLernziele.map((lz) => {
+                        const current = student.lernzielStatus[lz.id] ?? 'not_reached'
+                        return (
+                          <div
+                            key={lz.id}
+                            className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-3"
+                          >
+                            <span className="text-sm">{lz.label}</span>
+                            <StatusSelector
+                              studentId={student.id}
+                              itemId={lz.id}
+                              current={current}
+                              onUpdate={updateLernzielStatus}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Section>
+
+      <Separator className="mb-2" />
+
+      {/* Verlauf & Analytics */}
+      <Section
+        title="Verlauf"
+        description="Fortschritt bei den Lernzielen über die Zeit."
+        className="py-8"
+      >
+        <StudentVerlauf
+          student={student}
+          assignedThemen={assignedThemen}
+          lernziele={lernziele}
+          faecher={faecher}
+        />
       </Section>
     </div>
   )
