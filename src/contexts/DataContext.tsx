@@ -65,7 +65,7 @@ interface DataContextValue {
 
   // Thema CRUD
   createThema: (fachId: string, name: string) => void
-  updateThema: (id: string, name: string) => void
+  updateThema: (id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm'>>) => void
   deleteThema: (id: string) => void
 
   // Lernziel CRUD
@@ -246,8 +246,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setThemen((prev) => [...prev, { id: crypto.randomUUID(), fachId, name }])
   }, [])
 
-  const updateThema = useCallback((id: string, name: string) => {
-    setThemen((prev) => prev.map((t) => (t.id === id ? { ...t, name } : t)))
+  const updateThema = useCallback((id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm'>>) => {
+    setThemen((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
   }, [])
 
   const deleteThema = useCallback((id: string) => {

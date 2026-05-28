@@ -2,17 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { Plus, GraduationCap, Users } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { Modal } from '@/components/shared/Modal'
 import type { Klasse, Status } from '@/types/domain'
 
-// ── Helpers ──────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────
 
 function getInitials(name: string) {
   return name
@@ -23,14 +22,14 @@ function getInitials(name: string) {
     .slice(0, 2)
 }
 
-// Aggregate progress bar — uses only foreground / muted-foreground / border tokens
+// Aggregate progress bar
 function ClassProgressBar({ klassId }: { klassId: string }) {
   const { getStudentsForClass, competencies } = useData()
   const students = getStudentsForClass(klassId)
 
   if (students.length === 0) {
     return (
-      <div className="h-1.5 w-full rounded-full bg-muted" title="Keine Schüler" />
+      <div className="h-2 w-full rounded-full bg-muted" title="Keine Schüler" />
     )
   }
 
@@ -42,18 +41,15 @@ function ClassProgressBar({ klassId }: { klassId: string }) {
   const partial = all.filter((s) => s === 'partially_reached').length
 
   return (
-    <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-border">
-      {/* reached: black */}
+    <div className="flex h-2 w-full overflow-hidden rounded-full bg-status-not-reached/15">
       <div
-        className="bg-foreground transition-all"
+        className="bg-status-reached transition-all"
         style={{ width: `${(reached / total) * 100}%` }}
       />
-      {/* partially reached: mid-gray */}
       <div
-        className="bg-muted-foreground transition-all"
+        className="bg-status-partial transition-all"
         style={{ width: `${(partial / total) * 100}%` }}
       />
-      {/* not reached: light-gray (background of the bar) */}
     </div>
   )
 }
@@ -112,32 +108,43 @@ function KlasseFormModal({ open, onOpenChange, initialName = '', onSubmit }: Kla
   )
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────
 
 export default function KlassenPage() {
   const router = useRouter()
-  const { classes, getStudentsForClass, createClass, updateClass, deleteClass } = useData()
+  const { classes, getStudentsForClass, createClass } = useData()
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<Klasse | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Klasse | null>(null)
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 py-8">
+    <div className="mx-auto w-full max-w-7xl px-6 py-5">
       {/* Header row */}
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Klassen</h1>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <PlusIcon />
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Meine Klassen</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {classes.length} {classes.length === 1 ? 'Klasse' : 'Klassen'} insgesamt
+          </p>
+        </div>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus />
           Neue Klasse
         </Button>
       </div>
 
       {/* Empty state */}
       {classes.length === 0 && (
-        <div className="flex flex-col items-center py-20 text-center text-muted-foreground">
-          <p className="text-sm">Noch keine Klassen angelegt.</p>
-          <Button variant="outline" className="mt-4" onClick={() => setCreateOpen(true)}>
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-accent">
+            <GraduationCap className="size-8 text-accent-foreground" />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground">Noch keine Klassen angelegt</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Erstelle deine erste Klasse und füge Schüler hinzu.
+            </p>
+          </div>
+          <Button onClick={() => setCreateOpen(true)}>
             Erste Klasse erstellen
           </Button>
         </div>
@@ -150,44 +157,19 @@ export default function KlassenPage() {
           return (
             <Card
               key={klasse.id}
-              className="cursor-pointer transition-all hover:ring-foreground/25"
+              className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5"
               onClick={() => router.push(`/klassen/${klasse.id}`)}
             >
               <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-lg">{klasse.name}</CardTitle>
-                  {/* Stop propagation so icon buttons don't navigate */}
-                  <div
-                    className="flex shrink-0 gap-0.5"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setEditTarget(klasse)}
-                      aria-label="Bearbeiten"
-                    >
-                      <PencilIcon />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setDeleteTarget(klasse)}
-                      aria-label="Löschen"
-                    >
-                      <Trash2Icon />
-                    </Button>
-                  </div>
+                <CardTitle className="text-lg font-semibold">{klasse.name}</CardTitle>
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Users className="size-3.5" />
+                  <span>{students.length} {students.length === 1 ? 'Schüler' : 'Schüler'}</span>
                 </div>
-                <CardDescription>
-                  {students.length} Schüler{students.length === 1 ? '' : ''}
-                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-1.5">
+              <CardContent className="space-y-2">
                 <ClassProgressBar klassId={klasse.id} />
-                <p className="text-xs text-muted-foreground">
-                  Lernfortschritt gesamt
-                </p>
+                <p className="text-xs text-muted-foreground">Lernfortschritt gesamt</p>
               </CardContent>
             </Card>
           )
@@ -201,23 +183,6 @@ export default function KlassenPage() {
         onSubmit={(name) => createClass(name)}
       />
 
-      {/* Edit modal */}
-      <KlasseFormModal
-        open={!!editTarget}
-        onOpenChange={(open) => { if (!open) setEditTarget(null) }}
-        initialName={editTarget?.name ?? ''}
-        onSubmit={(name) => { if (editTarget) updateClass(editTarget.id, name) }}
-      />
-
-      {/* Delete confirm */}
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
-        title="Klasse löschen"
-        description={`Soll die Klasse „${deleteTarget?.name}" wirklich gelöscht werden? Alle Schüler dieser Klasse werden ebenfalls entfernt.`}
-        confirmLabel="Löschen"
-        onConfirm={() => { if (deleteTarget) deleteClass(deleteTarget.id) }}
-      />
     </div>
   )
 }

@@ -3,6 +3,8 @@ export type Status = 'not_reached' | 'partially_reached' | 'reached'
 export interface StatusSnapshot {
   date: string
   lernzielStatus: Record<string, Status>
+  // When set, only these IDs count toward the denominator (models new themen being added mid-semester)
+  activeLzIds?: string[]
 }
 
 export const STATUS_LABELS: Record<Status, string> = {
@@ -22,6 +24,7 @@ export interface Thema {
   id: string
   fachId: string
   name: string
+  faelligAm?: string  // ISO YYYY-MM-DD — Datum bis wann dieses Thema beherrscht sein soll
 }
 
 export interface Lernziel {
