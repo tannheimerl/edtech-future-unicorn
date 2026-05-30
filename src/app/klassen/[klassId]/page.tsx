@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   Pencil, Plus, UserRound,
   ChevronDown, ChevronRight, Trash2, Check,
-  List, LayoutGrid,
+  List, LayoutGrid, Search, Info,
 } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { ClassAnalytics } from '@/components/analytics/ClassAnalytics'
@@ -18,7 +18,7 @@ import { Breadcrumb } from '@/components/shared/Breadcrumb'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { Modal } from '@/components/shared/Modal'
 import { cn } from '@/lib/utils'
-import type { Schueler } from '@/types/domain'
+import type { Schueler, Lernziel as LernzielType } from '@/types/domain'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -162,6 +162,38 @@ function SettingsCard({ title, children, action }: {
 
 // ── Einstellungen tab ─────────────────────────────────────────────────────
 
+function Highlight({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>
+  const idx = text.toLowerCase().indexOf(query.toLowerCase())
+  if (idx === -1) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-amber-200 text-amber-900 rounded-sm px-px">{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
+  )
+}
+
+function LernzielPopup({ lz, onClose }: { lz: LernzielType; onClose: () => void }) {
+  return (
+    <Modal open onOpenChange={(v) => { if (!v) onClose() }} title={lz.label} size="sm">
+      {(lz.kriterien?.length ?? 0) === 0 ? (
+        <p className="text-sm text-muted-foreground">Keine Kriterien hinterlegt.</p>
+      ) : (
+        <ul className="space-y-2">
+          {lz.kriterien!.map((k, i) => (
+            <li key={i} className="flex items-start gap-2.5 text-sm">
+              <span className="mt-2 size-1.5 rounded-full bg-primary shrink-0" />
+              {k}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Modal>
+  )
+}
+
 function EinstellungenTab({ klassId }: { klassId: string }) {
   const router = useRouter()
   const {
@@ -175,11 +207,31 @@ function EinstellungenTab({ klassId }: { klassId: string }) {
   const [nameValue, setNameValue] = useState(klasse.name)
   const [nameSaved, setNameSaved] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [expandedLZ, setExpandedLZ] = useState<Set<string>>(new Set())
+  const [collapsedFaecher, setCollapsedFaecher] = useState<Set<string>>(new Set())
+  const [collapsedThemen, setCollapsedThemen] = useState<Set<string>>(new Set())
+  const [popupLZ, setPopupLZ] = useState<LernzielType | null>(null)
+  const [search, setSearch] = useState('')
+
+  const q = search.trim().toLowerCase()
 
   const themenByFach = faecher
     .map(f => ({ fach: f, themen: themen.filter(t => t.fachId === f.id) }))
     .filter(f => f.themen.length > 0)
+
+  // Filter: a fach is visible if any child thema or lz matches
+  const filteredData = themenByFach
+    .map(({ fach, themen: fachThemen }) => {
+      const filteredThemen = fachThemen
+        .map(thema => {
+          const filteredLZ = lernziele.filter(lz => lz.themaId === thema.id &&
+            (!q || lz.label.toLowerCase().includes(q) || thema.name.toLowerCase().includes(q) || fach.name.toLowerCase().includes(q))
+          )
+          return { thema, lz: filteredLZ }
+        })
+        .filter(({ thema, lz }) => lz.length > 0 || thema.name.toLowerCase().includes(q) || fach.name.toLowerCase().includes(q))
+      return { fach, themen: filteredThemen }
+    })
+    .filter(({ fach, themen: ft }) => ft.length > 0 || fach.name.toLowerCase().includes(q))
 
   function saveName() {
     if (!nameValue.trim() || nameValue.trim() === klasse.name) return
@@ -189,11 +241,9 @@ function EinstellungenTab({ klassId }: { klassId: string }) {
   }
 
   function toggleLZ(lzId: string) {
-    if (klasse.assignedLernzielIds.includes(lzId)) {
-      removeLernzielFromKlasse(klassId, lzId)
-    } else {
-      assignLernzielToKlasse(klassId, lzId)
-    }
+    klasse.assignedLernzielIds.includes(lzId)
+      ? removeLernzielFromKlasse(klassId, lzId)
+      : assignLernzielToKlasse(klassId, lzId)
   }
 
   function toggleThema(themaLZIds: string[]) {
@@ -205,122 +255,141 @@ function EinstellungenTab({ klassId }: { klassId: string }) {
     }
   }
 
-  function toggleLZExpand(lzId: string) {
-    setExpandedLZ(prev => {
-      const next = new Set(prev)
-      next.has(lzId) ? next.delete(lzId) : next.add(lzId)
-      return next
-    })
+  function toggleFach(fachId: string) {
+    setCollapsedFaecher(prev => { const n = new Set(prev); n.has(fachId) ? n.delete(fachId) : n.add(fachId); return n })
+  }
+
+  function toggleThemaCollapse(themaId: string) {
+    setCollapsedThemen(prev => { const n = new Set(prev); n.has(themaId) ? n.delete(themaId) : n.add(themaId); return n })
   }
 
   return (
     <div className="grid grid-cols-[1fr_300px] gap-5 items-start">
 
-      {/* Left — per-LZ assignment */}
-      <div className="space-y-5">
+      {/* Left — unified tree table */}
+      <div className="space-y-3">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Lernziele, Themen oder Fächer suchen…"
+            className="pl-8 h-8 text-sm"
+          />
+        </div>
+
         {themenByFach.length === 0 ? (
           <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-2">
             <p className="text-sm text-muted-foreground">Noch keine Themen im Lernzielkatalog.</p>
             <a href="/lernziele" className="text-xs text-primary hover:underline">Jetzt anlegen →</a>
           </div>
+        ) : filteredData.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">Keine Ergebnisse für „{search}"</p>
         ) : (
-          themenByFach.map(({ fach, themen: fachThemen }) => (
-            <div key={fach.id} className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-1">
-                {fach.name}
-              </p>
-              {fachThemen.map(thema => {
-                const themaLZ = lernziele.filter(lz => lz.themaId === thema.id)
-                const themaLZIds = themaLZ.map(lz => lz.id)
-                const assignedCount = themaLZIds.filter(id => klasse.assignedLernzielIds.includes(id)).length
-                const allAssigned = assignedCount === themaLZIds.length && themaLZIds.length > 0
-                const someAssigned = assignedCount > 0 && assignedCount < themaLZIds.length
+          <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+            {filteredData.map(({ fach, themen: fachThemen }, fi) => {
+              const fachCollapsed = !q && collapsedFaecher.has(fach.id)
+              const allFachLZIds = fachThemen.flatMap(({ lz }) => lz.map(l => l.id))
+              const fachAssignedCount = allFachLZIds.filter(id => klasse.assignedLernzielIds.includes(id)).length
 
-                return (
-                  <div key={thema.id} className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-                    {/* Thema header */}
-                    <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/20">
-                      <button
-                        onClick={() => toggleThema(themaLZIds)}
-                        className={cn(
-                          'flex size-4 shrink-0 items-center justify-center rounded border-2 transition-all',
-                          allAssigned ? 'border-primary bg-primary' : someAssigned ? 'border-primary bg-primary/20' : 'border-muted-foreground/30 bg-background',
-                        )}
-                        aria-label={allAssigned ? 'Alle abwählen' : 'Alle auswählen'}
-                      >
-                        {allAssigned && <Check className="size-2.5 text-white stroke-[3]" />}
-                        {someAssigned && <span className="block w-2 h-0.5 bg-primary rounded-full" />}
-                      </button>
-                      <span className="text-sm font-semibold flex-1">{thema.name}</span>
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {assignedCount}/{themaLZIds.length} LZ
-                      </span>
-                    </div>
+              return (
+                <div key={fach.id} className={cn(fi > 0 && 'border-t border-border')}>
+                  {/* Fach row */}
+                  <div
+                    className="flex items-center gap-2 px-3 py-1.5 bg-muted/40 cursor-pointer select-none hover:bg-muted/60 transition-colors"
+                    onClick={() => toggleFach(fach.id)}
+                  >
+                    {fachCollapsed
+                      ? <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
+                      : <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
+                    }
+                    <span className="text-xs font-semibold uppercase tracking-wider text-foreground flex-1"><Highlight text={fach.name} query={q} /></span>
+                    <span className="text-xs text-muted-foreground tabular-nums">{fachAssignedCount}/{allFachLZIds.length} LZ</span>
+                  </div>
 
-                    {/* LZ rows */}
-                    <div className="divide-y divide-border">
-                      {themaLZ.map((lz, i) => {
-                        const isAssigned = klasse.assignedLernzielIds.includes(lz.id)
-                        const isExpanded = expandedLZ.has(lz.id)
-                        const hasKriterien = (lz.kriterien?.length ?? 0) > 0
-                        return (
-                          <div key={lz.id}>
-                            <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/30 transition-colors">
+                  {!fachCollapsed && fachThemen.map(({ thema, lz: themaLZ }) => {
+                    const themaLZIds = themaLZ.map(l => l.id)
+                    const assignedCount = themaLZIds.filter(id => klasse.assignedLernzielIds.includes(id)).length
+                    const allAssigned = themaLZIds.length > 0 && assignedCount === themaLZIds.length
+                    const someAssigned = assignedCount > 0 && !allAssigned
+                    const themaCollapsed = !q && collapsedThemen.has(thema.id)
+
+                    return (
+                      <div key={thema.id} className="border-t border-border/60">
+                        {/* Thema row */}
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-background hover:bg-accent/20 transition-colors">
+                          <button
+                            onClick={() => toggleThemaCollapse(thema.id)}
+                            className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {themaCollapsed
+                              ? <ChevronRight className="size-3.5" />
+                              : <ChevronDown className="size-3.5" />
+                            }
+                          </button>
+                          <button
+                            onClick={() => toggleThema(themaLZIds)}
+                            className={cn(
+                              'flex size-3.5 shrink-0 items-center justify-center rounded border-2 transition-all',
+                              allAssigned ? 'border-primary bg-primary' : someAssigned ? 'border-primary bg-primary/20' : 'border-muted-foreground/30 bg-background',
+                            )}
+                          >
+                            {allAssigned && <Check className="size-2 text-white stroke-[3]" />}
+                            {someAssigned && <span className="block w-1.5 h-px bg-primary" />}
+                          </button>
+                          <span className="flex-1 text-xs font-medium text-foreground"><Highlight text={thema.name} query={q} /></span>
+                          <span className="text-xs text-muted-foreground tabular-nums shrink-0">{assignedCount}/{themaLZIds.length}</span>
+                        </div>
+
+                        {/* LZ rows */}
+                        {!themaCollapsed && themaLZ.map(lz => {
+                          const isAssigned = klasse.assignedLernzielIds.includes(lz.id)
+                          const hasKriterien = (lz.kriterien?.length ?? 0) > 0
+                          return (
+                            <div
+                              key={lz.id}
+                              className="flex items-center gap-2 pl-9 pr-3 py-1.5 border-t border-border/40 hover:bg-accent/20 transition-colors group"
+                            >
                               <button
                                 onClick={() => toggleLZ(lz.id)}
                                 className={cn(
                                   'flex size-3.5 shrink-0 items-center justify-center rounded-sm border-2 transition-all',
                                   isAssigned ? 'border-primary bg-primary' : 'border-muted-foreground/30 bg-background',
                                 )}
-                                aria-label={isAssigned ? 'Abwählen' : 'Auswählen'}
                               >
-                                {isAssigned && <Check className="size-2.5 text-white stroke-[3]" />}
+                                {isAssigned && <Check className="size-2 text-white stroke-[3]" />}
                               </button>
-                              <span className="text-xs font-mono text-muted-foreground w-4 shrink-0 select-none">{i + 1}</span>
                               <span
-                                className={cn('flex-1 text-sm cursor-pointer select-none', !isAssigned && 'text-muted-foreground')}
+                                className={cn('flex-1 text-xs cursor-pointer', isAssigned ? 'text-foreground' : 'text-muted-foreground')}
                                 onClick={() => toggleLZ(lz.id)}
                               >
-                                {lz.label}
+                                <Highlight text={lz.label} query={q} />
                               </span>
                               {hasKriterien && (
                                 <button
-                                  onClick={() => toggleLZExpand(lz.id)}
-                                  className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                                  aria-label={isExpanded ? 'Zuklappen' : 'Details anzeigen'}
+                                  onClick={() => setPopupLZ(lz)}
+                                  className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                  aria-label="Details anzeigen"
                                 >
-                                  {isExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                                  <Info className="size-3.5" />
                                 </button>
                               )}
                             </div>
-                            {isExpanded && hasKriterien && (
-                              <div className="px-4 pb-3 bg-muted/20">
-                                <ul className="space-y-1 pl-10">
-                                  {lz.kriterien!.map((k, ki) => (
-                                    <li key={ki} className="flex items-start gap-2 text-xs text-muted-foreground">
-                                      <span className="mt-1.5 size-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
-                                      {k}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ))
+                          )
+                        })}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
 
       {/* Right sidebar */}
       <div className="space-y-4">
-
-        {/* Klassenname */}
         <SettingsCard title="Klassenname">
           <div className="flex gap-2">
             <Input
@@ -342,14 +411,12 @@ function EinstellungenTab({ klassId }: { klassId: string }) {
           </div>
         </SettingsCard>
 
-        {/* Summary */}
         <SettingsCard title="Übersicht">
           <p className="text-xs text-muted-foreground">
             {klasse.assignedLernzielIds.length} Lernziele ausgewählt
           </p>
         </SettingsCard>
 
-        {/* Gefahrenzone */}
         <div className="rounded-2xl border border-red-200 bg-red-50/40 p-4 space-y-3">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-red-700">Gefahrenzone</h3>
           <div className="flex items-center justify-between gap-3">
@@ -360,6 +427,8 @@ function EinstellungenTab({ klassId }: { klassId: string }) {
           </div>
         </div>
       </div>
+
+      {popupLZ && <LernzielPopup lz={popupLZ} onClose={() => setPopupLZ(null)} />}
 
       <ConfirmDialog
         open={deleteOpen}
