@@ -41,62 +41,62 @@ export const SEED_THEMEN: Thema[] = [
 
 export const SEED_LERNZIELE: Lernziel[] = [
   // tde1 – Lesen
-  { id: 'lde1a', themaId: 'tde1', label: 'Texte flüssig und sinngebend vorlesen' },
-  { id: 'lde1b', themaId: 'tde1', label: 'Hauptaussage und wesentliche Details eines Textes verstehen' },
-  { id: 'lde1c', themaId: 'tde1', label: 'Informationen aus Sachtexten entnehmen' },
-  { id: 'lde1d', themaId: 'tde1', label: 'Schlussfolgerungen aus Texten ziehen' },
+  { id: 'lde1a', themaId: 'tde1', label: 'Texte flüssig und sinngebend vorlesen', kriterien: ['Liest laut, deutlich und in angemessenem Tempo', 'Beachtet Satzzeichen und Sinnabschnitte', 'Betont wichtige Wörter korrekt'] },
+  { id: 'lde1b', themaId: 'tde1', label: 'Hauptaussage und wesentliche Details eines Textes verstehen', kriterien: ['Benennt die Hauptaussage in eigenen Worten', 'Unterscheidet wesentliche von nebensächlichen Informationen', 'Beantwortet W-Fragen zum Text'] },
+  { id: 'lde1c', themaId: 'tde1', label: 'Informationen aus Sachtexten entnehmen', kriterien: ['Findet gezielte Informationen im Text', 'Nutzt Überschriften und Bilder als Orientierung', 'Notiert Schlüsselbegriffe'] },
+  { id: 'lde1d', themaId: 'tde1', label: 'Schlussfolgerungen aus Texten ziehen', kriterien: ['Verknüpft Textinformationen logisch', 'Erklärt Ursache-Wirkungs-Zusammenhänge', 'Begründet Schlüsse mit Textstellen'] },
   // tde2 – Schreiben
-  { id: 'lde2a', themaId: 'tde2', label: 'Texte strukturiert und verständlich aufschreiben' },
-  { id: 'lde2b', themaId: 'tde2', label: 'Eigene Erlebnisse und Meinungen schriftlich ausdrücken' },
-  { id: 'lde2c', themaId: 'tde2', label: 'Texte überarbeiten und verbessern' },
+  { id: 'lde2a', themaId: 'tde2', label: 'Texte strukturiert und verständlich aufschreiben', kriterien: ['Gliedert Text in Einleitung, Hauptteil, Schluss', 'Verwendet Absätze sinnvoll', 'Schreibt in vollständigen Sätzen'] },
+  { id: 'lde2b', themaId: 'tde2', label: 'Eigene Erlebnisse und Meinungen schriftlich ausdrücken', kriterien: ['Beschreibt Erlebnisse lebendig und anschaulich', 'Drückt Gefühle und Meinungen klar aus', 'Wählt treffende Ausdrücke'] },
+  { id: 'lde2c', themaId: 'tde2', label: 'Texte überarbeiten und verbessern', kriterien: ['Liest eigene Texte kritisch durch', 'Verbessert Satzbau und Wortwahl', 'Korrigiert Rechtschreibfehler selbstständig'] },
   // tde3 – Sprechen
-  { id: 'lde3a', themaId: 'tde3', label: 'Verständlich und deutlich sprechen' },
-  { id: 'lde3b', themaId: 'tde3', label: 'Zuhören und das Gehörte zusammenfassen' },
-  { id: 'lde3c', themaId: 'tde3', label: 'An Gesprächen sachlich und respektvoll teilnehmen' },
+  { id: 'lde3a', themaId: 'tde3', label: 'Verständlich und deutlich sprechen', kriterien: ['Spricht in angemessener Lautstärke', 'Artikuliert klar und deutlich', 'Hält Blickkontakt beim Sprechen'] },
+  { id: 'lde3b', themaId: 'tde3', label: 'Zuhören und das Gehörte zusammenfassen', kriterien: ['Hört aufmerksam zu ohne zu unterbrechen', 'Fasst Gehörtes in eigenen Worten zusammen', 'Stellt Verständnisfragen'] },
+  { id: 'lde3c', themaId: 'tde3', label: 'An Gesprächen sachlich und respektvoll teilnehmen', kriterien: ['Wartet auf die eigene Redegelegenheit', 'Reagiert auf Beiträge anderer', 'Formuliert Kritik konstruktiv'] },
   // tde4 – Rechtschreibung
-  { id: 'lde4a', themaId: 'tde4', label: 'Sätze grammatikalisch korrekt bilden' },
-  { id: 'lde4b', themaId: 'tde4', label: 'Häufige Wörter fehlerfrei schreiben' },
-  { id: 'lde4c', themaId: 'tde4', label: 'Wortarten erkennen und anwenden' },
+  { id: 'lde4a', themaId: 'tde4', label: 'Sätze grammatikalisch korrekt bilden', kriterien: ['Verwendet Subjekt und Prädikat korrekt', 'Bildet Haupt- und Nebensätze richtig', 'Beachtet Kongruenz zwischen Subjekt und Verb'] },
+  { id: 'lde4b', themaId: 'tde4', label: 'Häufige Wörter fehlerfrei schreiben', kriterien: ['Schreibt Grundwortschatz fehlerfrei', 'Wendet Rechtschreibregeln an', 'Nutzt Wörterbuch zur Kontrolle'] },
+  { id: 'lde4c', themaId: 'tde4', label: 'Wortarten erkennen und anwenden', kriterien: ['Benennt Nomen, Verben, Adjektive korrekt', 'Bestimmt Artikel und Pronomen', 'Wendet Wortarten in eigenen Texten an'] },
   // tma1 – Zahlen
-  { id: 'lma1a', themaId: 'tma1', label: 'Zahlen bis 1 000 000 lesen, schreiben und ordnen' },
-  { id: 'lma1b', themaId: 'tma1', label: 'Schriftlich addieren und subtrahieren' },
-  { id: 'lma1c', themaId: 'tma1', label: 'Schriftlich multiplizieren und dividieren' },
-  { id: 'lma1d', themaId: 'tma1', label: 'Brüche und Dezimalzahlen verstehen und vergleichen' },
+  { id: 'lma1a', themaId: 'tma1', label: 'Zahlen bis 1 000 000 lesen, schreiben und ordnen', kriterien: ['Liest und schreibt sechsstellige Zahlen', 'Ordnet Zahlen auf dem Zahlenstrahl', 'Vergleicht Zahlen mit <, >, ='] },
+  { id: 'lma1b', themaId: 'tma1', label: 'Schriftlich addieren und subtrahieren', kriterien: ['Führt schriftliche Addition mit Übertrag durch', 'Führt schriftliche Subtraktion mit Entbündeln durch', 'Überprüft Ergebnisse durch Proberechnung'] },
+  { id: 'lma1c', themaId: 'tma1', label: 'Schriftlich multiplizieren und dividieren', kriterien: ['Multipliziert mehrstellige Zahlen schriftlich', 'Dividiert mit Rest schriftlich', 'Erkennt Zusammenhang zwischen Multiplikation und Division'] },
+  { id: 'lma1d', themaId: 'tma1', label: 'Brüche und Dezimalzahlen verstehen und vergleichen', kriterien: ['Stellt Brüche als Teile eines Ganzen dar', 'Wandelt einfache Brüche in Dezimalzahlen um', 'Vergleicht und ordnet Dezimalzahlen'] },
   // tma2 – Geometrie
-  { id: 'lma2a', themaId: 'tma2', label: 'Dreiecke und Vierecke benennen und Eigenschaften beschreiben' },
-  { id: 'lma2b', themaId: 'tma2', label: 'Umfang und Flächeninhalt berechnen' },
-  { id: 'lma2c', themaId: 'tma2', label: 'Symmetrien und Spiegelungen erkennen und beschreiben' },
+  { id: 'lma2a', themaId: 'tma2', label: 'Dreiecke und Vierecke benennen und Eigenschaften beschreiben', kriterien: ['Benennt gleichseitig, gleichschenklig, rechtwinklig', 'Beschreibt Eigenschaften von Quadrat, Rechteck, Raute', 'Zeichnet Figuren nach Vorgabe'] },
+  { id: 'lma2b', themaId: 'tma2', label: 'Umfang und Flächeninhalt berechnen', kriterien: ['Berechnet Umfang von Vierecken und Dreiecken', 'Berechnet Flächeninhalt mit Formel', 'Löst Sachaufgaben zu Umfang und Fläche'] },
+  { id: 'lma2c', themaId: 'tma2', label: 'Symmetrien und Spiegelungen erkennen und beschreiben', kriterien: ['Erkennt Achsensymmetrie in Figuren', 'Zeichnet Spiegelbilder an einer Achse', 'Beschreibt Symmetrieeigenschaften von Figuren'] },
   // tma3 – Grössen
-  { id: 'lma3a', themaId: 'tma3', label: 'Grössen messen und umrechnen (Länge, Masse, Zeit)' },
-  { id: 'lma3b', themaId: 'tma3', label: 'Diagramme und Tabellen lesen und erstellen' },
-  { id: 'lma3c', themaId: 'tma3', label: 'Sachaufgaben lösen und den Rechenweg aufzeigen' },
+  { id: 'lma3a', themaId: 'tma3', label: 'Grössen messen und umrechnen (Länge, Masse, Zeit)', kriterien: ['Misst mit geeignetem Messwerkzeug', 'Rechnet zwischen Einheiten um (km↔m, kg↔g)', 'Löst Aufgaben mit gemischten Einheiten'] },
+  { id: 'lma3b', themaId: 'tma3', label: 'Diagramme und Tabellen lesen und erstellen', kriterien: ['Liest Werte aus Balken- und Liniendiagrammen ab', 'Erstellt eigene Diagramme aus Datentabellen', 'Beschreibt Trends und Auffälligkeiten'] },
+  { id: 'lma3c', themaId: 'tma3', label: 'Sachaufgaben lösen und den Rechenweg aufzeigen', kriterien: ['Entnimmt relevante Daten der Aufgabe', 'Wählt passende Rechenoperation', 'Notiert Lösungsweg nachvollziehbar'] },
   // tma4 – Algebra
-  { id: 'lma4a', themaId: 'tma4', label: 'Variable und Terme verstehen und notieren' },
-  { id: 'lma4b', themaId: 'tma4', label: 'Einfache Gleichungen aufstellen und lösen' },
+  { id: 'lma4a', themaId: 'tma4', label: 'Variable und Terme verstehen und notieren', kriterien: ['Erklärt, was eine Variable bedeutet', 'Notiert Terme mit Variablen korrekt', 'Wertet Terme für gegebene Werte aus'] },
+  { id: 'lma4b', themaId: 'tma4', label: 'Einfache Gleichungen aufstellen und lösen', kriterien: ['Stellt Gleichungen aus Sachsituationen auf', 'Löst Gleichungen durch Umformen', 'Überprüft die Lösung durch Einsetzen'] },
   // tnm1 – Lebewesen
-  { id: 'lnm1a', themaId: 'tnm1', label: 'Tiere und Pflanzen in ihren Lebensräumen beschreiben' },
-  { id: 'lnm1b', themaId: 'tnm1', label: 'Nahrungsbeziehungen und Ökosysteme erklären' },
-  { id: 'lnm1c', themaId: 'tnm1', label: 'Anpassungen von Lebewesen an Lebensräume vergleichen' },
+  { id: 'lnm1a', themaId: 'tnm1', label: 'Tiere und Pflanzen in ihren Lebensräumen beschreiben', kriterien: ['Nennt typische Vertreter verschiedener Lebensräume', 'Beschreibt Merkmale und Verhaltensweisen', 'Ordnet Lebewesen ihrem Lebensraum zu'] },
+  { id: 'lnm1b', themaId: 'tnm1', label: 'Nahrungsbeziehungen und Ökosysteme erklären', kriterien: ['Erstellt einfache Nahrungsketten', 'Erklärt Rolle von Produzenten, Konsumenten, Destruenten', 'Beschreibt das Gleichgewicht im Ökosystem'] },
+  { id: 'lnm1c', themaId: 'tnm1', label: 'Anpassungen von Lebewesen an Lebensräume vergleichen', kriterien: ['Nennt körperliche Anpassungen an den Lebensraum', 'Vergleicht Anpassungen verschiedener Arten', 'Begründet Anpassungen mit Umweltbedingungen'] },
   // tnm2 – Körper
-  { id: 'lnm2a', themaId: 'tnm2', label: 'Wichtige Körperorgane und ihre Funktionen beschreiben' },
-  { id: 'lnm2b', themaId: 'tnm2', label: 'Massnahmen zur Gesundheitsförderung begründen' },
+  { id: 'lnm2a', themaId: 'tnm2', label: 'Wichtige Körperorgane und ihre Funktionen beschreiben', kriterien: ['Benennt Herz, Lunge, Magen, Niere und ihre Funktion', 'Erklärt den Blutkreislauf vereinfacht', 'Beschreibt das Verdauungssystem'] },
+  { id: 'lnm2b', themaId: 'tnm2', label: 'Massnahmen zur Gesundheitsförderung begründen', kriterien: ['Nennt Regeln für gesunde Ernährung', 'Erklärt die Bedeutung von Bewegung', 'Begründet Hygienemassnahmen'] },
   // tnm3 – Schweiz
-  { id: 'lnm3a', themaId: 'tnm3', label: 'Wichtige Ereignisse der Schweizer Geschichte einordnen' },
-  { id: 'lnm3b', themaId: 'tnm3', label: 'Karten lesen und geografische Merkmale der Schweiz beschreiben' },
-  { id: 'lnm3c', themaId: 'tnm3', label: 'Politische Grundstrukturen der Schweiz erläutern' },
+  { id: 'lnm3a', themaId: 'tnm3', label: 'Wichtige Ereignisse der Schweizer Geschichte einordnen', kriterien: ['Nennt Gründungsdatum und wichtige Gründer', 'Ordnet Ereignisse auf einer Zeitleiste ein', 'Erklärt die Bedeutung der Reformation'] },
+  { id: 'lnm3b', themaId: 'tnm3', label: 'Karten lesen und geografische Merkmale der Schweiz beschreiben', kriterien: ['Liest Höhenangaben und Legenden aus Karten', 'Benennt Alpen, Mittelland und Jura', 'Nennt Nachbarländer und Landessprachen'] },
+  { id: 'lnm3c', themaId: 'tnm3', label: 'Politische Grundstrukturen der Schweiz erläutern', kriterien: ['Erklärt Bund, Kanton, Gemeinde', 'Beschreibt direkte Demokratie (Abstimmung, Initiative)', 'Nennt wichtige Bundesbehörden'] },
   // tnm4 – Wirtschaft
-  { id: 'lnm4a', themaId: 'tnm4', label: 'Einfache wirtschaftliche Zusammenhänge verstehen' },
-  { id: 'lnm4b', themaId: 'tnm4', label: 'Berufsbilder und Berufswahl beschreiben' },
+  { id: 'lnm4a', themaId: 'tnm4', label: 'Einfache wirtschaftliche Zusammenhänge verstehen', kriterien: ['Erklärt Angebot und Nachfrage', 'Beschreibt den Wirtschaftskreislauf vereinfacht', 'Nennt Beispiele für Import und Export'] },
+  { id: 'lnm4b', themaId: 'tnm4', label: 'Berufsbilder und Berufswahl beschreiben', kriterien: ['Nennt Anforderungen verschiedener Berufe', 'Beschreibt eigene Interessen und Stärken', 'Erklärt Schritte der Berufswahl'] },
   // tfr1 – Hören/Sprechen
-  { id: 'lfr1a', themaId: 'tfr1', label: 'Einfache Sätze und Anweisungen auf Französisch verstehen' },
-  { id: 'lfr1b', themaId: 'tfr1', label: 'Sich vorstellen und über den Alltag auf Französisch berichten' },
-  { id: 'lfr1c', themaId: 'tfr1', label: 'Auf Fragen zu vertrauten Themen antworten' },
+  { id: 'lfr1a', themaId: 'tfr1', label: 'Einfache Sätze und Anweisungen auf Französisch verstehen', kriterien: ['Versteht einfache Anweisungen im Unterricht', 'Erfasst Hauptinformation aus kurzen Hörtexten', 'Erkennt bekannte Vokabeln im Gehörten'] },
+  { id: 'lfr1b', themaId: 'tfr1', label: 'Sich vorstellen und über den Alltag auf Französisch berichten', kriterien: ['Stellt sich mit Name, Alter, Wohnort vor', 'Beschreibt Tagesablauf in einfachen Sätzen', 'Spricht über Hobbys und Familie'] },
+  { id: 'lfr1c', themaId: 'tfr1', label: 'Auf Fragen zu vertrauten Themen antworten', kriterien: ['Beantwortet W-Fragen auf Französisch', 'Verwendet passende Antwortformeln', 'Stellt Rückfragen auf Französisch'] },
   // tfr2 – Lesen
-  { id: 'lfr2a', themaId: 'tfr2', label: 'Einfache Texte sinnverstehend lesen' },
-  { id: 'lfr2b', themaId: 'tfr2', label: 'Bekannte Ausdrücke und Wörter in Texten erkennen' },
+  { id: 'lfr2a', themaId: 'tfr2', label: 'Einfache Texte sinnverstehend lesen', kriterien: ['Versteht die Hauptaussage eines einfachen Textes', 'Beantwortet Verständnisfragen zum Text', 'Erschliesst unbekannte Wörter aus dem Kontext'] },
+  { id: 'lfr2b', themaId: 'tfr2', label: 'Bekannte Ausdrücke und Wörter in Texten erkennen', kriterien: ['Erkennt Vokabeln aus dem Unterricht im Text', 'Findet bestimmte Informationen im Text', 'Markiert bekannte Schlüsselwörter'] },
   // tfr3 – Schreiben (noch nicht fällig)
-  { id: 'lfr3a', themaId: 'tfr3', label: 'Einfache Sätze korrekt auf Französisch aufschreiben' },
-  { id: 'lfr3b', themaId: 'tfr3', label: 'Eine kurze Mitteilung oder Postkarte auf Französisch verfassen' },
+  { id: 'lfr3a', themaId: 'tfr3', label: 'Einfache Sätze korrekt auf Französisch aufschreiben', kriterien: ['Schreibt einfache Sätze fehlerfrei', 'Beachtet Satzstellung im Französischen', 'Verwendet gelernten Wortschatz korrekt'] },
+  { id: 'lfr3b', themaId: 'tfr3', label: 'Eine kurze Mitteilung oder Postkarte auf Französisch verfassen', kriterien: ['Schreibt eine kurze Mitteilung strukturiert auf', 'Verwendet passende Gruss- und Abschiedsformeln', 'Hält sich an Wortschatz und Strukturen aus dem Unterricht'] },
 ]
 
 // ── Klassen ───────────────────────────────────────────────────────────────────
@@ -105,9 +105,9 @@ export const SEED_LERNZIELE: Lernziel[] = [
 // k3 (7c): Deutsch Schreiben · Mathe Algebra · NMG Schweiz+Wirtschaft · Französisch alle
 
 export const SEED_CLASSES: Klasse[] = [
-  { id: 'k1', name: '5a', assignedThemenIds: ['tde1', 'tde2', 'tma1', 'tma2', 'tnm1'] },
-  { id: 'k2', name: '6b', assignedThemenIds: ['tde3', 'tde4', 'tma1', 'tma3', 'tnm2', 'tnm3'] },
-  { id: 'k3', name: '7c', assignedThemenIds: ['tde2', 'tma4', 'tnm3', 'tnm4', 'tfr1', 'tfr2', 'tfr3'] },
+  { id: 'k1', name: '5a', assignedLernzielIds: ['lde1a','lde1b','lde1c','lde1d','lde2a','lde2b','lde2c','lma1a','lma1b','lma1c','lma1d','lma2a','lma2b','lma2c','lnm1a','lnm1b','lnm1c'] },
+  { id: 'k2', name: '6b', assignedLernzielIds: ['lde3a','lde3b','lde3c','lde4a','lde4b','lde4c','lma1a','lma1b','lma1c','lma1d','lma3a','lma3b','lma3c','lnm2a','lnm2b','lnm3a','lnm3b','lnm3c'] },
+  { id: 'k3', name: '7c', assignedLernzielIds: ['lde2a','lde2b','lde2c','lma4a','lma4b','lnm3a','lnm3b','lnm3c','lnm4a','lnm4b','lfr1a','lfr1b','lfr1c','lfr2a','lfr2b','lfr3a','lfr3b'] },
 ]
 
 // ── Schüler ────────────────────────────────────────────────────────────────────

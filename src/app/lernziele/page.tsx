@@ -188,7 +188,7 @@ function ThemaModal({ open, themaId, onClose }: { open: boolean; themaId: string
     themen, faecher, lernziele, classes, getStudentsForClass,
     updateThema, deleteThema,
     createLernziel, updateLernziel, deleteLernziel,
-    assignThemaToKlasse, removeThemaFromKlasse,
+    assignLernzielToKlasse, removeLernzielFromKlasse,
   } = useData()
 
   const thema = themen.find(t => t.id === themaId)
@@ -265,7 +265,7 @@ function ThemaModal({ open, themaId, onClose }: { open: boolean; themaId: string
             <div className="px-4 py-2 space-y-1">
               <SectionLabel>Fälligkeitsdatum</SectionLabel>
               <div className="flex gap-1.5">
-                <Input type="date" value={faelligAm}
+                <Input type="date" lang="de" value={faelligAm}
                   onChange={(e) => updateDate(e.target.value)}
                   className="h-7 text-xs flex-1" />
                 {faelligAm && (
@@ -292,13 +292,14 @@ function ThemaModal({ open, themaId, onClose }: { open: boolean; themaId: string
             ) : (
               <div className="flex flex-wrap gap-1">
                 {classes.map(klasse => {
-                  const isAssigned = klasse.assignedThemenIds.includes(themaId)
+                  const themaLZIds = themaLZ.map(lz => lz.id)
+                  const isAssigned = themaLZIds.length > 0 && themaLZIds.every(id => klasse.assignedLernzielIds.includes(id))
                   const studentCount = getStudentsForClass(klasse.id).length
                   return (
                     <button key={klasse.id}
                       onClick={() => isAssigned
-                        ? removeThemaFromKlasse(klasse.id, themaId)
-                        : assignThemaToKlasse(klasse.id, themaId)
+                        ? themaLZIds.forEach(id => removeLernzielFromKlasse(klasse.id, id))
+                        : themaLZIds.forEach(id => { if (!klasse.assignedLernzielIds.includes(id)) assignLernzielToKlasse(klasse.id, id) })
                       }
                       className={cn(
                         'flex items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-all',
@@ -422,7 +423,8 @@ function ThemaChip({ themaId, onClick }: { themaId: string; onClick: () => void 
   const { themen, lernziele, classes } = useData()
   const thema = themen.find(t => t.id === themaId)!
   const lzCount = lernziele.filter(lz => lz.themaId === themaId).length
-  const classCount = classes.filter(c => c.assignedThemenIds.includes(themaId)).length
+  const themaLZIds = lernziele.filter(lz => lz.themaId === themaId).map(lz => lz.id)
+  const classCount = classes.filter(c => themaLZIds.some(id => c.assignedLernzielIds.includes(id))).length
   const today = new Date().toISOString().slice(0, 10)
   const isFuture = !!(thema.faelligAm && thema.faelligAm > today)
 

@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
-  Pencil, Plus, CircleX, UserRound,
-  BookOpen, ChevronDown, ChevronRight, Trash2, Check,
+  Pencil, Plus, UserRound,
+  ChevronDown, ChevronRight, Trash2, Check,
   List, LayoutGrid,
 } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
@@ -160,84 +160,6 @@ function SettingsCard({ title, children, action }: {
   )
 }
 
-// ── Lernziel-Vorschau accordion ───────────────────────────────────────────
-
-function LernzielVorschau({ klassId }: { klassId: string }) {
-  const { getThemenForKlasse, lernziele, faecher } = useData()
-  const [expandedThemen, setExpandedThemen] = useState<Set<string>>(new Set())
-
-  const assignedThemen = getThemenForKlasse(klassId)
-
-  const byFach = faecher
-    .map(f => ({
-      fach: f,
-      themen: assignedThemen.filter(t => t.fachId === f.id).map(t => ({
-        thema: t,
-        lz: lernziele.filter(lz => lz.themaId === t.id),
-      })),
-    }))
-    .filter(f => f.themen.length > 0)
-
-  if (byFach.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Noch keine Themen zugewiesen. Wähle oben Themen aus.
-      </p>
-    )
-  }
-
-  const totalLZ = byFach.flatMap(f => f.themen).flatMap(t => t.lz).length
-
-  return (
-    <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
-        {totalLZ} LZ · {assignedThemen.length} Themen
-      </p>
-      {byFach.map(({ fach, themen }) => (
-        <div key={fach.id} className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {fach.name}
-          </p>
-          {themen.map(({ thema, lz }) => {
-            const isOpen = expandedThemen.has(thema.id)
-            return (
-              <div key={thema.id} className="rounded-lg border border-border overflow-hidden">
-                <button
-                  className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-left hover:bg-accent transition-colors"
-                  onClick={() => setExpandedThemen(prev => {
-                    const next = new Set(prev)
-                    next.has(thema.id) ? next.delete(thema.id) : next.add(thema.id)
-                    return next
-                  })}
-                >
-                  <span className="text-xs font-medium">{thema.name}</span>
-                  <div className="flex items-center gap-1 shrink-0 text-muted-foreground">
-                    <span className="text-xs">{lz.length} LZ</span>
-                    {isOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-                  </div>
-                </button>
-                {isOpen && (
-                  <div className="border-t border-border divide-y divide-border">
-                    {lz.length === 0
-                      ? <p className="px-3 py-1.5 text-xs text-muted-foreground">Keine Lernziele.</p>
-                      : lz.map((item, i) => (
-                        <div key={item.id} className="flex items-center gap-2 px-3 py-1 bg-muted/30">
-                          <span className="text-xs font-mono text-muted-foreground w-4 shrink-0">{i + 1}</span>
-                          <span className="text-xs">{item.label}</span>
-                        </div>
-                      ))
-                    }
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      ))}
-    </div>
-  )
-}
-
 // ── Einstellungen tab ─────────────────────────────────────────────────────
 
 function EinstellungenTab({ klassId }: { klassId: string }) {
@@ -245,17 +167,16 @@ function EinstellungenTab({ klassId }: { klassId: string }) {
   const {
     getClass, updateClass, deleteClass,
     faecher, themen, lernziele,
-    assignThemaToKlasse, removeThemaFromKlasse,
+    assignLernzielToKlasse, removeLernzielFromKlasse,
   } = useData()
 
   const klasse = getClass(klassId)!
 
-  // Rename state
   const [nameValue, setNameValue] = useState(klasse.name)
   const [nameSaved, setNameSaved] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [expandedLZ, setExpandedLZ] = useState<Set<string>>(new Set())
 
-  // Group all themen by fach (only those that exist in the catalog)
   const themenByFach = faecher
     .map(f => ({ fach: f, themen: themen.filter(t => t.fachId === f.id) }))
     .filter(f => f.themen.length > 0)
@@ -267,61 +188,134 @@ function EinstellungenTab({ klassId }: { klassId: string }) {
     setTimeout(() => setNameSaved(false), 2000)
   }
 
+  function toggleLZ(lzId: string) {
+    if (klasse.assignedLernzielIds.includes(lzId)) {
+      removeLernzielFromKlasse(klassId, lzId)
+    } else {
+      assignLernzielToKlasse(klassId, lzId)
+    }
+  }
+
+  function toggleThema(themaLZIds: string[]) {
+    const allAssigned = themaLZIds.every(id => klasse.assignedLernzielIds.includes(id))
+    if (allAssigned) {
+      themaLZIds.forEach(id => removeLernzielFromKlasse(klassId, id))
+    } else {
+      themaLZIds.forEach(id => { if (!klasse.assignedLernzielIds.includes(id)) assignLernzielToKlasse(klassId, id) })
+    }
+  }
+
+  function toggleLZExpand(lzId: string) {
+    setExpandedLZ(prev => {
+      const next = new Set(prev)
+      next.has(lzId) ? next.delete(lzId) : next.add(lzId)
+      return next
+    })
+  }
+
   return (
     <div className="grid grid-cols-[1fr_300px] gap-5 items-start">
 
-      {/* Left — Themen zuweisen */}
-      <SettingsCard
-        title="Themen zuweisen"
-        action={themenByFach.length === 0
-          ? <a href="/lernziele" className="text-xs text-primary hover:underline">Jetzt anlegen →</a>
-          : undefined
-        }
-      >
+      {/* Left — per-LZ assignment */}
+      <div className="space-y-5">
         {themenByFach.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Noch keine Themen im Lernzielkatalog.</p>
-        ) : (
-          <div className="space-y-4">
-            {themenByFach.map(({ fach, themen: fachThemen }) => (
-              <div key={fach.id} className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {fach.name}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {fachThemen.map(thema => {
-                    const isAssigned = klasse.assignedThemenIds.includes(thema.id)
-                    const lzCount = lernziele.filter(lz => lz.themaId === thema.id).length
-                    return (
-                      <button
-                        key={thema.id}
-                        onClick={() => isAssigned
-                          ? removeThemaFromKlasse(klassId, thema.id)
-                          : assignThemaToKlasse(klassId, thema.id)
-                        }
-                        className={cn(
-                          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all',
-                          isAssigned
-                            ? 'border-primary bg-primary/8 text-primary'
-                            : 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground',
-                        )}
-                      >
-                        <span className={cn(
-                          'flex size-3.5 shrink-0 items-center justify-center rounded-sm border-2 transition-all',
-                          isAssigned ? 'border-primary bg-primary' : 'border-muted-foreground/30',
-                        )}>
-                          {isAssigned && <Check className="size-2.5 text-white stroke-[3]" />}
-                        </span>
-                        {thema.name}
-                        <span className="opacity-50 font-normal">{lzCount} LZ</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
+          <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-2">
+            <p className="text-sm text-muted-foreground">Noch keine Themen im Lernzielkatalog.</p>
+            <a href="/lernziele" className="text-xs text-primary hover:underline">Jetzt anlegen →</a>
           </div>
+        ) : (
+          themenByFach.map(({ fach, themen: fachThemen }) => (
+            <div key={fach.id} className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-1">
+                {fach.name}
+              </p>
+              {fachThemen.map(thema => {
+                const themaLZ = lernziele.filter(lz => lz.themaId === thema.id)
+                const themaLZIds = themaLZ.map(lz => lz.id)
+                const assignedCount = themaLZIds.filter(id => klasse.assignedLernzielIds.includes(id)).length
+                const allAssigned = assignedCount === themaLZIds.length && themaLZIds.length > 0
+                const someAssigned = assignedCount > 0 && assignedCount < themaLZIds.length
+
+                return (
+                  <div key={thema.id} className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+                    {/* Thema header */}
+                    <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/20">
+                      <button
+                        onClick={() => toggleThema(themaLZIds)}
+                        className={cn(
+                          'flex size-4 shrink-0 items-center justify-center rounded border-2 transition-all',
+                          allAssigned ? 'border-primary bg-primary' : someAssigned ? 'border-primary bg-primary/20' : 'border-muted-foreground/30 bg-background',
+                        )}
+                        aria-label={allAssigned ? 'Alle abwählen' : 'Alle auswählen'}
+                      >
+                        {allAssigned && <Check className="size-2.5 text-white stroke-[3]" />}
+                        {someAssigned && <span className="block w-2 h-0.5 bg-primary rounded-full" />}
+                      </button>
+                      <span className="text-sm font-semibold flex-1">{thema.name}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {assignedCount}/{themaLZIds.length} LZ
+                      </span>
+                    </div>
+
+                    {/* LZ rows */}
+                    <div className="divide-y divide-border">
+                      {themaLZ.map((lz, i) => {
+                        const isAssigned = klasse.assignedLernzielIds.includes(lz.id)
+                        const isExpanded = expandedLZ.has(lz.id)
+                        const hasKriterien = (lz.kriterien?.length ?? 0) > 0
+                        return (
+                          <div key={lz.id}>
+                            <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/30 transition-colors">
+                              <button
+                                onClick={() => toggleLZ(lz.id)}
+                                className={cn(
+                                  'flex size-3.5 shrink-0 items-center justify-center rounded-sm border-2 transition-all',
+                                  isAssigned ? 'border-primary bg-primary' : 'border-muted-foreground/30 bg-background',
+                                )}
+                                aria-label={isAssigned ? 'Abwählen' : 'Auswählen'}
+                              >
+                                {isAssigned && <Check className="size-2.5 text-white stroke-[3]" />}
+                              </button>
+                              <span className="text-xs font-mono text-muted-foreground w-4 shrink-0 select-none">{i + 1}</span>
+                              <span
+                                className={cn('flex-1 text-sm cursor-pointer select-none', !isAssigned && 'text-muted-foreground')}
+                                onClick={() => toggleLZ(lz.id)}
+                              >
+                                {lz.label}
+                              </span>
+                              {hasKriterien && (
+                                <button
+                                  onClick={() => toggleLZExpand(lz.id)}
+                                  className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                                  aria-label={isExpanded ? 'Zuklappen' : 'Details anzeigen'}
+                                >
+                                  {isExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                                </button>
+                              )}
+                            </div>
+                            {isExpanded && hasKriterien && (
+                              <div className="px-4 pb-3 bg-muted/20">
+                                <ul className="space-y-1 pl-10">
+                                  {lz.kriterien!.map((k, ki) => (
+                                    <li key={ki} className="flex items-start gap-2 text-xs text-muted-foreground">
+                                      <span className="mt-1.5 size-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
+                                      {k}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ))
         )}
-      </SettingsCard>
+      </div>
 
       {/* Right sidebar */}
       <div className="space-y-4">
@@ -348,16 +342,11 @@ function EinstellungenTab({ klassId }: { klassId: string }) {
           </div>
         </SettingsCard>
 
-        {/* Lernziel-Vorschau */}
-        <SettingsCard
-          title="Lernziel-Vorschau"
-          action={
-            <a href="/lernziele" className="flex items-center gap-1 text-xs text-primary hover:underline">
-              <BookOpen className="size-3" /> Bearbeiten
-            </a>
-          }
-        >
-          <LernzielVorschau klassId={klassId} />
+        {/* Summary */}
+        <SettingsCard title="Übersicht">
+          <p className="text-xs text-muted-foreground">
+            {klasse.assignedLernzielIds.length} Lernziele ausgewählt
+          </p>
         </SettingsCard>
 
         {/* Gefahrenzone */}
@@ -408,15 +397,23 @@ export default function KlasseDetailPage() {
 
   const [tab, setTab] = useState<Tab>('schueler')
   const [sortKey, setSortKey] = useState<SortKey>('name')
+  const [sortOpen, setSortOpen] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Schueler | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Schueler | null>(null)
 
   const todayStr = new Date().toISOString().slice(0, 10)
-  const assignedLZIds = assignedThemen
-    .filter(t => !t.faelligAm || t.faelligAm <= todayStr)
-    .flatMap(t => lernziele.filter(lz => lz.themaId === t.id).map(lz => lz.id))
+  const themaFaelligMap = new Map(themen.map(t => [t.id, t.faelligAm]))
+  const assignedLZIds = klasse
+    ? lernziele
+        .filter(lz => {
+          if (!klasse.assignedLernzielIds.includes(lz.id)) return false
+          const faellig = themaFaelligMap.get(lz.themaId)
+          return !faellig || faellig <= todayStr
+        })
+        .map(lz => lz.id)
+    : []
 
   const sortedStudents = [...students].sort((a, b) => {
     if (sortKey === 'name') return a.name.localeCompare(b.name, 'de')
@@ -482,26 +479,42 @@ export default function KlasseDetailPage() {
             <>
               {/* Sort bar + view toggle */}
               <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-medium text-muted-foreground">Sortieren:</span>
-                  {([
-                    { key: 'name' as SortKey,     label: 'Name' },
-                    { key: 'pct_desc' as SortKey, label: '% beste zuerst' },
-                    { key: 'pct_asc' as SortKey,  label: '% Förderbedarf' },
-                  ]).map(({ key, label }) => (
-                    <button
-                      key={key}
-                      onClick={() => setSortKey(key)}
-                      className={cn(
-                        'px-2.5 py-1 rounded-lg text-xs font-medium transition-all',
-                        sortKey === key
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'bg-muted text-muted-foreground hover:text-foreground',
-                      )}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                <div className="relative">
+                  <button
+                    onClick={() => setSortOpen(o => !o)}
+                    className="flex items-center gap-1 text-sm font-medium"
+                  >
+                    <span className="text-foreground/60">Sortieren:</span>{' '}
+                    <span className="text-primary">
+                      {([
+                        { key: 'name' as SortKey,     label: 'Name' },
+                        { key: 'pct_desc' as SortKey, label: '% beste zuerst' },
+                        { key: 'pct_asc' as SortKey,  label: '% Förderbedarf' },
+                      ]).find(o => o.key === sortKey)?.label}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-primary" />
+                  </button>
+                  {sortOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setSortOpen(false)} />
+                      <div className="absolute left-0 top-full mt-1 z-20 bg-background border border-border rounded-xl shadow-lg py-1 min-w-[180px]">
+                        {([
+                          { key: 'name' as SortKey,     label: 'Name' },
+                          { key: 'pct_desc' as SortKey, label: '% beste zuerst' },
+                          { key: 'pct_asc' as SortKey,  label: '% Förderbedarf' },
+                        ]).map(({ key, label }) => (
+                          <button
+                            key={key}
+                            onClick={() => { setSortKey(key); setSortOpen(false) }}
+                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-left hover:bg-muted transition-colors"
+                          >
+                            <span className={cn('w-4 shrink-0', sortKey === key ? 'visible' : 'invisible')}>✓</span>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-0.5 bg-muted rounded-lg p-0.5 shrink-0">
                   {([
@@ -568,27 +581,10 @@ export default function KlasseDetailPage() {
                           ) : (
                             <span className="text-xs text-muted-foreground">Keine Kompetenzen</span>
                           )}
-                          {assignedLZIds.length > 0 && (
-                            <div className="flex items-center gap-px flex-wrap">
-                              {assignedLZIds.map(id => {
-                                const st = student.lernzielStatus[id] ?? 'not_reached'
-                                return (
-                                  <span
-                                    key={id}
-                                    className={cn('inline-block size-1 rounded-full',
-                                      st === 'reached' ? 'bg-status-reached' :
-                                      st === 'partially_reached' ? 'bg-status-partial' :
-                                      'bg-border',
-                                    )}
-                                  />
-                                )
-                              })}
-                            </div>
-                          )}
                         </div>
                         <div className="flex shrink-0 gap-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon-sm" onClick={() => setEditTarget(student)} aria-label="Bearbeiten"><Pencil /></Button>
-                          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(student)} aria-label="Löschen"><CircleX /></Button>
+                          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(student)} aria-label="Löschen"><Trash2 className="size-3.5" /></Button>
                         </div>
                       </div>
                     )
@@ -633,28 +629,10 @@ export default function KlasseDetailPage() {
                           ) : (
                             <span className="text-xs text-muted-foreground">Keine LZ zugewiesen</span>
                           )}
-                          {competencies.length > 0 && (
-                            <div className="flex items-center gap-px mt-0.5 flex-wrap">
-                              {competencies.map(c => {
-                                const st = student.competencyStatus[c.id] ?? 'not_reached'
-                                return (
-                                  <span
-                                    key={c.id}
-                                    title={c.label}
-                                    className={cn('inline-block size-1 rounded-full',
-                                      st === 'reached' ? 'bg-status-reached' :
-                                      st === 'partially_reached' ? 'bg-status-partial' :
-                                      'bg-border',
-                                    )}
-                                  />
-                                )
-                              })}
-                            </div>
-                          )}
                         </div>
                         <div className="flex shrink-0 gap-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon-sm" onClick={() => setEditTarget(student)} aria-label="Bearbeiten"><Pencil /></Button>
-                          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(student)} aria-label="Löschen"><CircleX /></Button>
+                          <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(student)} aria-label="Löschen"><Trash2 className="size-3.5" /></Button>
                         </div>
                       </div>
                     )

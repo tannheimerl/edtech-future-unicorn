@@ -25,24 +25,6 @@ type Tier = 'all' | 'excellent' | 'progressing' | 'struggling'
 
 // ── Filter bar ─────────────────────────────────────────────────────────────
 
-function Chip({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap',
-        active
-          ? 'bg-primary text-primary-foreground shadow-sm'
-          : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80',
-      )}
-    >
-      {children}
-    </button>
-  )
-}
-
 const TIER_LABELS: Record<Tier, string> = {
   all: 'Alle Schüler',
   excellent: 'Sehr gut ≥75%',
@@ -50,6 +32,13 @@ const TIER_LABELS: Record<Tier, string> = {
   struggling: 'Förderbedarf <25%',
 }
 
+const SELECT_STYLE = {
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat' as const,
+  backgroundPosition: 'right 10px center' as const,
+}
+
+const SELECT_CLS = 'h-9 rounded-lg border border-border bg-card px-3 pr-8 text-sm font-medium text-foreground shadow-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1'
 
 function FilterBar({
   faecher,
@@ -65,29 +54,35 @@ function FilterBar({
   onTierChange: (t: Tier) => void
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card px-4 py-3 shadow-sm flex flex-wrap items-center gap-x-6 gap-y-2">
+    <div className="flex flex-wrap items-center gap-4">
       {faecher.length > 1 && (
-        <div className="flex items-center gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground shrink-0">Fach</p>
-          <div className="flex flex-wrap gap-1.5">
-            <Chip active={selectedFachId === null} onClick={() => onFachChange(null)}>Alle</Chip>
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground shrink-0">Fach</span>
+          <select
+            value={selectedFachId ?? ''}
+            onChange={e => onFachChange(e.target.value || null)}
+            className={SELECT_CLS}
+            style={SELECT_STYLE}
+          >
+            <option value="">Alle</option>
             {faecher.map(f => (
-              <Chip key={f.id} active={selectedFachId === f.id} onClick={() => onFachChange(f.id)}>
-                {f.name}
-              </Chip>
+              <option key={f.id} value={f.id}>{f.name}</option>
             ))}
-          </div>
+          </select>
         </div>
       )}
-      <div className="flex items-center gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground shrink-0">Schüler</p>
-        <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground shrink-0">Schüler</span>
+        <select
+          value={tier}
+          onChange={e => onTierChange(e.target.value as Tier)}
+          className={SELECT_CLS}
+          style={SELECT_STYLE}
+        >
           {(['all', 'excellent', 'progressing', 'struggling'] as Tier[]).map(t => (
-            <Chip key={t} active={tier === t} onClick={() => onTierChange(t)}>
-              {TIER_LABELS[t]}
-            </Chip>
+            <option key={t} value={t}>{TIER_LABELS[t]}</option>
           ))}
-        </div>
+        </select>
       </div>
     </div>
   )

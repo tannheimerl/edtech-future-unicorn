@@ -31,12 +31,13 @@ export interface Lernziel {
   id: string
   themaId: string
   label: string
+  kriterien?: string[]
 }
 
 export interface Klasse {
   id: string
   name: string
-  assignedThemenIds: string[]
+  assignedLernzielIds: string[]
 }
 
 export interface Schueler {

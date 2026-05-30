@@ -54,9 +54,9 @@ interface DataContextValue {
   // Lernziel status
   updateLernzielStatus: (studentId: string, lernzielId: string, status: Status) => void
 
-  // Thema assignment to Klasse
-  assignThemaToKlasse: (klassId: string, themaId: string) => void
-  removeThemaFromKlasse: (klassId: string, themaId: string) => void
+  // Lernziel assignment to Klasse
+  assignLernzielToKlasse: (klassId: string, lernzielId: string) => void
+  removeLernzielFromKlasse: (klassId: string, lernzielId: string) => void
 
   // Fach CRUD
   createFach: (name: string) => void
@@ -104,9 +104,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     (klassId: string) => {
       const klasse = classes.find((c) => c.id === klassId)
       if (!klasse) return []
-      return themen.filter((t) => klasse.assignedThemenIds.includes(t.id))
+      const assignedLzSet = new Set(klasse.assignedLernzielIds)
+      return themen.filter((t) =>
+        lernziele.some((lz) => lz.themaId === t.id && assignedLzSet.has(lz.id))
+      )
     },
-    [classes, themen]
+    [classes, themen, lernziele]
   )
   const getLernzieleForThema = useCallback(
     (themaId: string) => lernziele.filter((l) => l.themaId === themaId),
@@ -124,7 +127,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // ── Class mutations ───────────────────────────────────────────────────
 
   const createClass = useCallback((name: string) => {
-    setClasses((prev) => [...prev, { id: crypto.randomUUID(), name, assignedThemenIds: [] }])
+    setClasses((prev) => [...prev, { id: crypto.randomUUID(), name, assignedLernzielIds: [] }])
   }, [])
 
   const updateClass = useCallback((id: string, name: string) => {
@@ -189,23 +192,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     []
   )
 
-  // ── Thema assignment ──────────────────────────────────────────────────
+  // ── Lernziel assignment ───────────────────────────────────────────────
 
-  const assignThemaToKlasse = useCallback((klassId: string, themaId: string) => {
+  const assignLernzielToKlasse = useCallback((klassId: string, lernzielId: string) => {
     setClasses((prev) =>
       prev.map((c) =>
-        c.id === klassId && !c.assignedThemenIds.includes(themaId)
-          ? { ...c, assignedThemenIds: [...c.assignedThemenIds, themaId] }
+        c.id === klassId && !c.assignedLernzielIds.includes(lernzielId)
+          ? { ...c, assignedLernzielIds: [...c.assignedLernzielIds, lernzielId] }
           : c
       )
     )
   }, [])
 
-  const removeThemaFromKlasse = useCallback((klassId: string, themaId: string) => {
+  const removeLernzielFromKlasse = useCallback((klassId: string, lernzielId: string) => {
     setClasses((prev) =>
       prev.map((c) =>
         c.id === klassId
-          ? { ...c, assignedThemenIds: c.assignedThemenIds.filter((id) => id !== themaId) }
+          ? { ...c, assignedLernzielIds: c.assignedLernzielIds.filter((id) => id !== lernzielId) }
           : c
       )
     )
@@ -230,11 +233,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       })
       return remaining
     })
-    setLernziele((prev) => prev.filter((l) => !themenToDelete.has(l.themaId)))
+    const lzToDelete = new Set<string>()
+    setLernziele((prev) => {
+      const remaining = prev.filter((l) => {
+        if (themenToDelete.has(l.themaId)) { lzToDelete.add(l.id); return false }
+        return true
+      })
+      return remaining
+    })
     setClasses((prev) =>
       prev.map((c) => ({
         ...c,
-        assignedThemenIds: c.assignedThemenIds.filter((tid) => !themenToDelete.has(tid)),
+        assignedLernzielIds: c.assignedLernzielIds.filter((id) => !lzToDelete.has(id)),
       }))
     )
     setFaecher((prev) => prev.filter((f) => f.id !== id))
@@ -251,11 +261,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const deleteThema = useCallback((id: string) => {
-    setLernziele((prev) => prev.filter((l) => l.themaId !== id))
+    let lzIds: string[] = []
+    setLernziele((prev) => {
+      lzIds = prev.filter((l) => l.themaId === id).map((l) => l.id)
+      return prev.filter((l) => l.themaId !== id)
+    })
     setClasses((prev) =>
       prev.map((c) => ({
         ...c,
-        assignedThemenIds: c.assignedThemenIds.filter((tid) => tid !== id),
+        assignedLernzielIds: c.assignedLernzielIds.filter((lid) => !lzIds.includes(lid)),
       }))
     )
     setThemen((prev) => prev.filter((t) => t.id !== id))
@@ -298,8 +312,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         deleteStudent,
         updateCompetencyStatus,
         updateLernzielStatus,
-        assignThemaToKlasse,
-        removeThemaFromKlasse,
+        assignLernzielToKlasse,
+        removeLernzielFromKlasse,
         createFach,
         updateFach,
         deleteFach,
