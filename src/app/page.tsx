@@ -50,9 +50,8 @@ export default function OverviewPage() {
     <div className="mx-auto w-full max-w-7xl px-6 py-4 space-y-4">
 
       {/* Hero */}
-      <div className="flex items-baseline gap-2">
-        <h1 className="text-xl font-bold tracking-tight">Willkommen bei Lenzio</h1>
-        <span className="text-sm text-muted-foreground">Dein Überblick auf einen Blick.</span>
+      <div className="py-6 text-center">
+        <h1 className="text-4xl font-bold tracking-tight">Willkommen, Lukas</h1>
       </div>
 
       {/* Stats — 4 compact chips */}

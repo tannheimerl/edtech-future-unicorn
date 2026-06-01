@@ -314,9 +314,19 @@ export function LernkontrolleTab({ klassId }: { klassId: string }) {
                         className="px-1 py-2 text-center"
                         style={{ width: 44, minWidth: 44 }}
                       >
-                        <span className="text-xs font-semibold text-muted-foreground tabular-nums">
-                          {i + 1}
-                        </span>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-xs font-semibold text-muted-foreground tabular-nums">
+                            {i + 1}
+                          </span>
+                          <span className={cn(
+                            'rounded px-1 text-[8px] font-semibold leading-tight',
+                            lz.kategorie === 'grundlegend'
+                              ? 'bg-sky-100 text-sky-700'
+                              : 'bg-amber-100 text-amber-700',
+                          )}>
+                            {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
+                          </span>
+                        </div>
                       </th>
                     ))}
                     {/* % header */}

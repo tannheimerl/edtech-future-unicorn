@@ -360,6 +360,14 @@ function EinstellungenTab({ klassId }: { klassId: string }) {
                               >
                                 {isAssigned && <Check className="size-2 text-white stroke-[3]" />}
                               </button>
+                              <span className={cn(
+                                'shrink-0 rounded px-1 text-[9px] font-semibold',
+                                lz.kategorie === 'grundlegend'
+                                  ? 'bg-sky-100 text-sky-700'
+                                  : 'bg-amber-100 text-amber-700',
+                              )}>
+                                {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
+                              </span>
                               <span
                                 className={cn('flex-1 text-xs cursor-pointer', isAssigned ? 'text-foreground' : 'text-muted-foreground')}
                                 onClick={() => toggleLZ(lz.id)}

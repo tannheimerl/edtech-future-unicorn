@@ -15,6 +15,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import type { LernzielKategorie } from '@/types/domain'
 
 // ── Create modal ──────────────────────────────────────────────────────────
 
@@ -199,8 +200,10 @@ function ThemaModal({ open, themaId, onClose }: { open: boolean; themaId: string
   const [nameSaved, setNameSaved] = useState(false)
   const [faelligAm, setFaelligAm] = useState(thema?.faelligAm ?? '')
   const [newLZ, setNewLZ] = useState('')
+  const [newLZKategorie, setNewLZKategorie] = useState<LernzielKategorie>('grundlegend')
   const [editLzId, setEditLzId] = useState<string | null>(null)
   const [editLzLabel, setEditLzLabel] = useState('')
+  const [editLzKategorie, setEditLzKategorie] = useState<LernzielKategorie>('grundlegend')
   const [deleteLzId, setDeleteLzId] = useState<string | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
@@ -225,13 +228,13 @@ function ThemaModal({ open, themaId, onClose }: { open: boolean; themaId: string
 
   function addLZ() {
     if (!newLZ.trim()) return
-    createLernziel(themaId, newLZ.trim())
+    createLernziel(themaId, newLZ.trim(), newLZKategorie)
     setNewLZ('')
   }
 
   function saveLZ(id: string) {
     if (!editLzLabel.trim()) return
-    updateLernziel(id, editLzLabel.trim())
+    updateLernziel(id, { label: editLzLabel.trim(), kategorie: editLzKategorie })
     setEditLzId(null)
   }
 
@@ -324,53 +327,96 @@ function ThemaModal({ open, themaId, onClose }: { open: boolean; themaId: string
           </div>
 
           {/* Row 3: Lernziele */}
-          <div className="px-4 py-2 space-y-1.5">
+          <div className="px-4 py-2 space-y-2">
             <SectionLabel>Lernziele — {themaLZ.length}</SectionLabel>
-            {themaLZ.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Noch keine Lernziele vorhanden.</p>
-            ) : (
-              <div className="divide-y divide-border rounded-md border border-border overflow-hidden">
-                {themaLZ.map((lz, i) => (
-                  <div key={lz.id} className="group flex items-center gap-2 bg-background px-3 py-1">
-                    <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">{i + 1}</span>
-                    {editLzId === lz.id ? (
-                      <>
-                        <Input value={editLzLabel}
-                          onChange={(e) => setEditLzLabel(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') saveLZ(lz.id)
-                            if (e.key === 'Escape') setEditLzId(null)
-                          }}
-                          className="h-6 text-xs flex-1 px-1.5" autoFocus />
-                        <Button size="icon-sm" variant="ghost" onClick={() => saveLZ(lz.id)}>
-                          <Check className="size-3 text-emerald-600" />
-                        </Button>
-                        <Button size="icon-sm" variant="ghost" onClick={() => setEditLzId(null)}>
-                          <X className="size-3" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="flex-1 text-xs leading-snug">{lz.label}</span>
-                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                          <Button size="icon-sm" variant="ghost"
-                            onClick={() => { setEditLzId(lz.id); setEditLzLabel(lz.label) }}
-                            aria-label="Bearbeiten">
-                            <PencilLine className="size-3" />
-                          </Button>
-                          <Button size="icon-sm" variant="ghost"
-                            className="text-red-400 hover:text-red-600"
-                            onClick={() => setDeleteLzId(lz.id)} aria-label="Löschen">
-                            <Trash2 className="size-3" />
-                          </Button>
+            {(['grundlegend', 'anspruchsvoll'] as LernzielKategorie[]).map((kat) => {
+              const katLZ = themaLZ.filter(lz => lz.kategorie === kat)
+              return (
+                <div key={kat} className="space-y-1">
+                  <p className={cn(
+                    'text-[10px] font-semibold uppercase tracking-wide px-0.5',
+                    kat === 'grundlegend' ? 'text-sky-600' : 'text-amber-600',
+                  )}>
+                    {kat === 'grundlegend' ? 'Grundlegende Lernziele' : 'Anspruchsvollere Lernziele'}
+                    {katLZ.length > 0 && <span className="ml-1 font-normal normal-case">({katLZ.length})</span>}
+                  </p>
+                  {katLZ.length === 0 ? (
+                    <p className="text-[10px] text-muted-foreground/60 pl-0.5">Noch keine vorhanden.</p>
+                  ) : (
+                    <div className="divide-y divide-border rounded-md border border-border overflow-hidden">
+                      {katLZ.map((lz, i) => (
+                        <div key={lz.id} className="group flex items-center gap-2 bg-background px-3 py-1">
+                          <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">{i + 1}</span>
+                          {editLzId === lz.id ? (
+                            <>
+                              <div className="flex rounded border overflow-hidden shrink-0 h-6">
+                                {(['grundlegend', 'anspruchsvoll'] as LernzielKategorie[]).map(k => (
+                                  <button key={k}
+                                    onClick={() => setEditLzKategorie(k)}
+                                    className={cn(
+                                      'px-1.5 text-[9px] font-medium transition-colors',
+                                      editLzKategorie === k
+                                        ? k === 'grundlegend' ? 'bg-sky-500 text-white' : 'bg-amber-500 text-white'
+                                        : 'bg-background text-muted-foreground hover:bg-muted',
+                                    )}>
+                                    {k === 'grundlegend' ? 'G' : 'A'}
+                                  </button>
+                                ))}
+                              </div>
+                              <Input value={editLzLabel}
+                                onChange={(e) => setEditLzLabel(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveLZ(lz.id)
+                                  if (e.key === 'Escape') setEditLzId(null)
+                                }}
+                                className="h-6 text-xs flex-1 px-1.5" autoFocus />
+                              <Button size="icon-sm" variant="ghost" onClick={() => saveLZ(lz.id)}>
+                                <Check className="size-3 text-emerald-600" />
+                              </Button>
+                              <Button size="icon-sm" variant="ghost" onClick={() => setEditLzId(null)}>
+                                <X className="size-3" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="flex-1 text-xs leading-snug">{lz.label}</span>
+                              <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                <Button size="icon-sm" variant="ghost"
+                                  onClick={() => { setEditLzId(lz.id); setEditLzLabel(lz.label); setEditLzKategorie(lz.kategorie) }}
+                                  aria-label="Bearbeiten">
+                                  <PencilLine className="size-3" />
+                                </Button>
+                                <Button size="icon-sm" variant="ghost"
+                                  className="text-red-400 hover:text-red-600"
+                                  onClick={() => setDeleteLzId(lz.id)} aria-label="Löschen">
+                                  <Trash2 className="size-3" />
+                                </Button>
+                              </div>
+                            </>
+                          )}
                         </div>
-                      </>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {/* Neues Lernziel */}
+            <div className="flex gap-1.5 pt-0.5">
+              <div className="flex rounded border overflow-hidden shrink-0 h-7">
+                {(['grundlegend', 'anspruchsvoll'] as LernzielKategorie[]).map(k => (
+                  <button key={k}
+                    onClick={() => setNewLZKategorie(k)}
+                    className={cn(
+                      'px-2 text-[10px] font-medium transition-colors',
+                      newLZKategorie === k
+                        ? k === 'grundlegend' ? 'bg-sky-500 text-white' : 'bg-amber-500 text-white'
+                        : 'bg-background text-muted-foreground hover:bg-muted',
+                    )}>
+                    {k === 'grundlegend' ? 'G' : 'A'}
+                  </button>
                 ))}
               </div>
-            )}
-            <div className="flex gap-1.5">
               <Input value={newLZ}
                 onChange={(e) => setNewLZ(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addLZ()}

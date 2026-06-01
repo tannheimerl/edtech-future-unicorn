@@ -27,9 +27,12 @@ export interface Thema {
   faelligAm?: string  // ISO YYYY-MM-DD — Datum bis wann dieses Thema beherrscht sein soll
 }
 
+export type LernzielKategorie = 'grundlegend' | 'anspruchsvoll'
+
 export interface Lernziel {
   id: string
   themaId: string
+  kategorie: LernzielKategorie
   label: string
   kriterien?: string[]
 }

@@ -9,7 +9,7 @@
 */
 
 import React, { createContext, useCallback, useContext, useState } from 'react'
-import type { Klasse, Kompetenz, Schueler, Status, Fach, Thema, Lernziel } from '@/types/domain'
+import type { Klasse, Kompetenz, Schueler, Status, Fach, Thema, Lernziel, LernzielKategorie } from '@/types/domain'
 import {
   SEED_CLASSES,
   SEED_COMPETENCIES,
@@ -69,8 +69,8 @@ interface DataContextValue {
   deleteThema: (id: string) => void
 
   // Lernziel CRUD
-  createLernziel: (themaId: string, label: string) => void
-  updateLernziel: (id: string, label: string) => void
+  createLernziel: (themaId: string, label: string, kategorie: LernzielKategorie) => void
+  updateLernziel: (id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie'>>) => void
   deleteLernziel: (id: string) => void
 }
 
@@ -277,12 +277,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // ── Lernziel CRUD ─────────────────────────────────────────────────────
 
-  const createLernziel = useCallback((themaId: string, label: string) => {
-    setLernziele((prev) => [...prev, { id: crypto.randomUUID(), themaId, label }])
+  const createLernziel = useCallback((themaId: string, label: string, kategorie: LernzielKategorie) => {
+    setLernziele((prev) => [...prev, { id: crypto.randomUUID(), themaId, kategorie, label }])
   }, [])
 
-  const updateLernziel = useCallback((id: string, label: string) => {
-    setLernziele((prev) => prev.map((l) => (l.id === id ? { ...l, label } : l)))
+  const updateLernziel = useCallback((id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie'>>) => {
+    setLernziele((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
   }, [])
 
   const deleteLernziel = useCallback((id: string) => {

@@ -61,12 +61,24 @@ function FachKpiCard({
   reached,
   partial,
   total,
+  gPct,
+  gReached,
+  gTotal,
+  aPct,
+  aReached,
+  aTotal,
 }: {
   name: string
   pct: number
   reached: number
   partial: number
   total: number
+  gPct: number
+  gReached: number
+  gTotal: number
+  aPct: number
+  aReached: number
+  aTotal: number
 }) {
   const color = FACH_COLORS[name] ?? '#6366f1'
   const bgCls = FACH_BG[name] ?? 'bg-slate-50 border-slate-100'
@@ -74,7 +86,7 @@ function FachKpiCard({
   const partialPct = total > 0 ? (partial / total) * 100 : 0
 
   return (
-    <div className={cn('rounded-xl border px-4 py-3 min-w-[110px] shadow-sm', bgCls)}>
+    <div className={cn('rounded-xl border px-4 py-3 min-w-[140px] shadow-sm', bgCls)}>
       <p className="text-xs font-medium text-muted-foreground mb-1">{name}</p>
       <p className="text-2xl font-bold tabular-nums leading-none" style={{ color }}>
         {pct}%
@@ -86,6 +98,28 @@ function FachKpiCard({
       <p className="mt-1 text-xs text-muted-foreground tabular-nums">
         {reached} / {total} erreicht
       </p>
+      {(gTotal > 0 || aTotal > 0) && (
+        <div className="mt-2.5 space-y-1.5 border-t border-black/[0.06] pt-2">
+          {gTotal > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="shrink-0 rounded px-1 text-[8px] font-bold bg-sky-100 text-sky-700">G</span>
+              <div className="flex-1 flex h-1 overflow-hidden rounded-full bg-black/10">
+                <div className="h-full transition-all" style={{ width: `${(gReached / gTotal) * 100}%`, background: color }} />
+              </div>
+              <span className="text-[10px] tabular-nums text-muted-foreground w-7 text-right shrink-0">{gPct}%</span>
+            </div>
+          )}
+          {aTotal > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="shrink-0 rounded px-1 text-[8px] font-bold bg-amber-100 text-amber-700">A</span>
+              <div className="flex-1 flex h-1 overflow-hidden rounded-full bg-black/10">
+                <div className="h-full transition-all" style={{ width: `${(aReached / aTotal) * 100}%`, background: color }} />
+              </div>
+              <span className="text-[10px] tabular-nums text-muted-foreground w-7 text-right shrink-0">{aPct}%</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -173,6 +207,7 @@ export default function SchuelerDetailPage() {
 
   const [note, setNote] = useState(student?.note ?? '')
   const [noteSaved, setNoteSaved] = useState(true)
+  const [lzKatFilter, setLzKatFilter] = useState<'all' | 'grundlegend' | 'anspruchsvoll'>('all')
 
   useEffect(() => {
     setNote(student?.note ?? '')
@@ -200,13 +235,23 @@ export default function SchuelerDetailPage() {
   const fachKpis = faecher
     .map((fach) => {
       const fachThemen = assignedThemen.filter((t) => t.fachId === fach.id)
-      const ids = fachThemen.flatMap((t) => getLernzieleForThema(t.id).map((lz) => lz.id))
-      if (ids.length === 0) return null
+      const fachLZ = fachThemen.flatMap((t) => getLernzieleForThema(t.id))
+      if (fachLZ.length === 0) return null
+      const ids = fachLZ.map((lz) => lz.id)
       const reached = ids.filter((id) => student.lernzielStatus[id] === 'reached').length
       const partial = ids.filter((id) => student.lernzielStatus[id] === 'partially_reached').length
       const total = ids.length
       const pct = Math.round(((reached + partial * 0.5) / total) * 100)
-      return { name: fach.name, pct, reached, partial, total }
+      // G/A split
+      const gIds = fachLZ.filter(lz => lz.kategorie === 'grundlegend').map(lz => lz.id)
+      const aIds = fachLZ.filter(lz => lz.kategorie === 'anspruchsvoll').map(lz => lz.id)
+      const gReached = gIds.filter(id => student.lernzielStatus[id] === 'reached').length
+      const aReached = aIds.filter(id => student.lernzielStatus[id] === 'reached').length
+      const gPartial = gIds.filter(id => student.lernzielStatus[id] === 'partially_reached').length
+      const aPartial = aIds.filter(id => student.lernzielStatus[id] === 'partially_reached').length
+      const gPct = gIds.length ? Math.round(((gReached + gPartial * 0.5) / gIds.length) * 100) : 0
+      const aPct = aIds.length ? Math.round(((aReached + aPartial * 0.5) / aIds.length) * 100) : 0
+      return { name: fach.name, pct, reached, partial, total, gPct, gReached, gTotal: gIds.length, aPct, aReached, aTotal: aIds.length }
     })
     .filter((k): k is NonNullable<typeof k> => k !== null)
 
@@ -291,8 +336,39 @@ export default function SchuelerDetailPage() {
             </p>
           ) : (
             <div className="space-y-5">
+              {/* Kategorie-Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground font-medium shrink-0">Kategorie:</span>
+                <div className="flex rounded-lg border border-border overflow-hidden">
+                  {([
+                    { k: 'all' as const, label: 'Alle' },
+                    { k: 'grundlegend' as const, label: 'Grundlegend' },
+                    { k: 'anspruchsvoll' as const, label: 'Anspruchsvoll' },
+                  ]).map(({ k, label }) => (
+                    <button
+                      key={k}
+                      onClick={() => setLzKatFilter(k)}
+                      className={cn(
+                        'px-3 py-1.5 text-xs font-medium transition-colors',
+                        lzKatFilter === k
+                          ? k === 'grundlegend' ? 'bg-sky-500 text-white'
+                            : k === 'anspruchsvoll' ? 'bg-amber-500 text-white'
+                            : 'bg-primary text-primary-foreground'
+                          : 'bg-card text-muted-foreground hover:bg-muted',
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {assignedThemen.map((thema) => {
-                const themaLernziele = getLernzieleForThema(thema.id)
+                const allThemaLernziele = getLernzieleForThema(thema.id)
+                const themaLernziele = lzKatFilter === 'all'
+                  ? allThemaLernziele
+                  : allThemaLernziele.filter(lz => lz.kategorie === lzKatFilter)
+                if (themaLernziele.length === 0) return null
                 const fach = getFachForThema(thema.id)
                 return (
                   <div key={thema.id}>
@@ -312,7 +388,17 @@ export default function SchuelerDetailPage() {
                           const current = student.lernzielStatus[lz.id] ?? 'not_reached'
                           return (
                             <div key={lz.id} className="flex items-center justify-between gap-4 px-3 py-2.5">
-                              <span className="text-sm leading-snug min-w-0">{lz.label}</span>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className={cn(
+                                  'shrink-0 rounded px-1 text-[9px] font-semibold',
+                                  lz.kategorie === 'grundlegend'
+                                    ? 'bg-sky-100 text-sky-700'
+                                    : 'bg-amber-100 text-amber-700',
+                                )}>
+                                  {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
+                                </span>
+                                <span className="text-sm leading-snug">{lz.label}</span>
+                              </div>
                               <StatusSelector
                                 studentId={student.id}
                                 itemId={lz.id}

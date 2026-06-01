@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import type { Schueler, Thema, Lernziel, Fach, Kompetenz, Status } from '@/types/domain'
+import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach, Kompetenz, Status } from '@/types/domain'
 import { STATUS_LABELS } from '@/types/domain'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -22,6 +22,7 @@ function formatDate(iso: string): string {
 }
 
 type Tier = 'all' | 'excellent' | 'progressing' | 'struggling'
+type KatFilter = 'all' | 'grundlegend' | 'anspruchsvoll'
 
 // ── Filter bar ─────────────────────────────────────────────────────────────
 
@@ -30,6 +31,12 @@ const TIER_LABELS: Record<Tier, string> = {
   excellent: 'Sehr gut ≥75%',
   progressing: 'Im Aufbau 25–74%',
   struggling: 'Förderbedarf <25%',
+}
+
+const KAT_LABELS: Record<KatFilter, string> = {
+  all: 'Alle',
+  grundlegend: 'Grundlegend',
+  anspruchsvoll: 'Anspruchsvoll',
 }
 
 const SELECT_STYLE = {
@@ -46,12 +53,16 @@ function FilterBar({
   onFachChange,
   tier,
   onTierChange,
+  katFilter,
+  onKatChange,
 }: {
   faecher: Fach[]
   selectedFachId: string | null
   onFachChange: (id: string | null) => void
   tier: Tier
   onTierChange: (t: Tier) => void
+  katFilter: KatFilter
+  onKatChange: (k: KatFilter) => void
 }) {
   return (
     <div className="flex flex-wrap items-center gap-4">
@@ -83,6 +94,27 @@ function FilterBar({
             <option key={t} value={t}>{TIER_LABELS[t]}</option>
           ))}
         </select>
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground shrink-0">Kategorie</span>
+        <div className="flex rounded-lg border border-border overflow-hidden h-9">
+          {(['all', 'grundlegend', 'anspruchsvoll'] as KatFilter[]).map(k => (
+            <button
+              key={k}
+              onClick={() => onKatChange(k)}
+              className={cn(
+                'px-3 text-sm font-medium transition-colors',
+                katFilter === k
+                  ? k === 'grundlegend' ? 'bg-sky-500 text-white'
+                    : k === 'anspruchsvoll' ? 'bg-amber-500 text-white'
+                    : 'bg-primary text-primary-foreground'
+                  : 'bg-card text-muted-foreground hover:bg-muted',
+              )}
+            >
+              {KAT_LABELS[k]}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -243,8 +275,8 @@ function ScoreRow({ rank, name, score, variant }: {
 
 // ── Lernziel bar row ────────────────────────────────────────────────────────
 
-function LZRow({ label, reached, partial, total, highlight }: {
-  label: string; reached: number; partial: number; total: number; highlight?: 'hard' | 'easy'
+function LZRow({ label, kategorie, reached, partial, total, highlight }: {
+  label: string; kategorie: LernzielKategorie; reached: number; partial: number; total: number; highlight?: 'hard' | 'easy'
 }) {
   const pct = total === 0 ? 0 : Math.round(((reached + partial * 0.5) / total) * 100)
   return (
@@ -256,6 +288,12 @@ function LZRow({ label, reached, partial, total, highlight }: {
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           {highlight === 'hard' && <span className="shrink-0 text-red-500 text-xs font-bold">↓</span>}
           {highlight === 'easy' && <span className="shrink-0 text-emerald-600 text-xs font-bold">↑</span>}
+          <span className={cn(
+            'shrink-0 rounded px-1 text-[8px] font-bold',
+            kategorie === 'grundlegend' ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700',
+          )}>
+            {kategorie === 'grundlegend' ? 'G' : 'A'}
+          </span>
           <span className="text-xs truncate">{label}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
@@ -332,6 +370,12 @@ function HeatMap({ students, lernziele }: { students: Schueler[]; lernziele: Ler
             <th className="px-3 py-1.5 text-left font-medium text-muted-foreground whitespace-nowrap">Schüler</th>
             {lernziele.map(lz => (
               <th key={lz.id} className="px-2 py-1.5 font-normal text-muted-foreground text-center" style={{ maxWidth: 80 }}>
+                <span className={cn(
+                  'inline-block rounded px-1 text-[8px] font-bold mb-0.5',
+                  lz.kategorie === 'grundlegend' ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700',
+                )}>
+                  {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
+                </span>
                 <span className="block truncate" style={{ maxWidth: 80 }} title={lz.label}>
                   {lz.label.length > 16 ? lz.label.slice(0, 16) + '…' : lz.label}
                 </span>
@@ -402,6 +446,7 @@ interface ClassAnalyticsProps {
 export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, competencies }: ClassAnalyticsProps) {
   const [selectedFachId, setSelectedFachId] = useState<string | null>(null)
   const [tier, setTier] = useState<Tier>('all')
+  const [katFilter, setKatFilter] = useState<KatFilter>('all')
   const snapKey = `class-snaps-${klassId}`
   const [snaps, setSnaps] = useState<ClassSnap[]>(() => {
     try {
@@ -427,7 +472,8 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
   const scopedThemen = selectedFachId
     ? activeThemen.filter(t => t.fachId === selectedFachId)
     : activeThemen
-  const scopedLZ = scopedThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
+  const allScopedLZ = scopedThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
+  const scopedLZ = katFilter === 'all' ? allScopedLZ : allScopedLZ.filter(lz => lz.kategorie === katFilter)
   const scopedLZIds = scopedLZ.map(lz => lz.id)
 
   // ── All LZ (for global tier classification — active only) ─────────────────
@@ -454,6 +500,18 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
 
   const n = scopeScored.length
   const avgScore = n ? scopeScored.reduce((s, x) => s + x.score, 0) / n : 0
+
+  // ── G/A split stats (always on full Fach scope for comparison viz) ─────────
+  const grundIds = allScopedLZ.filter(lz => lz.kategorie === 'grundlegend').map(lz => lz.id)
+  const ansprIds = allScopedLZ.filter(lz => lz.kategorie === 'anspruchsvoll').map(lz => lz.id)
+  const avgGrund = n ? Math.round(tierStudents.reduce((s, x) => s + studentLZScore(x, grundIds), 0) / n) : 0
+  const avgAnsp  = n ? Math.round(tierStudents.reduce((s, x) => s + studentLZScore(x, ansprIds), 0) / n) : 0
+  const grundReached = grundIds.reduce((s, id) => s + tierStudents.filter(x => x.lernzielStatus[id] === 'reached').length, 0)
+  const grundPartial = grundIds.reduce((s, id) => s + tierStudents.filter(x => x.lernzielStatus[id] === 'partially_reached').length, 0)
+  const grundTotal   = grundIds.length * n
+  const ansprReached = ansprIds.reduce((s, id) => s + tierStudents.filter(x => x.lernzielStatus[id] === 'reached').length, 0)
+  const ansprPartial = ansprIds.reduce((s, id) => s + tierStudents.filter(x => x.lernzielStatus[id] === 'partially_reached').length, 0)
+  const ansprTotal   = ansprIds.length * n
 
   // ── KPI tier counts (always based on all students, all LZ) ───────────────
   const excellent = allScored.filter(s => s.allScore >= 75).length
@@ -544,6 +602,8 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
         onFachChange={(id) => { setSelectedFachId(id); }}
         tier={tier}
         onTierChange={setTier}
+        katFilter={katFilter}
+        onKatChange={setKatFilter}
       />
 
       {/* Future themen notice */}
@@ -617,6 +677,57 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
           color={fullyDone > 0 ? 'text-emerald-600' : 'text-muted-foreground'}
         />
       </div>
+
+      {/* G vs A Vergleich — nur wenn keine Kategorie gefiltert und beide Typen vorhanden */}
+      {katFilter === 'all' && grundIds.length > 0 && ansprIds.length > 0 && (
+        <div className="grid grid-cols-2 gap-4">
+          {[
+            {
+              kat: 'Grundlegende Lernziele',
+              badge: 'G',
+              count: grundIds.length,
+              avg: avgGrund,
+              reached: grundReached,
+              partial: grundPartial,
+              total: grundTotal,
+              border: 'border-sky-100',
+              bg: 'bg-sky-50/50',
+              badge_cls: 'bg-sky-100 text-sky-700',
+              pct_cls: avgGrund >= 75 ? 'text-emerald-600' : avgGrund >= 25 ? 'text-amber-600' : 'text-red-500',
+            },
+            {
+              kat: 'Anspruchsvollere Lernziele',
+              badge: 'A',
+              count: ansprIds.length,
+              avg: avgAnsp,
+              reached: ansprReached,
+              partial: ansprPartial,
+              total: ansprTotal,
+              border: 'border-amber-100',
+              bg: 'bg-amber-50/50',
+              badge_cls: 'bg-amber-100 text-amber-700',
+              pct_cls: avgAnsp >= 75 ? 'text-emerald-600' : avgAnsp >= 25 ? 'text-amber-600' : 'text-red-500',
+            },
+          ].map(({ kat, badge, count, avg, reached, partial, total, border, bg, badge_cls, pct_cls }) => (
+            <div key={kat} className={cn('rounded-2xl border p-5 shadow-sm space-y-3', border, bg)}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-0.5">
+                  <span className={cn('inline-block rounded px-1.5 py-0.5 text-[10px] font-bold', badge_cls)}>{badge}</span>
+                  <p className="text-xs font-semibold text-foreground">{kat}</p>
+                  <p className="text-xs text-muted-foreground">{count} Ziele</p>
+                </div>
+                <p className={cn('text-3xl font-bold tabular-nums shrink-0', pct_cls)}>{avg}%</p>
+              </div>
+              <StackedBar reached={reached} partial={partial} total={total} h="h-2" />
+              <div className="flex gap-3 text-xs text-muted-foreground">
+                <span className="text-emerald-600 font-medium">{reached} ✓</span>
+                {partial > 0 && <span className="text-amber-600">{partial} ~</span>}
+                {total - reached - partial > 0 && <span>{total - reached - partial} ✗</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 2-column main content */}
       <div className="grid grid-cols-2 gap-5 items-start">
@@ -733,6 +844,7 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
                   <LZRow
                     key={lz.id}
                     label={lz.label}
+                    kategorie={lz.kategorie}
                     reached={reached}
                     partial={partial}
                     total={tierStudents.length}
