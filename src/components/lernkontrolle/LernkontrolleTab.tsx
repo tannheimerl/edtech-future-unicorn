@@ -1,91 +1,48 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Check, Minus, X, CheckCheck, ClipboardList, ChevronDown } from 'lucide-react'
+import { useState } from 'react'
+import { Check, Minus, X, ClipboardList } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { cn } from '@/lib/utils'
 import type { Status } from '@/types/domain'
 
-const STATUS_OPTIONS: { value: Status; label: string; icon: React.ReactNode; bg: string; text: string }[] = [
-  {
-    value: 'reached',
-    label: 'Erreicht',
-    icon: <Check className="size-3.5 stroke-[2.5]" />,
-    bg: 'bg-emerald-100 hover:bg-emerald-200',
-    text: 'text-emerald-700',
-  },
-  {
-    value: 'partially_reached',
-    label: 'Teilweise',
-    icon: <Minus className="size-3.5 stroke-[2.5]" />,
-    bg: 'bg-amber-100 hover:bg-amber-200',
-    text: 'text-amber-700',
-  },
-  {
-    value: 'not_reached',
-    label: 'Nicht erreicht',
-    icon: <X className="size-3 stroke-[2]" />,
-    bg: 'bg-red-100 hover:bg-red-200',
-    text: 'text-red-500',
-  },
-]
-
-function statusBg(status: Status) {
-  return status === 'reached'
-    ? 'bg-emerald-100 text-emerald-700'
-    : status === 'partially_reached'
-    ? 'bg-amber-100 text-amber-700'
-    : 'bg-red-100 text-red-500'
+function nextStatus(current: Status | undefined): Status | undefined {
+  if (current === undefined) return 'reached'
+  if (current === 'reached') return 'partially_reached'
+  if (current === 'partially_reached') return 'not_reached'
+  return undefined
 }
 
 function StatusCell({
   status,
   onSelect,
 }: {
-  status: Status
-  onSelect: (s: Status) => void
+  status: Status | undefined
+  onSelect: (s: Status | undefined) => void
 }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
   return (
-    <div
-      ref={ref}
-      className="relative flex justify-center"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
+    <div className="flex justify-center">
       <button
+        onClick={() => onSelect(nextStatus(status))}
+        title={
+          status === 'reached' ? 'Erreicht'
+          : status === 'partially_reached' ? 'Teilweise erreicht'
+          : status === 'not_reached' ? 'Nicht erreicht'
+          : 'Nicht bewertet'
+        }
         className={cn(
           'w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer',
-          statusBg(status),
+          status === 'reached' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' :
+          status === 'partially_reached' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' :
+          status === 'not_reached' ? 'bg-red-100 text-red-500 hover:bg-red-200' :
+          'bg-slate-100 text-slate-400 hover:bg-slate-200',
         )}
       >
-        {status === 'reached'
-          ? <Check className="size-3.5 stroke-[2.5]" />
-          : status === 'partially_reached'
-          ? <Minus className="size-3.5 stroke-[2.5]" />
-          : <X className="size-3 stroke-[2]" />}
+        {status === 'reached' && <Check className="size-3.5 stroke-[2.5]" />}
+        {status === 'partially_reached' && <Minus className="size-3.5 stroke-[2.5]" />}
+        {status === 'not_reached' && <X className="size-3 stroke-[2]" />}
+        {status === undefined && <span className="size-2 rounded-full bg-slate-300" />}
       </button>
-
-      {open && (
-        <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 z-50 flex flex-row gap-1 rounded-xl border border-border bg-popover p-1 shadow-lg">
-          {STATUS_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => { onSelect(opt.value); setOpen(false) }}
-              className={cn(
-                'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
-                opt.bg,
-                opt.text,
-                status === opt.value && 'ring-1 ring-inset ring-current',
-              )}
-            >
-              {opt.icon}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -105,7 +62,6 @@ export function LernkontrolleTab({ klassId }: { klassId: string }) {
   const [selectedThemaId, setSelectedThemaId] = useState<string | null>(
     assignedThemen.length > 0 ? assignedThemen[0].id : null,
   )
-  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set())
 
   const themenByFach = faecher
     .map(f => ({ fach: f, themen: assignedThemen.filter(t => t.fachId === f.id) }))
@@ -139,36 +95,6 @@ export function LernkontrolleTab({ klassId }: { klassId: string }) {
     )
   }
 
-  function setAllReached(studentId: string) {
-    lernziele.forEach(lz => updateLernzielStatus(studentId, lz.id, 'reached'))
-  }
-
-  function setAllNotReached(studentId: string) {
-    lernziele.forEach(lz => updateLernzielStatus(studentId, lz.id, 'not_reached'))
-  }
-
-  function applyBulkStatus(status: Status) {
-    selectedStudents.forEach(studentId => {
-      lernziele.forEach(lz => updateLernzielStatus(studentId, lz.id, status))
-    })
-  }
-
-  function toggleStudent(id: string) {
-    setSelectedStudents(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
-
-  function toggleAll() {
-    if (selectedStudents.size === sortedStudents.length) {
-      setSelectedStudents(new Set())
-    } else {
-      setSelectedStudents(new Set(sortedStudents.map(s => s.id)))
-    }
-  }
-
   function lzReachedPct(lzId: string): number {
     if (students.length === 0) return 0
     const sum = students.reduce((acc, s) => {
@@ -189,45 +115,9 @@ export function LernkontrolleTab({ klassId }: { klassId: string }) {
   }
 
   const fachLabel = selectedThema ? (getFachForThema(selectedThema.id)?.name ?? '') : ''
-  const allChecked = sortedStudents.length > 0 && selectedStudents.size === sortedStudents.length
-  const someChecked = selectedStudents.size > 0 && !allChecked
-  const hasBulk = selectedStudents.size > 0
 
   return (
     <div className="space-y-4">
-
-      {/* Floating bulk action bar */}
-      {hasBulk && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-full border border-border bg-card/95 backdrop-blur px-3 py-1.5 shadow-lg">
-          <span className="text-xs text-muted-foreground pr-1 whitespace-nowrap">
-            {selectedStudents.size} ausgewählt
-          </span>
-          <div className="w-px h-4 bg-border" />
-          {STATUS_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => applyBulkStatus(opt.value)}
-              title={opt.label}
-              className={cn(
-                'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap',
-                opt.bg,
-                opt.text,
-              )}
-            >
-              {opt.icon}
-              {opt.label}
-            </button>
-          ))}
-          <div className="w-px h-4 bg-border" />
-          <button
-            onClick={() => setSelectedStudents(new Set())}
-            className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            title="Abbrechen"
-          >
-            <X className="size-3.5" />
-          </button>
-        </div>
-      )}
 
       {/* Thema selector */}
       <div className="flex flex-col gap-2 flex-wrap max-w-[640px]">
@@ -236,7 +126,7 @@ export function LernkontrolleTab({ klassId }: { klassId: string }) {
         </span>
         <select
           value={selectedThemaId ?? ''}
-          onChange={e => { setSelectedThemaId(e.target.value || null); setSelectedStudents(new Set()) }}
+          onChange={e => setSelectedThemaId(e.target.value || null)}
           className="h-9 rounded-lg border border-border bg-card px-3 pr-8 text-sm font-medium text-foreground shadow-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 min-w-52"
           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
         >
@@ -272,6 +162,9 @@ export function LernkontrolleTab({ klassId }: { klassId: string }) {
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
+                <span className="inline-block size-2.5 rounded-sm bg-slate-200" /> –
+              </span>
+              <span className="flex items-center gap-1">
                 <span className="inline-block size-2.5 rounded-sm bg-emerald-200" /> Erreicht
               </span>
               <span className="flex items-center gap-1">
@@ -290,71 +183,35 @@ export function LernkontrolleTab({ klassId }: { klassId: string }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse" style={{ minWidth: `${260 + lernziele.length * 44 + 80}px` }}>
+              <table className="border-collapse w-max min-w-full">
                 <thead>
                   <tr className="border-b border-border bg-muted/20">
-                    {/* checkbox header */}
-                    <th className="sticky left-0 z-10 bg-muted/20 px-3 py-2 w-8 min-w-8">
-                      <input
-                        type="checkbox"
-                        checked={allChecked}
-                        ref={el => { if (el) el.indeterminate = someChecked }}
-                        onChange={toggleAll}
-                        className="size-3.5 rounded cursor-pointer accent-foreground"
-                      />
-                    </th>
-                    {/* sticky name header */}
-                    <th className="sticky left-8 z-10 bg-muted/20 text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-44 min-w-44">
-                      Schüler/in
-                    </th>
-                    {/* LZ headers */}
-                    {lernziele.map((lz, i) => (
+                    <th className="sticky left-0 z-10 bg-muted/20 w-44 min-w-44" />
+                    {/* LZ headers — wrapped text */}
+                    {lernziele.map((lz) => (
                       <th
                         key={lz.id}
-                        className="px-1 py-2 text-center"
-                        style={{ width: 44, minWidth: 44 }}
+                        className="bg-muted/20 px-2 py-3 text-left align-top"
+                        style={{ width: 90, minWidth: 90 }}
                       >
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-xs font-semibold text-muted-foreground tabular-nums">
-                            {i + 1}
-                          </span>
+                        <div className="flex flex-col gap-1">
                           <span className={cn(
-                            'rounded px-1 text-[8px] font-semibold leading-tight',
-                            lz.kategorie === 'grundlegend'
-                              ? 'bg-sky-100 text-sky-700'
-                              : 'bg-amber-100 text-amber-700',
+                            'self-start rounded px-1 py-px text-[9px] font-semibold',
+                            lz.kategorie === 'grundlegend' ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700',
                           )}>
                             {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                           </span>
+                          <span className="text-xs font-medium text-foreground leading-snug">{lz.label}</span>
                         </div>
                       </th>
                     ))}
                     {/* % header */}
-                    <th className="sticky right-0 z-10 bg-muted/20 px-3 py-2 text-center text-xs font-semibold text-muted-foreground w-16 min-w-16">
+                    <th
+                      className="sticky right-0 z-10 bg-muted/20 px-3 text-center text-xs font-semibold text-muted-foreground w-16 min-w-16"
+                      style={{ verticalAlign: 'bottom', paddingBottom: 8 }}
+                    >
                       %
                     </th>
-                    {/* quick action header */}
-                    <th className="px-2 py-2 w-10 min-w-10" />
-                  </tr>
-                  {/* LZ label row */}
-                  <tr className="border-b border-border bg-card">
-                    <td className="sticky left-0 z-10 bg-card px-3 py-1.5" />
-                    <td className="sticky left-8 z-10 bg-card px-3 py-1.5 text-xs text-muted-foreground italic">
-                      Lernziel-Beschreibung:
-                    </td>
-                    {lernziele.map(lz => (
-                      <td key={lz.id} className="px-1 py-1.5" title={lz.label}>
-                        <div
-                          className="w-8 text-[9px] text-muted-foreground text-center leading-tight line-clamp-2 mx-auto"
-                          style={{ wordBreak: 'break-word' }}
-                          title={lz.label}
-                        >
-                          {lz.label.slice(0, 18)}{lz.label.length > 18 ? '…' : ''}
-                        </div>
-                      </td>
-                    ))}
-                    <td className="sticky right-0 z-10 bg-card" />
-                    <td />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -364,37 +221,16 @@ export function LernkontrolleTab({ klassId }: { klassId: string }) {
                       pct >= 75 ? 'text-emerald-600' :
                       pct >= 40 ? 'text-amber-600' :
                       'text-red-500'
-                    const isSelected = selectedStudents.has(student.id)
+                    const rowBg = rowIdx % 2 === 0 ? 'bg-card' : 'bg-muted/10'
                     return (
-                      <tr
-                        key={student.id}
-                        className={cn(
-                          'transition-colors',
-                          isSelected ? 'bg-accent/20' : rowIdx % 2 === 0 ? 'bg-card' : 'bg-muted/10',
-                        )}
-                      >
-                        {/* checkbox */}
-                        <td className={cn(
-                          'sticky left-0 z-10 px-3 py-1.5',
-                          isSelected ? 'bg-accent/20' : rowIdx % 2 === 0 ? 'bg-card' : 'bg-muted/10',
-                        )}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleStudent(student.id)}
-                            className="size-3.5 rounded cursor-pointer accent-foreground"
-                          />
-                        </td>
+                      <tr key={student.id} className={cn('transition-colors', rowBg)}>
                         {/* name */}
-                        <td className={cn(
-                          'sticky left-8 z-10 px-3 py-1.5 text-sm font-medium',
-                          isSelected ? 'bg-accent/20' : rowIdx % 2 === 0 ? 'bg-card' : 'bg-muted/10',
-                        )}>
+                        <td className={cn('sticky left-0 z-10 px-3 py-1.5 text-sm font-medium', rowBg)}>
                           {student.name}
                         </td>
                         {/* status cells */}
                         {lernziele.map(lz => {
-                          const status: Status = student.lernzielStatus[lz.id] ?? 'not_reached'
+                          const status = student.lernzielStatus[lz.id] as Status | undefined
                           return (
                             <td key={lz.id} className="px-1 py-1.5 text-center">
                               <StatusCell
@@ -405,10 +241,7 @@ export function LernkontrolleTab({ klassId }: { klassId: string }) {
                           )
                         })}
                         {/* % */}
-                        <td className={cn(
-                          'sticky right-0 z-10 px-3 py-1.5 text-center',
-                          isSelected ? 'bg-accent/20' : rowIdx % 2 === 0 ? 'bg-card' : 'bg-muted/10',
-                        )}>
+                        <td className={cn('sticky right-0 z-10 px-3 py-1.5 text-center', rowBg)}>
                           <span className={cn('text-xs font-bold tabular-nums', pctColor)}>
                             {pct}%
                           </span>
@@ -420,8 +253,7 @@ export function LernkontrolleTab({ klassId }: { klassId: string }) {
                 {/* summary footer */}
                 <tfoot>
                   <tr className="border-t-2 border-border bg-muted/30">
-                    <td className="sticky left-0 z-10 bg-muted/30 px-3 py-2" />
-                    <td className="sticky left-8 z-10 bg-muted/30 px-3 py-2 text-xs font-semibold text-muted-foreground">
+                    <td className="sticky left-0 z-10 bg-muted/30 px-3 py-2 text-xs font-semibold text-muted-foreground">
                       Klasse (Ø)
                     </td>
                     {lernziele.map(lz => {
@@ -442,29 +274,11 @@ export function LernkontrolleTab({ klassId }: { klassId: string }) {
                       )
                     })}
                     <td className="sticky right-0 z-10 bg-muted/30" />
-                    <td />
                   </tr>
                 </tfoot>
               </table>
             </div>
           )}
-        </div>
-      )}
-
-      {/* LZ legend */}
-      {selectedThema && lernziele.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-3">
-          <p className="text-xs font-semibold text-muted-foreground mb-2">Lernziele</p>
-          <div className="space-y-1">
-            {lernziele.map((lz, i) => (
-              <div key={lz.id} className="flex items-start gap-2">
-                <span className="text-xs font-bold text-muted-foreground w-5 shrink-0 mt-0.5">
-                  {i + 1}
-                </span>
-                <span className="text-xs text-foreground">{lz.label}</span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
     </div>

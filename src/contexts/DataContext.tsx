@@ -52,7 +52,7 @@ interface DataContextValue {
   updateCompetencyStatus: (studentId: string, competencyId: string, status: Status) => void
 
   // Lernziel status
-  updateLernzielStatus: (studentId: string, lernzielId: string, status: Status) => void
+  updateLernzielStatus: (studentId: string, lernzielId: string, status: Status | undefined) => void
 
   // Lernziel assignment to Klasse
   assignLernzielToKlasse: (klassId: string, lernzielId: string) => void
@@ -180,13 +180,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   )
 
   const updateLernzielStatus = useCallback(
-    (studentId: string, lernzielId: string, status: Status) => {
+    (studentId: string, lernzielId: string, status: Status | undefined) => {
       setStudents((prev) =>
-        prev.map((s) =>
-          s.id === studentId
-            ? { ...s, lernzielStatus: { ...s.lernzielStatus, [lernzielId]: status } }
-            : s
-        )
+        prev.map((s) => {
+          if (s.id !== studentId) return s
+          if (status === undefined) {
+            const { [lernzielId]: _, ...rest } = s.lernzielStatus
+            return { ...s, lernzielStatus: rest }
+          }
+          return { ...s, lernzielStatus: { ...s.lernzielStatus, [lernzielId]: status } }
+        })
       )
     },
     []
