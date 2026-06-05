@@ -9,7 +9,10 @@
 */
 
 import React, { createContext, useCallback, useContext, useState } from 'react'
-import type { Klasse, Kompetenz, Schueler, Status, Fach, Thema, Lernziel, LernzielKategorie } from '@/types/domain'
+import type {
+  Klasse, Kompetenz, Schueler, Status, Fach, Thema, Lernziel, LernzielKategorie,
+  AssessmentKommentar, ThemaKommentar, Versuch, Lehrperson,
+} from '@/types/domain'
 import {
   SEED_CLASSES,
   SEED_COMPETENCIES,
@@ -17,6 +20,9 @@ import {
   SEED_FAECHER,
   SEED_THEMEN,
   SEED_LERNZIELE,
+  SEED_LERNZIELE_BIBLIOTHEK,
+  SEED_LEHRPERSONEN,
+  SEED_KOMMENTARE,
 } from '@/lib/mock-data'
 
 // ── Public interface ─────────────────────────────────────────────────────
@@ -29,6 +35,9 @@ interface DataContextValue {
   faecher: Fach[]
   themen: Thema[]
   lernziele: Lernziel[]
+  lehrpersonen: Lehrperson[]
+  kommentare: AssessmentKommentar[]
+  themaKommentare: ThemaKommentar[]
 
   // Queries
   getClass: (id: string) => Klasse | undefined
@@ -37,6 +46,9 @@ interface DataContextValue {
   getThemenForKlasse: (klassId: string) => Thema[]
   getLernzieleForThema: (themaId: string) => Lernziel[]
   getFachForThema: (themaId: string) => Fach | undefined
+  getKommentar: (studentId: string, lernzielId: string) => AssessmentKommentar | undefined
+  getThemaKommentar: (studentId: string, themaId: string) => ThemaKommentar | undefined
+  getVersuche: (student: Schueler, lernzielId: string) => Versuch[]
 
   // Class CRUD
   createClass: (name: string) => void
@@ -48,15 +60,35 @@ interface DataContextValue {
   updateStudent: (id: string, patch: Partial<Pick<Schueler, 'name' | 'note'>>) => void
   deleteStudent: (id: string) => void
 
+  // RILZ & BVSA
+  setRilzFach: (studentId: string, fachId: string, enabled: boolean) => void
+  setBvsa: (studentId: string, enabled: boolean) => void
+
   // Competency status
   updateCompetencyStatus: (studentId: string, competencyId: string, status: Status) => void
 
   // Lernziel status
   updateLernzielStatus: (studentId: string, lernzielId: string, status: Status | undefined) => void
 
+  // Versuche (multiple attempts)
+  addVersuch: (studentId: string, lernzielId: string, status: Status, withHelp?: boolean) => void
+
+  // Kommentare
+  upsertKommentar: (studentId: string, lernzielId: string, text: string) => void
+  deleteKommentar: (studentId: string, lernzielId: string) => void
+  upsertThemaKommentar: (studentId: string, themaId: string, text: string) => void
+  deleteThemaKommentar: (studentId: string, themaId: string) => void
+
   // Lernziel assignment to Klasse
   assignLernzielToKlasse: (klassId: string, lernzielId: string) => void
   removeLernzielFromKlasse: (klassId: string, lernzielId: string) => void
+
+  // LP assignments to Klasse
+  setLpZuweisung: (klassId: string, lpId: string, fachIds: string[], rolle?: import('@/types/domain').LpRolle) => void
+  removeLpFromKlasse: (klassId: string, lpId: string) => void
+
+  // Klassenübergabe
+  createFolgeklasse: (vorgaengerKlasseId: string, neuerName: string, neuesSchuljahr: string) => string
 
   // Fach CRUD
   createFach: (name: string) => void
@@ -70,8 +102,9 @@ interface DataContextValue {
 
   // Lernziel CRUD
   createLernziel: (themaId: string, label: string, kategorie: LernzielKategorie) => void
-  updateLernziel: (id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie'>>) => void
+  updateLernziel: (id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie' | 'wichtig'>>) => void
   deleteLernziel: (id: string) => void
+  copyLernzielToEigene: (lzId: string) => string | undefined
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -83,8 +116,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [students, setStudents] = useState<Schueler[]>(SEED_STUDENTS)
   const [faecher, setFaecher] = useState<Fach[]>(SEED_FAECHER)
   const [themen, setThemen] = useState<Thema[]>(SEED_THEMEN)
-  const [lernziele, setLernziele] = useState<Lernziel[]>(SEED_LERNZIELE)
+  const [lernziele, setLernziele] = useState<Lernziel[]>([...SEED_LERNZIELE, ...SEED_LERNZIELE_BIBLIOTHEK])
+  const [kommentare, setKommentare] = useState<AssessmentKommentar[]>(SEED_KOMMENTARE)
+  const [themaKommentare, setThemaKommentare] = useState<ThemaKommentar[]>([])
   const competencies = SEED_COMPETENCIES
+  const lehrpersonen = SEED_LEHRPERSONEN
 
   // ── Queries ──────────────────────────────────────────────────────────
 
@@ -112,7 +148,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     [classes, themen, lernziele]
   )
   const getLernzieleForThema = useCallback(
-    (themaId: string) => lernziele.filter((l) => l.themaId === themaId),
+    (themaId: string) =>
+      lernziele
+        .filter((l) => l.themaId === themaId)
+        .sort((a, b) => {
+          if (a.kategorie === b.kategorie) return 0
+          return a.kategorie === 'grundlegend' ? -1 : 1
+        }),
     [lernziele]
   )
   const getFachForThema = useCallback(
@@ -124,10 +166,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     [themen, faecher]
   )
 
+  const getKommentar = useCallback(
+    (studentId: string, lernzielId: string) =>
+      kommentare.find((k) => k.studentId === studentId && k.lernzielId === lernzielId),
+    [kommentare]
+  )
+
+  const getThemaKommentar = useCallback(
+    (studentId: string, themaId: string) =>
+      themaKommentare.find((k) => k.studentId === studentId && k.themaId === themaId),
+    [themaKommentare]
+  )
+
+  const getVersuche = useCallback(
+    (student: Schueler, lernzielId: string): Versuch[] =>
+      student.lernzielVersuche?.[lernzielId] ?? [],
+    []
+  )
+
   // ── Class mutations ───────────────────────────────────────────────────
 
   const createClass = useCallback((name: string) => {
-    setClasses((prev) => [...prev, { id: crypto.randomUUID(), name, assignedLernzielIds: [] }])
+    setClasses((prev) => [...prev, { id: crypto.randomUUID(), name, assignedLernzielIds: [], lpZuweisungen: [] }])
   }, [])
 
   const updateClass = useCallback((id: string, name: string) => {
@@ -147,7 +207,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     )
     setStudents((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), klassId, name, note: '', competencyStatus, lernzielStatus: {} },
+      { id: crypto.randomUUID(), klassId, name, note: '', competencyStatus, lernzielStatus: {}, rilzFachIds: [], lernzielVersuche: {} },
     ])
   }, [])
 
@@ -162,6 +222,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const deleteStudent = useCallback((id: string) => {
     setStudents((prev) => prev.filter((s) => s.id !== id))
+    setKommentare((prev) => prev.filter((k) => k.studentId !== id))
+  }, [])
+
+  // ── RILZ & BVSA ──────────────────────────────────────────────────────
+
+  const setRilzFach = useCallback((studentId: string, fachId: string, enabled: boolean) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        const current = s.rilzFachIds ?? []
+        const rilzFachIds = enabled
+          ? current.includes(fachId) ? current : [...current, fachId]
+          : current.filter((id) => id !== fachId)
+        return { ...s, rilzFachIds }
+      })
+    )
+  }, [])
+
+  const setBvsa = useCallback((studentId: string, enabled: boolean) => {
+    setStudents((prev) =>
+      prev.map((s) => (s.id === studentId ? { ...s, bvsa: enabled } : s))
+    )
   }, [])
 
   // ── Status mutations ──────────────────────────────────────────────────
@@ -195,6 +277,66 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     []
   )
 
+  // ── Versuche ─────────────────────────────────────────────────────────
+
+  const addVersuch = useCallback(
+    (studentId: string, lernzielId: string, status: Status, withHelp?: boolean) => {
+      const versuch: Versuch = { date: new Date().toISOString().slice(0, 10), status, withHelp }
+      setStudents((prev) =>
+        prev.map((s) => {
+          if (s.id !== studentId) return s
+          const prev_versuche = s.lernzielVersuche ?? {}
+          const existing = prev_versuche[lernzielId] ?? []
+          const lernzielVersuche = { ...prev_versuche, [lernzielId]: [...existing, versuch] }
+          // Keep lernzielStatus in sync with latest attempt
+          const lernzielStatus = { ...s.lernzielStatus, [lernzielId]: status }
+          return { ...s, lernzielVersuche, lernzielStatus }
+        })
+      )
+    },
+    []
+  )
+
+  // ── Kommentare ────────────────────────────────────────────────────────
+
+  const upsertKommentar = useCallback((studentId: string, lernzielId: string, text: string) => {
+    setKommentare((prev) => {
+      const existing = prev.findIndex((k) => k.studentId === studentId && k.lernzielId === lernzielId)
+      const updated: AssessmentKommentar = { studentId, lernzielId, text, createdAt: new Date().toISOString() }
+      if (existing >= 0) {
+        const next = [...prev]
+        next[existing] = updated
+        return next
+      }
+      return [...prev, updated]
+    })
+  }, [])
+
+  const deleteKommentar = useCallback((studentId: string, lernzielId: string) => {
+    setKommentare((prev) =>
+      prev.filter((k) => !(k.studentId === studentId && k.lernzielId === lernzielId))
+    )
+  }, [])
+
+  const upsertThemaKommentar = useCallback((studentId: string, themaId: string, text: string) => {
+    setThemaKommentare((prev) => {
+      const idx = prev.findIndex((k) => k.studentId === studentId && k.themaId === themaId)
+      const updated: ThemaKommentar = { studentId, themaId, text, updatedAt: new Date().toISOString() }
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = updated
+        return next
+      }
+      return [...prev, updated]
+    })
+  }, [])
+
+  const deleteThemaKommentar = useCallback((studentId: string, themaId: string) => {
+    setThemaKommentare((prev) =>
+      prev.filter((k) => !(k.studentId === studentId && k.themaId === themaId))
+    )
+  }, [])
+
   // ── Lernziel assignment ───────────────────────────────────────────────
 
   const assignLernzielToKlasse = useCallback((klassId: string, lernzielId: string) => {
@@ -216,6 +358,67 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       )
     )
   }, [])
+
+  // ── LP Zuweisungen ────────────────────────────────────────────────────
+
+  const setLpZuweisung = useCallback((klassId: string, lpId: string, fachIds: string[], rolle?: import('@/types/domain').LpRolle) => {
+    setClasses((prev) =>
+      prev.map((c) => {
+        if (c.id !== klassId) return c
+        const existing = (c.lpZuweisungen ?? []).filter((z) => z.lpId !== lpId)
+        const lpZuweisungen = fachIds.length > 0 || rolle != null
+          ? [...existing, { lpId, fachIds, rolle }]
+          : existing
+        return { ...c, lpZuweisungen }
+      })
+    )
+  }, [])
+
+  const removeLpFromKlasse = useCallback((klassId: string, lpId: string) => {
+    setClasses((prev) =>
+      prev.map((c) =>
+        c.id === klassId
+          ? { ...c, lpZuweisungen: (c.lpZuweisungen ?? []).filter((z) => z.lpId !== lpId) }
+          : c
+      )
+    )
+  }, [])
+
+  // ── Klassenübergabe ───────────────────────────────────────────────────
+
+  const createFolgeklasse = useCallback(
+    (vorgaengerKlasseId: string, neuerName: string, neuesSchuljahr: string): string => {
+      const vorgaenger = classes.find((c) => c.id === vorgaengerKlasseId)
+      if (!vorgaenger) return ''
+      const newKlasseId = crypto.randomUUID()
+      setClasses((prev) => [
+        ...prev,
+        {
+          ...vorgaenger,
+          id: newKlasseId,
+          name: neuerName,
+          schuljahr: neuesSchuljahr,
+          vorgaengerKlasseId: vorgaengerKlasseId,
+        },
+      ])
+      // Clone all students into the new class
+      setStudents((prev) => {
+        const klassStudents = prev.filter((s) => s.klassId === vorgaengerKlasseId)
+        const cloned = klassStudents.map((s) => ({
+          ...s,
+          id: crypto.randomUUID(),
+          klassId: newKlasseId,
+          // Reset current status — history carries over
+          lernzielStatus: {},
+          lernzielVersuche: {},
+          progressHistory: undefined,
+        }))
+        return [...prev, ...cloned]
+      })
+      return newKlasseId
+    },
+    [classes]
+  )
 
   // ── Fach CRUD ─────────────────────────────────────────────────────────
 
@@ -284,13 +487,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setLernziele((prev) => [...prev, { id: crypto.randomUUID(), themaId, kategorie, label }])
   }, [])
 
-  const updateLernziel = useCallback((id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie'>>) => {
+  const updateLernziel = useCallback((id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie' | 'wichtig'>>) => {
     setLernziele((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
   }, [])
 
   const deleteLernziel = useCallback((id: string) => {
     setLernziele((prev) => prev.filter((l) => l.id !== id))
   }, [])
+
+  const copyLernzielToEigene = useCallback((lzId: string): string | undefined => {
+    const lz = lernziele.find((l) => l.id === lzId)
+    if (!lz) return undefined
+    const newId = crypto.randomUUID()
+    const { source, autor, beschreibung, stufe, ...rest } = lz
+    setLernziele((prev) => [...prev, { ...rest, id: newId, source: 'eigene' }])
+    return newId
+  }, [lernziele])
 
   return (
     <DataContext.Provider
@@ -301,22 +513,38 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         faecher,
         themen,
         lernziele,
+        lehrpersonen,
+        kommentare,
+        themaKommentare,
         getClass,
         getStudent,
         getStudentsForClass,
         getThemenForKlasse,
         getLernzieleForThema,
         getFachForThema,
+        getKommentar,
+        getThemaKommentar,
+        getVersuche,
         createClass,
         updateClass,
         deleteClass,
         createStudent,
         updateStudent,
         deleteStudent,
+        setRilzFach,
+        setBvsa,
         updateCompetencyStatus,
         updateLernzielStatus,
+        addVersuch,
+        upsertKommentar,
+        deleteKommentar,
+        upsertThemaKommentar,
+        deleteThemaKommentar,
         assignLernzielToKlasse,
         removeLernzielFromKlasse,
+        setLpZuweisung,
+        removeLpFromKlasse,
+        createFolgeklasse,
         createFach,
         updateFach,
         deleteFach,
@@ -326,6 +554,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         createLernziel,
         updateLernziel,
         deleteLernziel,
+        copyLernzielToEigene,
       }}
     >
       {children}

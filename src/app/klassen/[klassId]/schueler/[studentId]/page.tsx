@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useData } from '@/contexts/DataContext'
 import { StudentVerlauf } from '@/components/analytics/StudentVerlauf'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -194,11 +195,15 @@ export default function SchuelerDetailPage() {
     getStudent,
     updateStudent,
     updateLernzielStatus,
+    setRilzFach,
+    setBvsa,
     getThemenForKlasse,
     getLernzieleForThema,
     getFachForThema,
     faecher,
     lernziele,
+    kommentare,
+    getVersuche,
   } = useData()
 
   const klasse = getClass(klassId)
@@ -276,17 +281,34 @@ export default function SchuelerDetailPage() {
           </Avatar>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{student.name}</h1>
-            <p className="text-sm text-muted-foreground">{klasse.name}</p>
+            <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
+              <span className="text-sm text-muted-foreground">{klasse.name}</span>
+              {student.bvsa && (
+                <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-purple-100 text-purple-700">BVSA</span>
+              )}
+              {(student.rilzFachIds ?? []).map(fachId => {
+                const fach = faecher.find(f => f.id === fachId)
+                return fach ? (
+                  <span key={fachId} className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-orange-100 text-orange-700">
+                    RILZ {fach.name}
+                  </span>
+                ) : null
+              })}
+            </div>
           </div>
         </div>
 
-        {fachKpis.length > 0 && (
-          <div className="flex flex-wrap gap-3">
-            {fachKpis.map((k) => (
-              <FachKpiCard key={k.name} {...k} />
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap items-start gap-3">
+          {fachKpis.length > 0 && fachKpis.map((k) => (
+            <FachKpiCard key={k.name} {...k} />
+          ))}
+          <Link
+            href={`/klassen/${klassId}/schueler/${studentId}/bericht`}
+            className="self-end rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors flex items-center gap-1.5"
+          >
+            Bericht erstellen
+          </Link>
+        </div>
       </div>
 
       <div className="space-y-5">
@@ -320,6 +342,43 @@ export default function SchuelerDetailPage() {
                   {noteSaved && note !== '' && (
                     <span className="text-xs text-muted-foreground">Gespeichert</span>
                   )}
+                </div>
+              </div>
+            </SectionBlock>
+
+            <SectionBlock title="RILZ & BVSA" description="Besondere Förderung und Beurteilungsstatus">
+              <div className="space-y-3">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={student.bvsa ?? false}
+                    onChange={(e) => setBvsa(student.id, e.target.checked)}
+                    className="rounded border-border h-3.5 w-3.5 accent-purple-600"
+                  />
+                  <div>
+                    <span className="text-xs font-medium">BVSA</span>
+                    <p className="text-[10px] text-muted-foreground">Bericht auch ohne Noten in einzelnen Fächern</p>
+                  </div>
+                </label>
+                <div className="border-t border-border pt-2.5 space-y-2">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Reduzierte Lernziele (RILZ)</p>
+                  {faecher.map(fach => {
+                    const active = (student.rilzFachIds ?? []).includes(fach.id)
+                    return (
+                      <label key={fach.id} className="flex items-center gap-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={active}
+                          onChange={(e) => setRilzFach(student.id, fach.id, e.target.checked)}
+                          className="rounded border-border h-3.5 w-3.5 accent-orange-500"
+                        />
+                        <span className="text-xs">{fach.name}</span>
+                        {active && (
+                          <span className="rounded px-1 py-0 text-[9px] font-semibold bg-orange-100 text-orange-700">RILZ</span>
+                        )}
+                      </label>
+                    )
+                  })}
                 </div>
               </div>
             </SectionBlock>
@@ -365,20 +424,28 @@ export default function SchuelerDetailPage() {
 
               {assignedThemen.map((thema) => {
                 const allThemaLernziele = getLernzieleForThema(thema.id)
-                const themaLernziele = lzKatFilter === 'all'
-                  ? allThemaLernziele
-                  : allThemaLernziele.filter(lz => lz.kategorie === lzKatFilter)
-                if (themaLernziele.length === 0) return null
                 const fach = getFachForThema(thema.id)
+                const hasRilz = fach ? (student.rilzFachIds ?? []).includes(fach.id) : false
+                // For RILZ fächer: only show grundlegend, regardless of category filter
+                const applicableLZ = hasRilz
+                  ? allThemaLernziele.filter(lz => lz.kategorie === 'grundlegend')
+                  : allThemaLernziele
+                const themaLernziele = lzKatFilter === 'all'
+                  ? applicableLZ
+                  : applicableLZ.filter(lz => lz.kategorie === lzKatFilter)
+                if (themaLernziele.length === 0) return null
                 return (
                   <div key={thema.id}>
-                    <div className="mb-2 flex items-baseline gap-1.5">
+                    <div className="mb-2 flex items-baseline gap-1.5 flex-wrap">
                       {fach && (
                         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                           {fach.name}
                         </span>
                       )}
                       <h3 className="text-sm font-semibold">{thema.name}</h3>
+                      {hasRilz && (
+                        <span className="rounded px-1 py-0 text-[9px] font-semibold bg-orange-100 text-orange-700">RILZ – nur Grundlegend</span>
+                      )}
                     </div>
                     {themaLernziele.length === 0 ? (
                       <p className="text-xs text-muted-foreground">Keine Lernziele vorhanden.</p>
@@ -416,6 +483,73 @@ export default function SchuelerDetailPage() {
             </div>
           )}
         </SectionBlock>
+
+        {/* Kommentare */}
+        {(() => {
+          const studentKommentare = kommentare.filter(k => k.studentId === student.id)
+          if (studentKommentare.length === 0) return null
+          return (
+            <SectionBlock title="Kommentare" description="Aus der Lernkontrolle">
+              <div className="space-y-2">
+                {studentKommentare.map(k => {
+                  const lz = lernziele.find(l => l.id === k.lernzielId)
+                  const thema = lz ? assignedThemen.find(t => t.id === lz.themaId) : null
+                  const fach = thema ? getFachForThema(thema.id) : null
+                  return (
+                    <div key={`${k.studentId}-${k.lernzielId}`} className="rounded-lg border border-border bg-muted/20 px-3 py-2 space-y-0.5">
+                      <p className="text-[10px] text-muted-foreground">
+                        {fach?.name && <span className="font-medium">{fach.name} · </span>}
+                        {lz?.label}
+                      </p>
+                      <p className="text-sm leading-snug">{k.text}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </SectionBlock>
+          )
+        })()}
+
+        {/* Versuche summary */}
+        {(() => {
+          const lzWithMultipleVersuche = lernziele
+            .filter(lz => {
+              const versuche = getVersuche(student, lz.id)
+              return versuche.length >= 2
+            })
+          if (lzWithMultipleVersuche.length === 0) return null
+          return (
+            <SectionBlock title="Mehrere Versuche" description="Lernziele die mehr als einen Versuch benötigten">
+              <div className="space-y-2">
+                {lzWithMultipleVersuche.map(lz => {
+                  const versuche = getVersuche(student, lz.id)
+                  const thema = assignedThemen.find(t => t.id === lz.themaId)
+                  const fach = thema ? getFachForThema(thema.id) : null
+                  return (
+                    <div key={lz.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2">
+                      <p className="text-[10px] text-muted-foreground mb-1">
+                        {fach?.name && <span className="font-medium">{fach.name} · </span>}
+                        {lz.label}
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {versuche.map((v, i) => (
+                          <span key={i} className={cn(
+                            'rounded px-1.5 py-0.5 text-[9px] font-semibold',
+                            v.status === 'reached' ? 'bg-emerald-100 text-emerald-700'
+                            : v.status === 'partially_reached' ? 'bg-amber-100 text-amber-700'
+                            : 'bg-red-100 text-red-700',
+                          )}>
+                            {i + 1}. {v.status === 'reached' ? 'Erreicht' : v.status === 'partially_reached' ? 'Teilweise' : 'Nicht err.'} {v.date}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </SectionBlock>
+          )
+        })()}
       </div>
     </div>
   )

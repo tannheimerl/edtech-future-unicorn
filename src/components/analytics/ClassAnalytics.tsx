@@ -16,6 +16,23 @@ function studentLZScore(student: Schueler, ids: string[]): number {
   return (ids.reduce((sum, id) => sum + sv(student.lernzielStatus[id] ?? 'not_reached'), 0) / ids.length) * 100
 }
 
+function isSpecial(s: Schueler): boolean {
+  return !!(s.bvsa || s.rilzFachIds?.length)
+}
+
+function isLZSkipped(lz: Lernziel, student: Schueler, themen: Thema[]): boolean {
+  if (lz.kategorie !== 'anspruchsvoll') return false
+  if (!student.rilzFachIds?.length) return false
+  const thema = themen.find(t => t.id === lz.themaId)
+  return !!thema && student.rilzFachIds.includes(thema.fachId)
+}
+
+function studentLZScoreAdjusted(student: Schueler, lzList: Lernziel[], themen: Thema[]): number {
+  const applicable = lzList.filter(lz => !isLZSkipped(lz, student, themen))
+  if (applicable.length === 0) return 0
+  return (applicable.reduce((sum, lz) => sum + sv(student.lernzielStatus[lz.id] ?? 'not_reached'), 0) / applicable.length) * 100
+}
+
 function formatDate(iso: string): string {
   const d = new Date(iso + 'T00:00:00Z')
   return d.toLocaleDateString('de-DE', { month: 'short', year: '2-digit' })
@@ -134,14 +151,19 @@ function FachCard({
 }) {
   const fachThemen = themen.filter(t => t.fachId === fach.id)
   const fachLZ = fachThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
-  const fachLZIds = fachLZ.map(lz => lz.id)
-  const n = students.length
+  const regularStudents = students.filter(s => !isSpecial(s))
+  const n = regularStudents.length
 
-  const reached = fachLZIds.reduce((sum, id) =>
-    sum + students.filter(s => s.lernzielStatus[id] === 'reached').length, 0)
-  const partial = fachLZIds.reduce((sum, id) =>
-    sum + students.filter(s => s.lernzielStatus[id] === 'partially_reached').length, 0)
-  const total = fachLZIds.length * n
+  const reached = fachLZ.reduce((sum, lz) => {
+    const eligible = regularStudents.filter(s => !isLZSkipped(lz, s, themen))
+    return sum + eligible.filter(s => s.lernzielStatus[lz.id] === 'reached').length
+  }, 0)
+  const partial = fachLZ.reduce((sum, lz) => {
+    const eligible = regularStudents.filter(s => !isLZSkipped(lz, s, themen))
+    return sum + eligible.filter(s => s.lernzielStatus[lz.id] === 'partially_reached').length
+  }, 0)
+  const total = fachLZ.reduce((sum, lz) =>
+    sum + regularStudents.filter(s => !isLZSkipped(lz, s, themen)).length, 0)
   const avgPct = total === 0 ? 0 : Math.round(((reached + partial * 0.5) / total) * 100)
 
   return (
@@ -183,15 +205,21 @@ function ThemenBreakdown({
 }: { fach: Fach; themen: Thema[]; lernziele: Lernziel[]; students: Schueler[] }) {
   const fachThemen = themen.filter(t => t.fachId === fach.id)
   if (fachThemen.length === 0) return null
+  const regularStudents = students.filter(s => !isSpecial(s))
   return (
     <div className="space-y-3">
       {fachThemen.map(t => {
         const tzLZ = lernziele.filter(lz => lz.themaId === t.id)
-        const ids = tzLZ.map(lz => lz.id)
-        const n = students.length
-        const reached = ids.reduce((s, id) => s + students.filter(sc => sc.lernzielStatus[id] === 'reached').length, 0)
-        const partial = ids.reduce((s, id) => s + students.filter(sc => sc.lernzielStatus[id] === 'partially_reached').length, 0)
-        const total = ids.length * n
+        const reached = tzLZ.reduce((s, lz) => {
+          const eligible = regularStudents.filter(sc => !isLZSkipped(lz, sc, themen))
+          return s + eligible.filter(sc => sc.lernzielStatus[lz.id] === 'reached').length
+        }, 0)
+        const partial = tzLZ.reduce((s, lz) => {
+          const eligible = regularStudents.filter(sc => !isLZSkipped(lz, sc, themen))
+          return s + eligible.filter(sc => sc.lernzielStatus[lz.id] === 'partially_reached').length
+        }, 0)
+        const total = tzLZ.reduce((s, lz) =>
+          s + regularStudents.filter(sc => !isLZSkipped(lz, sc, themen)).length, 0)
         const avg = total === 0 ? 0 : Math.round(((reached + partial * 0.5) / total) * 100)
         return (
           <div key={t.id} className="space-y-1.5">
@@ -249,8 +277,8 @@ function StackedBar({ reached, partial, total, h = 'h-2.5' }: {
 
 // ── Score row ───────────────────────────────────────────────────────────────
 
-function ScoreRow({ rank, name, score, variant }: {
-  rank: number; name: string; score: number; variant: 'top' | 'bottom'
+function ScoreRow({ rank, name, score, variant, special }: {
+  rank: number; name: string; score: number; variant: 'top' | 'bottom'; special?: string
 }) {
   const pct = Math.round(score)
   const barColor = variant === 'top' ? 'bg-status-reached' : 'bg-red-400'
@@ -260,7 +288,10 @@ function ScoreRow({ rank, name, score, variant }: {
   return (
     <div className="flex items-center gap-3 py-2 border-t border-border/50 first:border-0">
       <span className="text-xs font-mono text-muted-foreground w-4 shrink-0">{rank}</span>
-      <span className="flex-1 text-sm font-medium truncate">{name}</span>
+      <span className="flex-1 flex items-center gap-1.5 min-w-0">
+        <span className="text-sm font-medium truncate">{name}</span>
+        {special && <span className="shrink-0 rounded px-1 py-0.5 text-[8px] font-bold bg-purple-100 text-purple-700">{special}</span>}
+      </span>
       <div className="w-20 shrink-0">
         <div className="h-1.5 rounded-full bg-muted overflow-hidden">
           <div className={cn('h-full transition-all', barColor)} style={{ width: `${pct}%` }} />
@@ -441,9 +472,10 @@ interface ClassAnalyticsProps {
   lernziele: Lernziel[]
   faecher: Fach[]
   competencies: Kompetenz[]
+  showTrend?: boolean  // false = hide trend chart (Jahresabschluss mode)
 }
 
-export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, competencies }: ClassAnalyticsProps) {
+export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, competencies, showTrend = true }: ClassAnalyticsProps) {
   const [selectedFachId, setSelectedFachId] = useState<string | null>(null)
   const [tier, setTier] = useState<Tier>('all')
   const [katFilter, setKatFilter] = useState<KatFilter>('all')
@@ -480,9 +512,9 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
   const allLZ = activeThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
   const allLZIds = allLZ.map(lz => lz.id)
 
-  // ── Score all students on ALL lz (for tier assignment) ──────────────────
+  // ── Score all students on ALL lz (RILZ-adjusted, for tier assignment) ─────
   const allScored = students
-    .map(s => ({ ...s, allScore: studentLZScore(s, allLZIds) }))
+    .map(s => ({ ...s, allScore: studentLZScoreAdjusted(s, allLZ, activeThemen) }))
 
   // ── Filter by tier ────────────────────────────────────────────────────────
   const tierStudents = tier === 'all'
@@ -493,27 +525,33 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
     ? allScored.filter(s => s.allScore >= 25 && s.allScore < 75)
     : allScored.filter(s => s.allScore < 25)
 
-  // ── Re-score filtered students on scoped LZ ──────────────────────────────
+  // ── Re-score filtered students on scoped LZ (RILZ-adjusted) ─────────────
   const scopeScored = tierStudents
-    .map(s => ({ ...s, score: studentLZScore(s, scopedLZIds) }))
+    .map(s => ({ ...s, score: studentLZScoreAdjusted(s, scopedLZ, activeThemen) }))
     .sort((a, b) => b.score - a.score)
 
-  const n = scopeScored.length
-  const avgScore = n ? scopeScored.reduce((s, x) => s + x.score, 0) / n : 0
+  // RILZ/BVSA students are shown in lists but excluded from class averages
+  const regularTierStudents = tierStudents.filter(s => !isSpecial(s))
+  const regularScored = scopeScored.filter(s => !isSpecial(s))
 
-  // ── G/A split stats (always on full Fach scope for comparison viz) ─────────
+  const n = scopeScored.length
+  const avgScore = regularScored.length ? regularScored.reduce((sum, x) => sum + x.score, 0) / regularScored.length : 0
+  const specialCount = scopeScored.length - regularScored.length
+
+  // ── G/A split stats (always on full Fach scope, regular students only) ────
   const grundIds = allScopedLZ.filter(lz => lz.kategorie === 'grundlegend').map(lz => lz.id)
   const ansprIds = allScopedLZ.filter(lz => lz.kategorie === 'anspruchsvoll').map(lz => lz.id)
-  const avgGrund = n ? Math.round(tierStudents.reduce((s, x) => s + studentLZScore(x, grundIds), 0) / n) : 0
-  const avgAnsp  = n ? Math.round(tierStudents.reduce((s, x) => s + studentLZScore(x, ansprIds), 0) / n) : 0
-  const grundReached = grundIds.reduce((s, id) => s + tierStudents.filter(x => x.lernzielStatus[id] === 'reached').length, 0)
-  const grundPartial = grundIds.reduce((s, id) => s + tierStudents.filter(x => x.lernzielStatus[id] === 'partially_reached').length, 0)
-  const grundTotal   = grundIds.length * n
-  const ansprReached = ansprIds.reduce((s, id) => s + tierStudents.filter(x => x.lernzielStatus[id] === 'reached').length, 0)
-  const ansprPartial = ansprIds.reduce((s, id) => s + tierStudents.filter(x => x.lernzielStatus[id] === 'partially_reached').length, 0)
-  const ansprTotal   = ansprIds.length * n
+  const nReg = regularTierStudents.length
+  const avgGrund = nReg ? Math.round(regularTierStudents.reduce((s, x) => s + studentLZScore(x, grundIds), 0) / nReg) : 0
+  const avgAnsp  = nReg ? Math.round(regularTierStudents.reduce((s, x) => s + studentLZScore(x, ansprIds), 0) / nReg) : 0
+  const grundReached = grundIds.reduce((s, id) => s + regularTierStudents.filter(x => x.lernzielStatus[id] === 'reached').length, 0)
+  const grundPartial = grundIds.reduce((s, id) => s + regularTierStudents.filter(x => x.lernzielStatus[id] === 'partially_reached').length, 0)
+  const grundTotal   = grundIds.length * nReg
+  const ansprReached = ansprIds.reduce((s, id) => s + regularTierStudents.filter(x => x.lernzielStatus[id] === 'reached').length, 0)
+  const ansprPartial = ansprIds.reduce((s, id) => s + regularTierStudents.filter(x => x.lernzielStatus[id] === 'partially_reached').length, 0)
+  const ansprTotal   = ansprIds.length * nReg
 
-  // ── KPI tier counts (always based on all students, all LZ) ───────────────
+  // ── KPI tier counts (all students, including RILZ/BVSA) ──────────────────
   const excellent = allScored.filter(s => s.allScore >= 75).length
   const progressing = allScored.filter(s => s.allScore >= 25 && s.allScore < 75).length
   const struggling = allScored.filter(s => s.allScore < 25).length
@@ -525,30 +563,32 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
   const top5 = scopeScored.slice(0, 5)
   const bottom5 = [...scopeScored].reverse().slice(0, 5)
 
-  // ── Scoped LZ stats (sorted hardest → easiest) ───────────────────────────
+  // ── Scoped LZ stats: exclude RILZ-skipped students per LZ ────────────────
   const lzStats = scopedLZ.map(lz => {
-    const reached = tierStudents.filter(s => s.lernzielStatus[lz.id] === 'reached').length
-    const partial = tierStudents.filter(s => s.lernzielStatus[lz.id] === 'partially_reached').length
-    const pct = tierStudents.length === 0 ? 0
-      : ((reached + partial * 0.5) / tierStudents.length) * 100
-    return { lz, reached, partial, pct }
+    const eligible = regularTierStudents.filter(s => !isLZSkipped(lz, s, activeThemen))
+    const reached = eligible.filter(s => s.lernzielStatus[lz.id] === 'reached').length
+    const partial = eligible.filter(s => s.lernzielStatus[lz.id] === 'partially_reached').length
+    const pct = eligible.length === 0 ? 0
+      : ((reached + partial * 0.5) / eligible.length) * 100
+    return { lz, reached, partial, pct, eligibleCount: eligible.length }
   }).sort((a, b) => a.pct - b.pct)
 
-  // ── Kompetenz stats (scoped students) ────────────────────────────────────
+  // ── Kompetenz stats (regular students only) ───────────────────────────────
   const compStats = competencies.map(c => {
-    const reached = tierStudents.filter(s => s.competencyStatus[c.id] === 'reached').length
-    const partial = tierStudents.filter(s => s.competencyStatus[c.id] === 'partially_reached').length
-    const pct = tierStudents.length === 0 ? 0
-      : ((reached + partial * 0.5) / tierStudents.length) * 100
+    const reached = regularTierStudents.filter(s => s.competencyStatus[c.id] === 'reached').length
+    const partial = regularTierStudents.filter(s => s.competencyStatus[c.id] === 'partially_reached').length
+    const pct = regularTierStudents.length === 0 ? 0
+      : ((reached + partial * 0.5) / regularTierStudents.length) * 100
     return { c, reached, partial, pct }
   }).sort((a, b) => b.pct - a.pct)
 
-  // ── Historical trend ──────────────────────────────────────────────────────
+  // ── Historical trend (regular students only) ──────────────────────────────
+  const regularStudents = students.filter(s => !isSpecial(s))
   const histDates = [...new Set(
-    students.flatMap(s => s.progressHistory?.map(p => p.date) ?? [])
+    regularStudents.flatMap(s => s.progressHistory?.map(p => p.date) ?? [])
   )].sort()
   const histPoints = histDates.map(date => {
-    const withData = students.filter(s => s.progressHistory?.some(p => p.date === date))
+    const withData = regularStudents.filter(s => s.progressHistory?.some(p => p.date === date))
     const avg = withData.length === 0 ? 0 : withData.reduce((sum, s) => {
       const snap = s.progressHistory!.find(p => p.date === date)!
       return sum + (allLZIds.length === 0 ? 0
@@ -558,7 +598,8 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
   })
 
   const snapPoints = snaps.map(s => ({ label: formatDate(s.date), pct: s.avgScore }))
-  const todayPct = Math.round(allScored.reduce((s, x) => s + x.allScore, 0) / (allScored.length || 1))
+  const regularAllScored = allScored.filter(s => !isSpecial(s))
+  const todayPct = Math.round(regularAllScored.reduce((s, x) => s + x.allScore, 0) / (regularAllScored.length || 1))
   const trendPoints = snaps.length >= 1
     ? [...snapPoints, { label: 'Heute', pct: todayPct }]
     : histPoints.length >= 1
@@ -664,6 +705,7 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
           value={`${Math.round(avgScore)}%`}
           label={`Ø ${fachLabel ?? 'Lernziele'}`}
           color="text-primary"
+          sub={specialCount > 0 ? `${regularScored.length} Schüler · ${specialCount} RILZ/BVSA ausgeschlossen` : undefined}
         />
         <StatCard
           value={atRisk}
@@ -772,7 +814,10 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
             {top5.length === 0
               ? <p className="text-xs text-muted-foreground">Keine Schüler in dieser Auswahl.</p>
               : top5.map((s, i) => (
-                <ScoreRow key={s.id} rank={i + 1} name={s.name} score={s.score} variant="top" />
+                <ScoreRow
+                  key={s.id} rank={i + 1} name={s.name} score={s.score} variant="top"
+                  special={s.rilzFachIds?.length ? 'RILZ' : s.bvsa ? 'BVSA' : undefined}
+                />
               ))
             }
           </Section>
@@ -781,7 +826,10 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
             {bottom5.length === 0
               ? <p className="text-xs text-muted-foreground">Keine Schüler in dieser Auswahl.</p>
               : bottom5.map((s, i) => (
-                <ScoreRow key={s.id} rank={n - i} name={s.name} score={s.score} variant="bottom" />
+                <ScoreRow
+                  key={s.id} rank={n - i} name={s.name} score={s.score} variant="bottom"
+                  special={s.rilzFachIds?.length ? 'RILZ' : s.bvsa ? 'BVSA' : undefined}
+                />
               ))
             }
           </Section>
@@ -791,8 +839,8 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
             <Section title="Kompetenz-Profil" sub={tierLabel ?? undefined}>
               <div className="space-y-3">
                 {compStats.map(({ c, reached, partial }) => {
-                  const pct = tierStudents.length
-                    ? Math.round(((reached + partial * 0.5) / tierStudents.length) * 100)
+                  const pct = regularTierStudents.length
+                    ? Math.round(((reached + partial * 0.5) / regularTierStudents.length) * 100)
                     : 0
                   return (
                     <div key={c.id} className="space-y-1.5">
@@ -801,13 +849,13 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
                         <div className="flex items-center gap-2 shrink-0 text-xs">
                           <span className="text-emerald-600 font-medium">{reached}✓</span>
                           {partial > 0 && <span className="text-amber-600">{partial}~</span>}
-                          {tierStudents.length - reached - partial > 0 && (
-                            <span className="text-muted-foreground">{tierStudents.length - reached - partial}✗</span>
+                          {regularTierStudents.length - reached - partial > 0 && (
+                            <span className="text-muted-foreground">{regularTierStudents.length - reached - partial}✗</span>
                           )}
                           <span className="font-semibold tabular-nums w-8 text-right">{pct}%</span>
                         </div>
                       </div>
-                      <StackedBar reached={reached} partial={partial} total={tierStudents.length} h="h-2" />
+                      <StackedBar reached={reached} partial={partial} total={regularTierStudents.length} h="h-2" />
                     </div>
                   )
                 })}
@@ -840,14 +888,14 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
                 </div>
               )}
               <div className="space-y-1">
-                {lzStats.map(({ lz, reached, partial }, i) => (
+                {lzStats.map(({ lz, reached, partial, eligibleCount }, i) => (
                   <LZRow
                     key={lz.id}
                     label={lz.label}
                     kategorie={lz.kategorie}
                     reached={reached}
                     partial={partial}
-                    total={tierStudents.length}
+                    total={eligibleCount}
                     highlight={i === 0 ? 'hard' : i === lzStats.length - 1 ? 'easy' : undefined}
                   />
                 ))}
@@ -856,7 +904,7 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
           )}
 
           {/* Klassentrend */}
-          <Section
+          {showTrend && <Section
             title="Klassentrend"
             sub="Alle Schüler · Alle Fächer"
             action={
@@ -897,7 +945,7 @@ export function ClassAnalytics({ klassId, students, themen, lernziele, faecher, 
                 </div>
               </div>
             )}
-          </Section>
+          </Section>}
 
         </div>
       </div>
