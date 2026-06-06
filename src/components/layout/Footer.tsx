@@ -5,7 +5,7 @@ interface FooterProps extends WithClassName {
   siteName?: string
 }
 
-export function Footer({ siteName = "Lenzio", className }: FooterProps) {
+export function Footer({ siteName = "Lezio", className }: FooterProps) {
   return (
     <footer className={cn("w-full mt-auto border-t border-border/60", className)}>
       <div className="mx-auto flex h-7 max-w-7xl items-center px-6">

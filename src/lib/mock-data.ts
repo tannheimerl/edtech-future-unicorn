@@ -18,25 +18,34 @@ export const SEED_FAECHER: Fach[] = [
 
 export const SEED_THEMEN: Thema[] = [
   // Deutsch
-  { id: 'tde1', fachId: 'f1', name: 'Lesen – Sach- und Gebrauchstexte', faelligAm: '2026-04-11' },
-  { id: 'tde2', fachId: 'f1', name: 'Schreiben – Texte verfassen',        faelligAm: '2026-05-09' },
-  { id: 'tde3', fachId: 'f1', name: 'Sprechen und Zuhören',               faelligAm: '2026-03-28' },
-  { id: 'tde4', fachId: 'f1', name: 'Rechtschreibung und Grammatik',      faelligAm: '2026-04-25' },
+  { id: 'tde1', fachId: 'f1', name: 'Lesen – Sach- und Gebrauchstexte', faelligAm: '2026-04-11', stufe: [5, 6], autor: 'Lukas Meier' },
+  { id: 'tde2', fachId: 'f1', name: 'Schreiben – Texte verfassen',        faelligAm: '2026-05-09', stufe: [5, 6, 7], autor: 'Lukas Meier' },
+  { id: 'tde3', fachId: 'f1', name: 'Sprechen und Zuhören',               faelligAm: '2026-03-28', stufe: [6], autor: 'Lukas Meier' },
+  { id: 'tde4', fachId: 'f1', name: 'Rechtschreibung und Grammatik',      faelligAm: '2026-04-25', stufe: [6], autor: 'Lukas Meier' },
   // Mathematik
-  { id: 'tma1', fachId: 'f2', name: 'Zahlen und Operationen',             faelligAm: '2026-03-14' },
-  { id: 'tma2', fachId: 'f2', name: 'Geometrie',                          faelligAm: '2026-04-11' },
-  { id: 'tma3', fachId: 'f2', name: 'Grössen, Daten und Zufall',         faelligAm: '2026-05-09' },
-  { id: 'tma4', fachId: 'f2', name: 'Terme und Gleichungen',              faelligAm: '2026-05-23' },
+  { id: 'tma1', fachId: 'f2', name: 'Zahlen und Operationen',             faelligAm: '2026-03-14', stufe: [5, 6], autor: 'Sarah Keller' },
+  { id: 'tma2', fachId: 'f2', name: 'Geometrie',                          faelligAm: '2026-04-11', stufe: [5], autor: 'Sarah Keller' },
+  { id: 'tma3', fachId: 'f2', name: 'Grössen, Daten und Zufall',         faelligAm: '2026-05-09', stufe: [6], autor: 'Sarah Keller' },
+  { id: 'tma4', fachId: 'f2', name: 'Terme und Gleichungen',              faelligAm: '2026-05-23', stufe: [7, 8], autor: 'Sarah Keller' },
   // NMG
-  { id: 'tnm1', fachId: 'f3', name: 'Lebewesen und Lebensräume',          faelligAm: '2026-04-25' },
-  { id: 'tnm2', fachId: 'f3', name: 'Körper und Gesundheit',              faelligAm: '2026-03-28' },
-  { id: 'tnm3', fachId: 'f3', name: 'Schweiz – Raum und Geschichte',      faelligAm: '2026-05-09' },
-  { id: 'tnm4', fachId: 'f3', name: 'Wirtschaft und Arbeit',              faelligAm: '2026-05-23' },
+  { id: 'tnm1', fachId: 'f3', name: 'Lebewesen und Lebensräume',          faelligAm: '2026-04-25', stufe: [5], autor: 'Marco Brun' },
+  { id: 'tnm2', fachId: 'f3', name: 'Körper und Gesundheit',              faelligAm: '2026-03-28', stufe: [6], autor: 'Marco Brun' },
+  { id: 'tnm3', fachId: 'f3', name: 'Schweiz – Raum und Geschichte',      faelligAm: '2026-05-09', stufe: [6, 7], autor: 'Marco Brun' },
+  { id: 'tnm4', fachId: 'f3', name: 'Wirtschaft und Arbeit',              faelligAm: '2026-05-23', stufe: [7], autor: 'Marco Brun' },
   // Französisch
-  { id: 'tfr1', fachId: 'f4', name: 'Hören und Sprechen',                 faelligAm: '2026-04-11' },
-  { id: 'tfr2', fachId: 'f4', name: 'Lesen',                              faelligAm: '2026-05-09' },
+  { id: 'tfr1', fachId: 'f4', name: 'Hören und Sprechen',                 faelligAm: '2026-04-11', stufe: [7, 8], autor: 'Jana Huber' },
+  { id: 'tfr2', fachId: 'f4', name: 'Lesen',                              faelligAm: '2026-05-09', stufe: [7, 8], autor: 'Jana Huber' },
   // faelligAm in der Zukunft → wird aus Analytik ausgeschlossen (Demo)
-  { id: 'tfr3', fachId: 'f4', name: 'Schreiben',                          faelligAm: '2026-06-20' },
+  { id: 'tfr3', fachId: 'f4', name: 'Schreiben',                          faelligAm: '2026-06-20', stufe: [7, 8], autor: 'Jana Huber' },
+  // Extra-Themen für Bibliothek-Demo (mehrere Autoren pro Fach)
+  { id: 'tde5', fachId: 'f1', name: 'Sprachreflexion und Grammatik',      stufe: [7, 8], autor: 'Marco Brun' },
+  { id: 'tde6', fachId: 'f1', name: 'Literarische Texte verstehen',       stufe: [6, 7], autor: 'Sarah Keller' },
+  { id: 'tma5', fachId: 'f2', name: 'Brüche und Dezimalzahlen',           stufe: [6, 7], autor: 'Lukas Meier' },
+  { id: 'tnm5', fachId: 'f3', name: 'Energie und Umwelt',                 stufe: [7, 8], autor: 'Sarah Keller' },
+  { id: 'tfr4', fachId: 'f4', name: 'Wortschatz und Grammatik',           stufe: [7, 8], autor: 'Marco Brun' },
+  // RILZ-Themen (typ: 'rilz') – erstellt von der Heilpädagogin, keine Stufenbeschränkung
+  { id: 'tma1_rilz', fachId: 'f2', name: 'Zahlen und Operationen (RILZ)',    typ: 'rilz', standardThemaId: 'tma1', autor: 'Jana Huber' },
+  { id: 'tma3_rilz', fachId: 'f2', name: 'Grössen, Daten und Zufall (RILZ)', typ: 'rilz', standardThemaId: 'tma3', autor: 'Jana Huber' },
 ]
 
 export const SEED_LERNZIELE: Lernziel[] = [
@@ -97,12 +106,44 @@ export const SEED_LERNZIELE: Lernziel[] = [
   // tfr3 – Schreiben (noch nicht fällig)
   { id: 'lfr3a', themaId: 'tfr3', kategorie: 'grundlegend',   label: 'Einfache Sätze korrekt auf Französisch aufschreiben', kriterien: ['Schreibt einfache Sätze fehlerfrei', 'Beachtet Satzstellung im Französischen', 'Verwendet gelernten Wortschatz korrekt'] },
   { id: 'lfr3b', themaId: 'tfr3', kategorie: 'anspruchsvoll', label: 'Eine kurze Mitteilung oder Postkarte auf Französisch verfassen', kriterien: ['Schreibt eine kurze Mitteilung strukturiert auf', 'Verwendet passende Gruss- und Abschiedsformeln', 'Hält sich an Wortschatz und Strukturen aus dem Unterricht'] },
+  // tde5 – Sprachreflexion
+  { id: 'lde5a', themaId: 'tde5', kategorie: 'grundlegend',   label: 'Wortarten bestimmen und korrekt anwenden' },
+  { id: 'lde5b', themaId: 'tde5', kategorie: 'grundlegend',   label: 'Satzglieder in einfachen Sätzen erkennen' },
+  { id: 'lde5c', themaId: 'tde5', kategorie: 'anspruchsvoll', label: 'Sprachliche Mittel bewusst und wirkungsvoll einsetzen' },
+  // tde6 – Literarische Texte
+  { id: 'lde6a', themaId: 'tde6', kategorie: 'grundlegend',   label: 'Handlung und Figuren eines literarischen Textes beschreiben' },
+  { id: 'lde6b', themaId: 'tde6', kategorie: 'grundlegend',   label: 'Textstellen zitieren und kommentieren' },
+  { id: 'lde6c', themaId: 'tde6', kategorie: 'anspruchsvoll', label: 'Themen und Motive eines literarischen Textes deuten' },
+  // tma5 – Brüche und Dezimalzahlen
+  { id: 'lma5a', themaId: 'tma5', kategorie: 'grundlegend',   label: 'Brüche mit gleichem Nenner addieren und subtrahieren' },
+  { id: 'lma5b', themaId: 'tma5', kategorie: 'grundlegend',   label: 'Dezimalzahlen in Brüche umwandeln und umgekehrt' },
+  { id: 'lma5c', themaId: 'tma5', kategorie: 'anspruchsvoll', label: 'Brüche multiplizieren und dividieren' },
+  // tnm5 – Energie und Umwelt
+  { id: 'lnm5a', themaId: 'tnm5', kategorie: 'grundlegend',   label: 'Erneuerbare und nicht erneuerbare Energiequellen unterscheiden' },
+  { id: 'lnm5b', themaId: 'tnm5', kategorie: 'grundlegend',   label: 'Auswirkungen des Energieverbrauchs auf die Umwelt beschreiben' },
+  { id: 'lnm5c', themaId: 'tnm5', kategorie: 'anspruchsvoll', label: 'Massnahmen zum Klimaschutz erläutern und bewerten' },
+  // tfr4 – Wortschatz und Grammatik
+  { id: 'lfr4a', themaId: 'tfr4', kategorie: 'grundlegend',   label: 'Grundlegende Grammatikregeln des Französischen anwenden' },
+  { id: 'lfr4b', themaId: 'tfr4', kategorie: 'grundlegend',   label: 'Wortschatz aus dem Unterricht korrekt einsetzen' },
+  { id: 'lfr4c', themaId: 'tfr4', kategorie: 'anspruchsvoll', label: 'Komplexe Satzstrukturen erkennen und selbst bilden' },
 ]
 
 // ── Klassen ───────────────────────────────────────────────────────────────────
 // k1 (5a): Deutsch Lesen+Schreiben · Mathe Zahlen+Geometrie · NMG Lebewesen
 // k2 (6b): Deutsch Sprechen+Rechtschreibung · Mathe Zahlen+Grössen · NMG Körper+Schweiz
 // k3 (7c): Deutsch Schreiben · Mathe Algebra · NMG Schweiz+Wirtschaft · Französisch alle
+
+// RILZ-Lernziele für die Bibliothek-RILZ-Themen (eigene Lernziele der Heilpädagogin)
+export const SEED_LERNZIELE_RILZ: Lernziel[] = [
+  // tma1_rilz – Zahlen und Operationen (vereinfacht)
+  { id: 'rilz_tma1_a', themaId: 'tma1_rilz', kategorie: 'grundlegend', label: 'Zahlen bis 1 000 lesen, schreiben und vergleichen' },
+  { id: 'rilz_tma1_b', themaId: 'tma1_rilz', kategorie: 'grundlegend', label: 'Addition und Subtraktion bis 1 000 ohne Übertragsrechnung' },
+  { id: 'rilz_tma1_c', themaId: 'tma1_rilz', kategorie: 'grundlegend', label: 'Das kleine Einmaleins (1–5) sicher anwenden' },
+  // tma3_rilz – Grössen, Daten und Zufall (vereinfacht, Alltagsbezug)
+  { id: 'rilz_tma3_a', themaId: 'tma3_rilz', kategorie: 'grundlegend', label: 'Uhrzeit ablesen und einfache Zeitspannen berechnen' },
+  { id: 'rilz_tma3_b', themaId: 'tma3_rilz', kategorie: 'grundlegend', label: 'Meter und Zentimeter im Alltag messen und umrechnen' },
+  { id: 'rilz_tma3_c', themaId: 'tma3_rilz', kategorie: 'grundlegend', label: 'Kilogramm und Gramm mit Waage bestimmen' },
+]
 
 export const SEED_LERNZIELE_BIBLIOTHEK: Lernziel[] = [
   // Deutsch – Lesen (Stufen 3-4)
@@ -144,7 +185,7 @@ export const SEED_LEHRPERSONEN: Lehrperson[] = [
 export const SEED_CLASSES: Klasse[] = [
   {
     id: 'k1', name: '5a', schuljahr: '2025/26',
-    assignedLernzielIds: ['lde1a','lde1b','lde1c','lde1d','lde2a','lde2b','lde2c','lma1a','lma1b','lma1c','lma1d','lma2a','lma2b','lma2c','lnm1a','lnm1b','lnm1c'],
+    assignedThemaIds: ['tde1', 'tde2', 'tma1', 'tma2', 'tnm1'],
     lpZuweisungen: [
       { lpId: 'lp1', fachIds: ['f1', 'f3'], rolle: 'klassenlehrperson' },
       { lpId: 'lp2', fachIds: ['f2'], rolle: 'fachlehrperson' },
@@ -153,7 +194,7 @@ export const SEED_CLASSES: Klasse[] = [
   },
   {
     id: 'k2', name: '6b', schuljahr: '2025/26',
-    assignedLernzielIds: ['lde3a','lde3b','lde3c','lde4a','lde4b','lde4c','lma1a','lma1b','lma1c','lma1d','lma3a','lma3b','lma3c','lnm2a','lnm2b','lnm3a','lnm3b','lnm3c'],
+    assignedThemaIds: ['tde3', 'tde4', 'tma1', 'tma3', 'tnm2', 'tnm3'],
     lpZuweisungen: [
       { lpId: 'lp3', fachIds: ['f1', 'f3'], rolle: 'klassenlehrperson' },
       { lpId: 'lp2', fachIds: ['f2'], rolle: 'fachlehrperson' },
@@ -162,7 +203,7 @@ export const SEED_CLASSES: Klasse[] = [
   },
   {
     id: 'k3', name: '7c', schuljahr: '2025/26',
-    assignedLernzielIds: ['lde2a','lde2b','lde2c','lma4a','lma4b','lnm3a','lnm3b','lnm3c','lnm4a','lnm4b','lfr1a','lfr1b','lfr1c','lfr2a','lfr2b','lfr3a','lfr3b'],
+    assignedThemaIds: ['tde2', 'tma4', 'tnm3', 'tnm4', 'tfr1', 'tfr2', 'tfr3'],
     lpZuweisungen: [
       { lpId: 'lp1', fachIds: ['f1'], rolle: 'klassenlehrperson' },
       { lpId: 'lp2', fachIds: ['f2'], rolle: 'fachlehrperson' },
@@ -295,6 +336,13 @@ export const SEED_STUDENTS: Schueler[] = ([
     id: 's3', klassId: 'k1', name: 'Mia Schneider',
     rilzFachIds: ['f2'],  // RILZ in Mathematik
     note: 'Zeigt grosses Interesse an Naturwissenschaften.',
+    rilzLernziele: [
+      { id: 'rlz_s3_1', themaId: 'tma1', label: 'Zahlen bis 100 lesen und schreiben', status: 'reached' },
+      { id: 'rlz_s3_2', themaId: 'tma1', label: 'Einfache Addition und Subtraktion bis 20', status: 'partially_reached' },
+      { id: 'rlz_s3_3', themaId: 'tma1', label: 'Verdoppeln und Halbieren im Zahlenraum bis 20', status: 'not_reached' },
+      { id: 'rlz_s3_4', themaId: 'tma2', label: 'Grundlegende geometrische Formen erkennen und benennen', status: 'not_reached' },
+      { id: 'rlz_s3_5', themaId: 'tma2', label: 'Figuren nach Vorlage mit Lineal nachzeichnen', status: 'partially_reached' },
+    ],
     competencyStatus: { c1: 'not_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'partially_reached', c5: 'not_reached', c6: 'partially_reached' },
     lernzielStatus: {
       lde1a: 'partially_reached', lde1b: 'not_reached', lde1c: 'not_reached', lde1d: 'not_reached',
@@ -859,14 +907,25 @@ export const SEED_STUDENTS: Schueler[] = ([
     // (lma3a-c = Grössen, lnm2a-b, lnm3a-c) failed → Mathe 100%→57%, NMG 0%
     id: 'sNeg2', klassId: 'k2', name: 'Kim Ott',
     rilzFachIds: ['f2', 'f3'],  // RILZ in Mathematik und NMG
+    rilzThemaIds: ['tma1_rilz', 'tma3_rilz'],  // Bibliotheks-RILZ-Themen zugewiesen
     bvsa: true,
     note: 'Nach der Prüfung eingebrochen, neue Themenbereiche nicht aufgeholt.',
+    rilzLernziele: [
+      // NMG – Körper und Gesundheit (ad-hoc, kein Bibliotheks-RILZ-Thema vorhanden)
+      { id: 'rlz_sNeg2_7', themaId: 'tnm2', label: 'Wichtige Körperteile und ihre Funktion benennen', status: 'reached' },
+      { id: 'rlz_sNeg2_8', themaId: 'tnm2', label: 'Regeln für gesunde Ernährung im Alltag nennen', status: 'partially_reached' },
+      // NMG – Schweiz (ad-hoc)
+      { id: 'rlz_sNeg2_9',  themaId: 'tnm3', label: 'Auf einer Karte Wohnort und Hauptstadt der Schweiz zeigen', status: 'not_reached' },
+      { id: 'rlz_sNeg2_10', themaId: 'tnm3', label: 'Die vier Landessprachen der Schweiz nennen', status: 'partially_reached' },
+    ],
     competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'partially_reached' },
     lernzielStatus: {
       lde3a: 'reached', lde3b: 'reached', lde3c: 'reached',
       lde4a: 'reached', lde4b: 'reached', lde4c: 'reached',
-      lma1a: 'reached', lma1b: 'reached', lma1c: 'reached', lma1d: 'reached',
-      lma3a: 'not_reached', lma3b: 'not_reached', lma3c: 'not_reached',
+      // Mathematik RILZ-Bibliothek-Lernziele (tma1_rilz)
+      rilz_tma1_a: 'reached', rilz_tma1_b: 'reached', rilz_tma1_c: 'partially_reached',
+      // Grössen RILZ-Bibliothek-Lernziele (tma3_rilz)
+      rilz_tma3_a: 'partially_reached', rilz_tma3_b: 'not_reached', rilz_tma3_c: 'not_reached',
       lnm2a: 'not_reached', lnm2b: 'not_reached',
       lnm3a: 'not_reached', lnm3b: 'not_reached', lnm3c: 'not_reached',
     },
@@ -925,6 +984,21 @@ export const SEED_STUDENTS: Schueler[] = ([
     id: 's12', klassId: 'k3', name: 'Tom Meier',
     rilzFachIds: ['f2', 'f4'],  // RILZ in Mathematik und Französisch
     note: 'Zeigt Schwierigkeiten bei der Konzentration.',
+    rilzLernziele: [
+      // Mathematik – Algebra (vereinfacht: konkrete Muster statt Terme)
+      { id: 'rlz_s12_1', themaId: 'tma4', label: 'Zahlenfolgen und Muster erkennen und fortführen', status: 'partially_reached' },
+      { id: 'rlz_s12_2', themaId: 'tma4', label: 'Einfache Gleichungen mit Platzhalter lösen (z. B. □ + 4 = 9)', status: 'not_reached' },
+      // Französisch – Hören und Sprechen (vereinfacht: Grundwortschatz)
+      { id: 'rlz_s12_3', themaId: 'tfr1', label: 'Sich auf Französisch vorstellen (Name, Alter, Wohnort)', status: 'reached' },
+      { id: 'rlz_s12_4', themaId: 'tfr1', label: 'Einfache Anweisungen im Unterricht verstehen', status: 'partially_reached' },
+      { id: 'rlz_s12_5', themaId: 'tfr1', label: 'Zahlen 1–20 auf Französisch nennen', status: 'reached' },
+      // Französisch – Lesen (vereinfacht: Bildwörterbuch-Niveau)
+      { id: 'rlz_s12_6', themaId: 'tfr2', label: 'Bekannte Vokabeln in einfachen Texten erkennen', status: 'partially_reached' },
+      { id: 'rlz_s12_7', themaId: 'tfr2', label: 'Kurze beschriftete Bilder und Schilder auf Französisch lesen', status: 'not_reached' },
+      // Französisch – Schreiben (vereinfacht: Wörter abschreiben)
+      { id: 'rlz_s12_8', themaId: 'tfr3', label: 'Gelernten Grundwortschatz fehlerfrei abschreiben', status: 'not_reached' },
+      { id: 'rlz_s12_9', themaId: 'tfr3', label: 'Eine einfache Vorstellung auf Französisch aufschreiben', status: 'not_reached' },
+    ],
     competencyStatus: { c1: 'not_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'not_reached', c5: 'partially_reached', c6: 'not_reached' },
     lernzielStatus: {
       lde2a: 'not_reached', lde2b: 'not_reached', lde2c: 'not_reached',

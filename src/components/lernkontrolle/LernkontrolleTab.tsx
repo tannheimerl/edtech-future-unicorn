@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Check, Minus, X, ClipboardList, Star, Plus, ChevronDown, Search } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { cn } from '@/lib/utils'
-import type { Status } from '@/types/domain'
+import { RilzStudentCard } from './RilzStudentCard'
+import type { Status, Thema } from '@/types/domain'
 
 function nextStatus(current: Status | undefined): Status | undefined {
   if (current === undefined) return 'reached'
@@ -250,6 +251,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
     getLernzieleForThema,
     getFachForThema,
     faecher,
+    themen,
     updateLernzielStatus,
     students: allStudents,
   } = useData()
@@ -302,6 +304,22 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
 
   const allLernziele = lernzieleGroups.flatMap(g => g.lernziele)
   const sortedStudents = [...students].sort((a, b) => a.name.localeCompare(b.name, 'de'))
+  const selectedFachIds = new Set(selectedThemen.map(t => t.fachId))
+
+  // Students RILZ'd in any selected fach OR with a library RILZ Thema matching a selected Thema
+  // → removed from main table, shown in the RILZ container below
+  const rilzContainerStudents = sortedStudents.filter(s => {
+    if (selectedFachIds.size === 0) return false
+    if (s.rilzFachIds?.some(fId => selectedFachIds.has(fId))) return true
+    return !!(s.rilzThemaIds?.some(rilzThemaId => {
+      const rilzThema = themen.find(t => t.id === rilzThemaId)
+      return rilzThema?.standardThemaId && selectedThemen.some(st => st.id === rilzThema.standardThemaId)
+    }))
+  })
+  const mainTableStudents = sortedStudents.filter(s => !rilzContainerStudents.includes(s))
+  const regularStudents = mainTableStudents.filter(s => !s.bvsa)
+  const bvsaStudents    = mainTableStudents.filter(s => !!s.bvsa)
+  const orderedStudents = [...regularStudents, ...bvsaStudents]
   const showComment = lernzieleGroups.length === 1
   const kommentarWidth = 160
   const pctRight = showComment ? kommentarWidth : 0
@@ -350,7 +368,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
   function handleTableKeyDown(e: React.KeyboardEvent) {
     if (!focusedCell) return
     const { row, col } = focusedCell
-    const maxRow = sortedStudents.length - 1
+    const maxRow = orderedStudents.length - 1
     const maxCol = allLernziele.length - 1
     if (e.key === 'ArrowRight') {
       e.preventDefault(); setFocusedCell({ row, col: Math.min(col + 1, maxCol) })
@@ -362,7 +380,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
       e.preventDefault(); setFocusedCell({ row: Math.max(row - 1, 0), col })
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      const student = sortedStudents[row]
+      const student = orderedStudents[row]
       const lz = allLernziele[col]
       const s = allStudents.find(s => s.id === student.id)
       const fach = getFachForThema(lz.themaId)
@@ -374,12 +392,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
   }
 
   function lzReachedPct(lzId: string): number {
-    if (students.length === 0) return 0
-    const lz = allLernziele.find(l => l.id === lzId)
-    const fach = lz ? getFachForThema(lz.themaId) : null
-    const eligible = lz?.kategorie === 'anspruchsvoll' && fach
-      ? students.filter(s => !s.rilzFachIds?.includes(fach.id))
-      : students
+    const eligible = regularStudents
     if (eligible.length === 0) return 0
     const sum = eligible.reduce((acc, s) => {
       const st = s.lernzielStatus[lzId] ?? 'not_reached'
@@ -591,73 +604,87 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {sortedStudents.map((student, rowIdx) => {
+                  {orderedStudents.map((student, rowIdx) => {
+                    const isRilzSeparator = rowIdx === regularStudents.length && bvsaStudents.length > 0
                     const pct = studentTotalPct(student.id)
                     const pctColor =
                       pct >= 75 ? 'text-emerald-600' :
                       pct >= 40 ? 'text-amber-600' :
                       'text-red-500'
                     const rowBg = rowIdx % 2 === 0 ? 'bg-card' : 'bg-muted/10'
+                    const totalCols = 1 + allLernziele.length + 1 + (showComment ? 1 : 0)
                     return (
-                      <tr key={student.id} className={cn('transition-colors', rowBg)}>
-                        {/* name — click to enter keyboard mode */}
-                        <td
-                          className={cn(
-                            'sticky left-0 z-10 bg-card px-3 py-1 text-sm font-medium border-r border-border whitespace-nowrap overflow-hidden text-ellipsis max-w-32 cursor-pointer select-none hover:bg-muted/40 transition-colors',
-                            focusedCell?.row === rowIdx && 'bg-primary/5 text-primary',
-                          )}
-                          onClick={() => { setFocusedCell({ row: rowIdx, col: 0 }); tableScrollRef.current?.focus() }}
-                          title="Klicken, dann Pfeiltasten + Enter zum Bewerten"
-                        >
-                          {student.name}
-                        </td>
-                        {/* status cells */}
-                        {lernzieleGroups.map(({ lernziele }, gi) =>
-                          lernziele.map((lz, lzIdx) => {
-                            const hasRilz = (() => {
-                              const s = allStudents.find(s => s.id === student.id)
-                              if (!s?.rilzFachIds?.length) return false
-                              const fach = getFachForThema(lz.themaId)
-                              return fach ? s.rilzFachIds.includes(fach.id) : false
-                            })()
-                            const isSkipped = hasRilz && lz.kategorie === 'anspruchsvoll'
-                            const status = student.lernzielStatus[lz.id] as Status | undefined
-                            const isLastInGroup = lzIdx === lernziele.length - 1 && gi < lernzieleGroups.length - 1
-                            const colIdx = allLernziele.findIndex(l => l.id === lz.id)
-                            const isFocused = focusedCell?.row === rowIdx && focusedCell?.col === colIdx
-                            return (
-                              <td
-                                key={lz.id}
-                                data-cell={`${rowIdx}-${colIdx}`}
-                                className={cn(
-                                  'px-1 py-1 text-center',
-                                  rowBg,
-                                  isSkipped && 'opacity-25',
-                                  isLastInGroup && 'border-r-2 border-primary/25',
-                                  isFocused && 'ring-2 ring-inset ring-primary/50 bg-primary/5',
-                                )}
-                              >
-                                <StatusCell
-                                  status={isSkipped ? undefined : status}
-                                  onSelect={s => !isSkipped && updateLernzielStatus(student.id, lz.id, s)}
-                                />
-                              </td>
-                            )
-                          })
+                      <React.Fragment key={student.id}>
+                        {isRilzSeparator && (
+                          <tr className="border-t-2 border-border">
+                            <td
+                              colSpan={totalCols}
+                              className="sticky left-0 bg-orange-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-orange-700"
+                            >
+                              Schülerinnen und Schüler mit BVSA
+                            </td>
+                          </tr>
                         )}
-                        {/* % — solid bg-card */}
-                        <td className="sticky z-10 bg-card px-2 py-1 text-center border-l border-border" style={{ right: pctRight }}>
-                          <span className={cn('text-xs font-bold tabular-nums', pctColor)}>
-                            {pct}%
-                          </span>
-                        </td>
-                        {/* Kommentar — only when 1 theme */}
-                        {showComment && (
-                          <td className="sticky right-0 z-10 bg-card px-1 py-0.5 border-l border-border">
-                            <InlineKommentarCell studentId={student.id} themaId={selectedThemen[0].id} />
+                        <tr className={cn('transition-colors', rowBg)}>
+                          {/* name — click to enter keyboard mode */}
+                          <td
+                            className={cn(
+                              'sticky left-0 z-10 bg-card px-3 py-1 text-sm font-medium border-r border-border whitespace-nowrap overflow-hidden text-ellipsis max-w-32 cursor-pointer select-none hover:bg-muted/40 transition-colors',
+                              focusedCell?.row === rowIdx && 'bg-primary/5 text-primary',
+                            )}
+                            onClick={() => { setFocusedCell({ row: rowIdx, col: 0 }); tableScrollRef.current?.focus() }}
+                            title="Klicken, dann Pfeiltasten + Enter zum Bewerten"
+                          >
+                            {student.name}
                           </td>
-                        )}
-                      </tr>
+                          {/* status cells */}
+                          {lernzieleGroups.map(({ lernziele }, gi) =>
+                            lernziele.map((lz, lzIdx) => {
+                              const hasRilz = (() => {
+                                const s = allStudents.find(s => s.id === student.id)
+                                if (!s?.rilzFachIds?.length) return false
+                                const fach = getFachForThema(lz.themaId)
+                                return fach ? s.rilzFachIds.includes(fach.id) : false
+                              })()
+                              const isSkipped = hasRilz && lz.kategorie === 'anspruchsvoll'
+                              const status = student.lernzielStatus[lz.id] as Status | undefined
+                              const isLastInGroup = lzIdx === lernziele.length - 1 && gi < lernzieleGroups.length - 1
+                              const colIdx = allLernziele.findIndex(l => l.id === lz.id)
+                              const isFocused = focusedCell?.row === rowIdx && focusedCell?.col === colIdx
+                              return (
+                                <td
+                                  key={lz.id}
+                                  data-cell={`${rowIdx}-${colIdx}`}
+                                  className={cn(
+                                    'px-1 py-1 text-center',
+                                    rowBg,
+                                    isSkipped && 'opacity-25',
+                                    isLastInGroup && 'border-r-2 border-primary/25',
+                                    isFocused && 'ring-2 ring-inset ring-primary/50 bg-primary/5',
+                                  )}
+                                >
+                                  <StatusCell
+                                    status={isSkipped ? undefined : status}
+                                    onSelect={s => !isSkipped && updateLernzielStatus(student.id, lz.id, s)}
+                                  />
+                                </td>
+                              )
+                            })
+                          )}
+                          {/* % — solid bg-card */}
+                          <td className="sticky z-10 bg-card px-2 py-1 text-center border-l border-border" style={{ right: pctRight }}>
+                            <span className={cn('text-xs font-bold tabular-nums', pctColor)}>
+                              {pct}%
+                            </span>
+                          </td>
+                          {/* Kommentar — only when 1 theme */}
+                          {showComment && (
+                            <td className="sticky right-0 z-10 bg-card px-1 py-0.5 border-l border-border">
+                              <InlineKommentarCell studentId={student.id} themaId={selectedThemen[0].id} />
+                            </td>
+                          )}
+                        </tr>
+                      </React.Fragment>
                     )
                   })}
                 </tbody>
@@ -698,6 +725,31 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* RILZ container — students removed from main table */}
+      {rilzContainerStudents.length > 0 && selectedThemen.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
+            RILZ – Individuelle Beurteilung
+          </p>
+          {rilzContainerStudents.map(student => {
+            const rilzLibraryThemen = (student.rilzThemaIds ?? [])
+              .map(id => themen.find(t => t.id === id))
+              .filter((t): t is Thema => t != null)
+              .filter(t => selectedThemen.some(st => st.id === t.standardThemaId))
+            return (
+              <RilzStudentCard
+                key={student.id}
+                student={student}
+                selectedThemen={selectedThemen}
+                grundlegendLernziele={allLernziele.filter(lz => lz.kategorie === 'grundlegend')}
+                faecher={faecher}
+                rilzLibraryThemen={rilzLibraryThemen}
+              />
+            )
+          })}
         </div>
       )}
 

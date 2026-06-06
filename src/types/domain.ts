@@ -24,7 +24,12 @@ export interface Thema {
   id: string
   fachId: string
   name: string
-  faelligAm?: string  // ISO YYYY-MM-DD — Datum bis wann dieses Thema beherrscht sein soll
+  faelligAm?: string      // ISO YYYY-MM-DD — Datum bis wann dieses Thema beherrscht sein soll
+  typ?: 'standard' | 'rilz'  // default = 'standard'
+  standardThemaId?: string    // für RILZ-Themen: welches Standard-Thema wird ersetzt
+  stufe?: number[]            // e.g. [5, 6] — Schulstufen für die dieses Thema gedacht ist
+  autor?: string              // Anzeigename der Lehrperson, die dieses Thema erstellt hat
+  publishedToLibrary?: boolean // true once a personal Thema has been shared to the school library
 }
 
 export type LernzielKategorie = 'grundlegend' | 'anspruchsvoll'
@@ -62,7 +67,7 @@ export interface LpZuweisung {
 export interface Klasse {
   id: string
   name: string
-  assignedLernzielIds: string[]
+  assignedThemaIds: string[]
   lpZuweisungen?: LpZuweisung[]
   schuljahr?: string           // e.g. "2025/26"
   vorgaengerKlasseId?: string  // pointer to previous year's class
@@ -89,6 +94,13 @@ export interface ThemaKommentar {
   updatedAt: string  // ISO timestamp
 }
 
+export interface RilzLernziel {
+  id: string
+  themaId: string
+  label: string
+  status: Status
+}
+
 export interface Schueler {
   id: string
   klassId: string
@@ -96,6 +108,8 @@ export interface Schueler {
   note: string
   bvsa?: boolean             // Besonderer Förderbedarf — gets report even without grades in some subjects
   rilzFachIds?: string[]     // Fach IDs where student has reduced learning goals (RILZ)
+  rilzLernziele?: RilzLernziel[]  // Individual RILZ learning goals written by Heilpädagogin (ad-hoc)
+  rilzThemaIds?: string[]    // RILZ-Themen aus der Bibliothek, die diesem Schüler zugewiesen sind
   competencyStatus: Record<string, Status>
   lernzielStatus: Record<string, Status>
   lernzielVersuche?: Record<string, Versuch[]>  // attempt history per LZ (replaces lernzielStatus long-term)

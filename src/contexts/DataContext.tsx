@@ -21,6 +21,7 @@ import {
   SEED_THEMEN,
   SEED_LERNZIELE,
   SEED_LERNZIELE_BIBLIOTHEK,
+  SEED_LERNZIELE_RILZ,
   SEED_LEHRPERSONEN,
   SEED_KOMMENTARE,
 } from '@/lib/mock-data'
@@ -64,6 +65,12 @@ interface DataContextValue {
   setRilzFach: (studentId: string, fachId: string, enabled: boolean) => void
   setBvsa: (studentId: string, enabled: boolean) => void
 
+  // RILZ individual Lernziele
+  addRilzLernziel: (studentId: string, themaId: string, label: string) => void
+  updateRilzLernzielStatus: (studentId: string, lzId: string, status: Status) => void
+  updateRilzLernzielLabel: (studentId: string, lzId: string, label: string) => void
+  deleteRilzLernziel: (studentId: string, lzId: string) => void
+
   // Competency status
   updateCompetencyStatus: (studentId: string, competencyId: string, status: Status) => void
 
@@ -79,9 +86,9 @@ interface DataContextValue {
   upsertThemaKommentar: (studentId: string, themaId: string, text: string) => void
   deleteThemaKommentar: (studentId: string, themaId: string) => void
 
-  // Lernziel assignment to Klasse
-  assignLernzielToKlasse: (klassId: string, lernzielId: string) => void
-  removeLernzielFromKlasse: (klassId: string, lernzielId: string) => void
+  // Thema assignment to Klasse
+  assignThemaToKlasse: (klassId: string, themaId: string) => void
+  removeThemaFromKlasse: (klassId: string, themaId: string) => void
 
   // LP assignments to Klasse
   setLpZuweisung: (klassId: string, lpId: string, fachIds: string[], rolle?: import('@/types/domain').LpRolle) => void
@@ -91,20 +98,26 @@ interface DataContextValue {
   createFolgeklasse: (vorgaengerKlasseId: string, neuerName: string, neuesSchuljahr: string) => string
 
   // Fach CRUD
-  createFach: (name: string) => void
+  createFach: (name: string) => string
   updateFach: (id: string, name: string) => void
   deleteFach: (id: string) => void
 
   // Thema CRUD
-  createThema: (fachId: string, name: string) => void
-  updateThema: (id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm'>>) => void
+  createThema: (fachId: string, name: string, typ?: 'standard' | 'rilz', standardThemaId?: string) => string
+  updateThema: (id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId'>>) => void
   deleteThema: (id: string) => void
+
+  // RILZ-Thema assignment to students
+  assignRilzThemaToStudent: (studentId: string, rilzThemaId: string) => void
+  removeRilzThemaFromStudent: (studentId: string, rilzThemaId: string) => void
 
   // Lernziel CRUD
   createLernziel: (themaId: string, label: string, kategorie: LernzielKategorie) => void
   updateLernziel: (id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie' | 'wichtig'>>) => void
   deleteLernziel: (id: string) => void
   copyLernzielToEigene: (lzId: string) => string | undefined
+  copyThemaToEigene: (themaId: string, targetFachId?: string) => string | undefined
+  publishThemaToLibrary: (themaId: string) => void
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -116,7 +129,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [students, setStudents] = useState<Schueler[]>(SEED_STUDENTS)
   const [faecher, setFaecher] = useState<Fach[]>(SEED_FAECHER)
   const [themen, setThemen] = useState<Thema[]>(SEED_THEMEN)
-  const [lernziele, setLernziele] = useState<Lernziel[]>([...SEED_LERNZIELE, ...SEED_LERNZIELE_BIBLIOTHEK])
+  const [lernziele, setLernziele] = useState<Lernziel[]>([...SEED_LERNZIELE, ...SEED_LERNZIELE_RILZ, ...SEED_LERNZIELE_BIBLIOTHEK])
   const [kommentare, setKommentare] = useState<AssessmentKommentar[]>(SEED_KOMMENTARE)
   const [themaKommentare, setThemaKommentare] = useState<ThemaKommentar[]>([])
   const competencies = SEED_COMPETENCIES
@@ -140,12 +153,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     (klassId: string) => {
       const klasse = classes.find((c) => c.id === klassId)
       if (!klasse) return []
-      const assignedLzSet = new Set(klasse.assignedLernzielIds)
-      return themen.filter((t) =>
-        lernziele.some((lz) => lz.themaId === t.id && assignedLzSet.has(lz.id))
-      )
+      return themen.filter((t) => klasse.assignedThemaIds.includes(t.id))
     },
-    [classes, themen, lernziele]
+    [classes, themen]
   )
   const getLernzieleForThema = useCallback(
     (themaId: string) =>
@@ -187,7 +197,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // ── Class mutations ───────────────────────────────────────────────────
 
   const createClass = useCallback((name: string) => {
-    setClasses((prev) => [...prev, { id: crypto.randomUUID(), name, assignedLernzielIds: [], lpZuweisungen: [] }])
+    setClasses((prev) => [...prev, { id: crypto.randomUUID(), name, assignedThemaIds: [], lpZuweisungen: [] }])
   }, [])
 
   const updateClass = useCallback((id: string, name: string) => {
@@ -243,6 +253,43 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const setBvsa = useCallback((studentId: string, enabled: boolean) => {
     setStudents((prev) =>
       prev.map((s) => (s.id === studentId ? { ...s, bvsa: enabled } : s))
+    )
+  }, [])
+
+  const addRilzLernziel = useCallback((studentId: string, themaId: string, label: string) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        const lz: import('@/types/domain').RilzLernziel = { id: crypto.randomUUID(), themaId, label, status: 'not_reached' }
+        return { ...s, rilzLernziele: [...(s.rilzLernziele ?? []), lz] }
+      })
+    )
+  }, [])
+
+  const updateRilzLernzielStatus = useCallback((studentId: string, lzId: string, status: Status) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        return { ...s, rilzLernziele: (s.rilzLernziele ?? []).map(lz => lz.id === lzId ? { ...lz, status } : lz) }
+      })
+    )
+  }, [])
+
+  const updateRilzLernzielLabel = useCallback((studentId: string, lzId: string, label: string) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        return { ...s, rilzLernziele: (s.rilzLernziele ?? []).map(lz => lz.id === lzId ? { ...lz, label } : lz) }
+      })
+    )
+  }, [])
+
+  const deleteRilzLernziel = useCallback((studentId: string, lzId: string) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        return { ...s, rilzLernziele: (s.rilzLernziele ?? []).filter(lz => lz.id !== lzId) }
+      })
     )
   }, [])
 
@@ -337,23 +384,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     )
   }, [])
 
-  // ── Lernziel assignment ───────────────────────────────────────────────
+  // ── Thema assignment to Klasse ────────────────────────────────────────
 
-  const assignLernzielToKlasse = useCallback((klassId: string, lernzielId: string) => {
+  const assignThemaToKlasse = useCallback((klassId: string, themaId: string) => {
     setClasses((prev) =>
       prev.map((c) =>
-        c.id === klassId && !c.assignedLernzielIds.includes(lernzielId)
-          ? { ...c, assignedLernzielIds: [...c.assignedLernzielIds, lernzielId] }
+        c.id === klassId && !c.assignedThemaIds.includes(themaId)
+          ? { ...c, assignedThemaIds: [...c.assignedThemaIds, themaId] }
           : c
       )
     )
   }, [])
 
-  const removeLernzielFromKlasse = useCallback((klassId: string, lernzielId: string) => {
+  const removeThemaFromKlasse = useCallback((klassId: string, themaId: string) => {
     setClasses((prev) =>
       prev.map((c) =>
         c.id === klassId
-          ? { ...c, assignedLernzielIds: c.assignedLernzielIds.filter((id) => id !== lernzielId) }
+          ? { ...c, assignedThemaIds: c.assignedThemaIds.filter((id) => id !== themaId) }
           : c
       )
     )
@@ -422,8 +469,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // ── Fach CRUD ─────────────────────────────────────────────────────────
 
-  const createFach = useCallback((name: string) => {
-    setFaecher((prev) => [...prev, { id: crypto.randomUUID(), name }])
+  const createFach = useCallback((name: string): string => {
+    const id = crypto.randomUUID()
+    setFaecher((prev) => [...prev, { id, name }])
+    return id
   }, [])
 
   const updateFach = useCallback((id: string, name: string) => {
@@ -450,7 +499,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setClasses((prev) =>
       prev.map((c) => ({
         ...c,
-        assignedLernzielIds: c.assignedLernzielIds.filter((id) => !lzToDelete.has(id)),
+        assignedThemaIds: c.assignedThemaIds.filter((id) => !themenToDelete.has(id)),
       }))
     )
     setFaecher((prev) => prev.filter((f) => f.id !== id))
@@ -458,27 +507,48 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // ── Thema CRUD ────────────────────────────────────────────────────────
 
-  const createThema = useCallback((fachId: string, name: string) => {
-    setThemen((prev) => [...prev, { id: crypto.randomUUID(), fachId, name }])
+  const createThema = useCallback((fachId: string, name: string, typ?: 'standard' | 'rilz', standardThemaId?: string): string => {
+    const id = crypto.randomUUID()
+    setThemen((prev) => [...prev, { id, fachId, name, typ: typ ?? 'standard', standardThemaId }])
+    return id
   }, [])
 
-  const updateThema = useCallback((id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm'>>) => {
+  const updateThema = useCallback((id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId'>>) => {
     setThemen((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
   }, [])
 
   const deleteThema = useCallback((id: string) => {
-    let lzIds: string[] = []
-    setLernziele((prev) => {
-      lzIds = prev.filter((l) => l.themaId === id).map((l) => l.id)
-      return prev.filter((l) => l.themaId !== id)
-    })
+    setLernziele((prev) => prev.filter((l) => l.themaId !== id))
     setClasses((prev) =>
       prev.map((c) => ({
         ...c,
-        assignedLernzielIds: c.assignedLernzielIds.filter((lid) => !lzIds.includes(lid)),
+        assignedThemaIds: c.assignedThemaIds.filter((tid) => tid !== id),
       }))
     )
     setThemen((prev) => prev.filter((t) => t.id !== id))
+  }, [])
+
+  // ── RILZ-Thema assignment ─────────────────────────────────────────────
+
+  const assignRilzThemaToStudent = useCallback((studentId: string, rilzThemaId: string) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        const current = s.rilzThemaIds ?? []
+        if (current.includes(rilzThemaId)) return s
+        return { ...s, rilzThemaIds: [...current, rilzThemaId] }
+      })
+    )
+  }, [])
+
+  const removeRilzThemaFromStudent = useCallback((studentId: string, rilzThemaId: string) => {
+    setStudents((prev) =>
+      prev.map((s) =>
+        s.id === studentId
+          ? { ...s, rilzThemaIds: (s.rilzThemaIds ?? []).filter((id) => id !== rilzThemaId) }
+          : s
+      )
+    )
   }, [])
 
   // ── Lernziel CRUD ─────────────────────────────────────────────────────
@@ -503,6 +573,42 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setLernziele((prev) => [...prev, { ...rest, id: newId, source: 'eigene' }])
     return newId
   }, [lernziele])
+
+  const copyThemaToEigene = useCallback((themaId: string, targetFachId?: string): string | undefined => {
+    const thema = themen.find((t) => t.id === themaId)
+    if (!thema) return undefined
+    const newThemaId = crypto.randomUUID()
+    const { autor, ...themaRest } = thema
+    setThemen((prev) => [...prev, { ...themaRest, id: newThemaId, fachId: targetFachId ?? thema.fachId }])
+    const sourceLZ = lernziele.filter((l) => l.themaId === themaId)
+    const clonedLZ = sourceLZ.map((lz) => {
+      const { source, autor: lzAutor, beschreibung, stufe, ...lzRest } = lz
+      return { ...lzRest, id: crypto.randomUUID(), themaId: newThemaId, source: 'eigene' as const }
+    })
+    setLernziele((prev) => [...prev, ...clonedLZ])
+    return newThemaId
+  }, [themen, lernziele])
+
+  const CURRENT_LP_NAME = 'Lukas Meier'
+
+  const publishThemaToLibrary = useCallback((themaId: string): void => {
+    const thema = themen.find((t) => t.id === themaId)
+    if (!thema || thema.autor != null) return
+    const newThemaId = crypto.randomUUID()
+    setThemen((prev) => [
+      ...prev.map((t) => t.id === themaId ? { ...t, publishedToLibrary: true } : t),
+      { ...thema, id: newThemaId, autor: CURRENT_LP_NAME, publishedToLibrary: undefined },
+    ])
+    const sourceLZ = lernziele.filter((l) => l.themaId === themaId)
+    const libraryLZ = sourceLZ.map((lz) => ({
+      ...lz,
+      id: crypto.randomUUID(),
+      themaId: newThemaId,
+      source: 'bibliothek' as const,
+      autor: CURRENT_LP_NAME,
+    }))
+    setLernziele((prev) => [...prev, ...libraryLZ])
+  }, [themen, lernziele])
 
   return (
     <DataContext.Provider
@@ -533,6 +639,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         deleteStudent,
         setRilzFach,
         setBvsa,
+        addRilzLernziel,
+        updateRilzLernzielStatus,
+        updateRilzLernzielLabel,
+        deleteRilzLernziel,
         updateCompetencyStatus,
         updateLernzielStatus,
         addVersuch,
@@ -540,8 +650,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         deleteKommentar,
         upsertThemaKommentar,
         deleteThemaKommentar,
-        assignLernzielToKlasse,
-        removeLernzielFromKlasse,
+        assignThemaToKlasse,
+        removeThemaFromKlasse,
         setLpZuweisung,
         removeLpFromKlasse,
         createFolgeklasse,
@@ -551,10 +661,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         createThema,
         updateThema,
         deleteThema,
+        assignRilzThemaToStudent,
+        removeRilzThemaFromStudent,
         createLernziel,
         updateLernziel,
         deleteLernziel,
         copyLernzielToEigene,
+        copyThemaToEigene,
+        publishThemaToLibrary,
       }}
     >
       {children}

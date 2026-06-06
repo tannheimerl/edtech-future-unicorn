@@ -9,14 +9,15 @@ import type { WithClassName } from "@/types"
 const NAV_ITEMS = [
   { label: "Übersicht", href: "/", exact: true },
   { label: "Klassen", href: "/klassen" },
-  { label: "Bibliothek", href: "/lernziele" },
+  { label: "Lernziele", href: "/lernziele" },
+  { label: "Berichte", href: "/berichte" },
 ]
 
 interface HeaderProps extends WithClassName {
   siteName?: string
 }
 
-export function Header({ siteName = "Lenzio", className }: HeaderProps) {
+export function Header({ siteName = "Lezio", className }: HeaderProps) {
   const pathname = usePathname()
 
   return (

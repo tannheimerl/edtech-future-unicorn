@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal } from '@/components/shared/Modal'
-import type { Klasse, Status } from '@/types/domain'
+import type { Status } from '@/types/domain'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -157,7 +157,7 @@ export default function KlassenPage() {
           return (
             <Card
               key={klasse.id}
-              className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5"
+              className="group cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5"
               onClick={() => router.push(`/klassen/${klasse.id}`)}
             >
               <CardHeader>

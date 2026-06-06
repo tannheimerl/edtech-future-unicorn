@@ -29,11 +29,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <Header siteName="Lenzio" />
+        <Header siteName="Lezio" />
         <Providers>
           <main className="flex flex-1 flex-col">{children}</main>
         </Providers>
-        <Footer siteName="Lenzio" />
+        <Footer siteName="Lezio" />
       </body>
     </html>
   )

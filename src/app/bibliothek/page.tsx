@@ -1,10 +1,5 @@
-'use client'
+import { redirect } from 'next/navigation'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-
-export default function BibliothekRedirect() {
-  const router = useRouter()
-  useEffect(() => { router.replace('/lernziele') }, [router])
-  return null
+export default function BibliothekPage() {
+  redirect('/lernziele')
 }
