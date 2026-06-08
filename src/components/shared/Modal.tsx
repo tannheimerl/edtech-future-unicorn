@@ -17,7 +17,7 @@ interface ModalProps {
   description?: string
   children?: ReactNode
   footer?: ReactNode
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 }
 
 export function Modal({
@@ -30,7 +30,10 @@ export function Modal({
   size = 'md',
 }: ModalProps) {
   const maxWidth =
-    size === 'sm' ? 'sm:max-w-sm' : size === 'lg' ? 'sm:max-w-2xl' : 'sm:max-w-lg'
+    size === 'xs' ? 'sm:max-w-xs' :
+    size === 'sm' ? 'sm:max-w-sm' :
+    size === 'lg' ? 'sm:max-w-2xl' :
+    size === 'xl' ? 'sm:max-w-4xl' : 'sm:max-w-lg'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -27,7 +27,8 @@ export interface Thema {
   faelligAm?: string      // ISO YYYY-MM-DD — Datum bis wann dieses Thema beherrscht sein soll
   typ?: 'standard' | 'rilz'  // default = 'standard'
   standardThemaId?: string    // für RILZ-Themen: welches Standard-Thema wird ersetzt
-  stufe?: number[]            // e.g. [5, 6] — Schulstufen für die dieses Thema gedacht ist
+  stufe?: number[]            // e.g. [5, 6] — Schulstufen für die dieses Thema gedacht ist (1–9)
+  zyklus?: number[]           // Schweizer Schulzyklus: 1 | 2 | 3 (multi-select)
   autor?: string              // Anzeigename der Lehrperson, die dieses Thema erstellt hat
   publishedToLibrary?: boolean // true once a personal Thema has been shared to the school library
 }
@@ -68,9 +69,17 @@ export interface Klasse {
   id: string
   name: string
   assignedThemaIds: string[]
+  abgeschlosseneThemaIds?: string[]  // topic IDs closed/locked for this class year
   lpZuweisungen?: LpZuweisung[]
   schuljahr?: string           // e.g. "2025/26"
   vorgaengerKlasseId?: string  // pointer to previous year's class
+}
+
+export function isThemaClosed(thema: Thema, abgeschlosseneIds: string[] | undefined): boolean {
+  const closed = new Set(abgeschlosseneIds ?? [])
+  if (closed.has(thema.id)) return true
+  if (thema.typ === 'rilz' && thema.standardThemaId) return closed.has(thema.standardThemaId)
+  return false
 }
 
 // A single assessment attempt for a Lernziel
@@ -104,7 +113,8 @@ export interface RilzLernziel {
 export interface Schueler {
   id: string
   klassId: string
-  name: string
+  vorname: string
+  nachname: string
   note: string
   bvsa?: boolean             // Besonderer Förderbedarf — gets report even without grades in some subjects
   rilzFachIds?: string[]     // Fach IDs where student has reduced learning goals (RILZ)
@@ -128,8 +138,3 @@ export interface Lehrperson {
   kuerzel: string  // e.g. "LM" for "Lukas Meier"
 }
 
-// Helper: derive current status from attempt list (latest wins)
-export function getCurrentStatusFromVersuche(versuche: Versuch[]): Status | undefined {
-  if (!versuche || versuche.length === 0) return undefined
-  return versuche[versuche.length - 1].status
-}

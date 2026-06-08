@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Check, Minus, X } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
-import { cn } from '@/lib/utils'
+import { cn, getFachColor } from '@/lib/utils'
 import { AddLzRow } from './RilzBeurteilungView'
 import type { Schueler, Thema, Lernziel, Status, RilzLernziel } from '@/types/domain'
 import { STATUS_CYCLE } from '@/types/domain'
@@ -58,7 +58,7 @@ function StatusCell({
       >
         {status === 'reached'           && <Check className="size-3 stroke-[2.5]" />}
         {status === 'partially_reached' && <Minus className="size-3 stroke-[2.5]" />}
-        {status === 'not_reached'       && <X className="size-2.5 stroke-[2]" />}
+        {status === 'not_reached'       && <X className="size-3 stroke-[2.5]" />}
         {status === undefined           && <span className="size-1.5 rounded-full bg-slate-300" />}
       </button>
     </div>
@@ -94,7 +94,7 @@ function RilzStatusCell({
       >
         {status === 'reached'           && <Check className="size-3 stroke-[2.5]" />}
         {status === 'partially_reached' && <Minus className="size-3 stroke-[2.5]" />}
-        {status === 'not_reached'       && <X className="size-2.5 stroke-[2]" />}
+        {status === 'not_reached'       && <X className="size-3 stroke-[2.5]" />}
       </button>
     </div>
   )
@@ -173,6 +173,8 @@ export function RilzStudentCard({
     getLernzieleForThema,
   } = useData()
 
+  const allFachIds = faecher.map(f => f.id)
+
   const rilzThemen = selectedThemen.filter(t => {
     const fach = getFachForThema(t.id)
     // Include if student has RILZ at Fach level OR has a library RILZ Thema mapping to this standard Thema
@@ -235,23 +237,23 @@ export function RilzStudentCard({
       <div className="flex items-center gap-2.5 px-4 py-3 bg-orange-50 border-b border-orange-200">
         <div className={cn(
           'size-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0',
-          getAvatarColor(student.name),
+          getAvatarColor(student.vorname + ' ' + student.nachname),
         )}>
-          {getInitials(student.name)}
+          {getInitials(student.vorname + ' ' + student.nachname)}
         </div>
         <div>
-          <p className="text-sm font-semibold">{student.name}</p>
+          <p className="text-sm font-semibold">{student.vorname} {student.nachname}</p>
           <div className="flex gap-1 flex-wrap">
             {(student.rilzFachIds ?? []).map(fachId => {
               const fach = faecher.find(f => f.id === fachId)
               return fach ? (
-                <span key={fachId} className="rounded px-1 py-0 text-[9px] font-semibold bg-orange-100 text-orange-700">
+                <span key={fachId} className="rounded px-1 py-px text-[9px] font-semibold bg-orange-100 text-orange-700">
                   RILZ {fach.name}
                 </span>
               ) : null
             })}
             {student.bvsa && (
-              <span className="rounded px-1 py-0 text-[9px] font-semibold bg-purple-100 text-purple-700">BVSA</span>
+              <span className="rounded px-1 py-px text-[9px] font-semibold bg-purple-100 text-purple-700">BVSA</span>
             )}
           </div>
         </div>
@@ -284,7 +286,8 @@ export function RilzStudentCard({
                       >
                         <span className="flex items-center justify-center gap-1">
                           {g.fach && (
-                            <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <span className="flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              <span className={cn('size-1.5 rounded-full shrink-0', getFachColor(g.fach.id, allFachIds).dot)} />
                               {g.fach.name}
                             </span>
                           )}
@@ -301,7 +304,8 @@ export function RilzStudentCard({
               <tr className="border-b border-border bg-muted/20">
                 <th className="sticky left-0 z-10 bg-card w-32 min-w-32 border-r border-border px-2 py-1.5 align-bottom">
                   {!showThemeGroupHeader && colGroups[0]?.fach && (
-                    <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground block">
+                    <span className="flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <span className={cn('size-1.5 rounded-full shrink-0', getFachColor(colGroups[0].fach.id, allFachIds).dot)} />
                       {colGroups[0].fach.name}
                     </span>
                   )}
@@ -390,7 +394,7 @@ export function RilzStudentCard({
               <tr className="bg-card">
                 {/* Student name */}
                 <td className="sticky left-0 z-10 bg-card px-3 py-1 text-sm font-medium border-r border-border whitespace-nowrap overflow-hidden text-ellipsis max-w-32">
-                  {student.name}
+                  {student.vorname} {student.nachname}
                 </td>
 
                 {colGroups.map((g, gi) => {

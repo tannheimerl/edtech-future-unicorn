@@ -85,7 +85,7 @@ export default function BerichtPage() {
           items={[
             { label: 'Klassen', href: '/klassen' },
             { label: klasse.name, href: `/klassen/${klassId}` },
-            { label: student.name, href: `/klassen/${klassId}/schueler/${studentId}` },
+            { label: `${student.vorname} ${student.nachname}`, href: `/klassen/${klassId}/schueler/${studentId}` },
             { label: 'Bericht' },
           ]}
         />
@@ -93,7 +93,7 @@ export default function BerichtPage() {
         <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Bericht erstellen</h1>
-            <p className="text-sm text-muted-foreground">{student.name} · {klasse.name}</p>
+            <p className="text-sm text-muted-foreground">{student.vorname} {student.nachname} · {klasse.name}</p>
           </div>
           <Button onClick={() => window.print()}>
             <Printer className="size-4" /> Drucken / PDF
@@ -150,7 +150,7 @@ export default function BerichtPage() {
         {/* Report header */}
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold">{student.name}</h1>
+            <h1 className="text-xl font-bold">{student.vorname} {student.nachname}</h1>
             <p className="text-sm text-muted-foreground">{klasse.name} · {klasse.schuljahr ?? ''}</p>
           </div>
           <p className="text-sm text-muted-foreground shrink-0">{today}</p>

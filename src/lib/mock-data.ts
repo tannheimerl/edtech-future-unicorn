@@ -1,4 +1,4 @@
-import type { Klasse, Schueler, Kompetenz, Fach, Thema, Lernziel, Lehrperson, AssessmentKommentar, Status, StatusSnapshot } from '@/types/domain'
+﻿import type { Klasse, Schueler, Kompetenz, Fach, Thema, Lernziel, Lehrperson, AssessmentKommentar, Status, StatusSnapshot } from '@/types/domain'
 
 export const SEED_COMPETENCIES: Kompetenz[] = [
   { id: 'c1', label: 'Mathematische Grundlagen' },
@@ -18,34 +18,40 @@ export const SEED_FAECHER: Fach[] = [
 
 export const SEED_THEMEN: Thema[] = [
   // Deutsch
-  { id: 'tde1', fachId: 'f1', name: 'Lesen – Sach- und Gebrauchstexte', faelligAm: '2026-04-11', stufe: [5, 6], autor: 'Lukas Meier' },
-  { id: 'tde2', fachId: 'f1', name: 'Schreiben – Texte verfassen',        faelligAm: '2026-05-09', stufe: [5, 6, 7], autor: 'Lukas Meier' },
-  { id: 'tde3', fachId: 'f1', name: 'Sprechen und Zuhören',               faelligAm: '2026-03-28', stufe: [6], autor: 'Lukas Meier' },
-  { id: 'tde4', fachId: 'f1', name: 'Rechtschreibung und Grammatik',      faelligAm: '2026-04-25', stufe: [6], autor: 'Lukas Meier' },
+  { id: 'tde1', fachId: 'f1', name: 'Lesen – Sach- und Gebrauchstexte', faelligAm: '2026-04-11', stufe: [5, 6], zyklus: [2], autor: 'Lukas Meier' },
+  { id: 'tde2', fachId: 'f1', name: 'Schreiben – Texte verfassen',        faelligAm: '2026-05-09', stufe: [5, 6, 7], zyklus: [2, 3], autor: 'Lukas Meier' },
+  { id: 'tde3', fachId: 'f1', name: 'Sprechen und Zuhören',               faelligAm: '2026-03-28', stufe: [6], zyklus: [2], autor: 'Lukas Meier' },
+  { id: 'tde4', fachId: 'f1', name: 'Rechtschreibung und Grammatik',      faelligAm: '2026-04-25', stufe: [6], zyklus: [2], autor: 'Lukas Meier' },
   // Mathematik
-  { id: 'tma1', fachId: 'f2', name: 'Zahlen und Operationen',             faelligAm: '2026-03-14', stufe: [5, 6], autor: 'Sarah Keller' },
-  { id: 'tma2', fachId: 'f2', name: 'Geometrie',                          faelligAm: '2026-04-11', stufe: [5], autor: 'Sarah Keller' },
-  { id: 'tma3', fachId: 'f2', name: 'Grössen, Daten und Zufall',         faelligAm: '2026-05-09', stufe: [6], autor: 'Sarah Keller' },
-  { id: 'tma4', fachId: 'f2', name: 'Terme und Gleichungen',              faelligAm: '2026-05-23', stufe: [7, 8], autor: 'Sarah Keller' },
+  { id: 'tma1', fachId: 'f2', name: 'Zahlen und Operationen',             faelligAm: '2026-03-14', stufe: [5, 6], zyklus: [2], autor: 'Sarah Keller' },
+  { id: 'tma2', fachId: 'f2', name: 'Geometrie',                          faelligAm: '2026-04-11', stufe: [5], zyklus: [2], autor: 'Sarah Keller' },
+  { id: 'tma3', fachId: 'f2', name: 'Grössen, Daten und Zufall',         faelligAm: '2026-05-09', stufe: [6], zyklus: [2], autor: 'Sarah Keller' },
+  { id: 'tma4', fachId: 'f2', name: 'Terme und Gleichungen',              faelligAm: '2026-05-23', stufe: [7, 8], zyklus: [3], autor: 'Sarah Keller' },
   // NMG
-  { id: 'tnm1', fachId: 'f3', name: 'Lebewesen und Lebensräume',          faelligAm: '2026-04-25', stufe: [5], autor: 'Marco Brun' },
-  { id: 'tnm2', fachId: 'f3', name: 'Körper und Gesundheit',              faelligAm: '2026-03-28', stufe: [6], autor: 'Marco Brun' },
-  { id: 'tnm3', fachId: 'f3', name: 'Schweiz – Raum und Geschichte',      faelligAm: '2026-05-09', stufe: [6, 7], autor: 'Marco Brun' },
-  { id: 'tnm4', fachId: 'f3', name: 'Wirtschaft und Arbeit',              faelligAm: '2026-05-23', stufe: [7], autor: 'Marco Brun' },
+  { id: 'tnm1', fachId: 'f3', name: 'Lebewesen und Lebensräume',          faelligAm: '2026-04-25', stufe: [5], zyklus: [2], autor: 'Marco Brun' },
+  { id: 'tnm2', fachId: 'f3', name: 'Körper und Gesundheit',              faelligAm: '2026-03-28', stufe: [6], zyklus: [2], autor: 'Marco Brun' },
+  { id: 'tnm3', fachId: 'f3', name: 'Schweiz – Raum und Geschichte',      faelligAm: '2026-05-09', stufe: [6, 7], zyklus: [2, 3], autor: 'Marco Brun' },
+  { id: 'tnm4', fachId: 'f3', name: 'Wirtschaft und Arbeit',              faelligAm: '2026-05-23', stufe: [7], zyklus: [3], autor: 'Marco Brun' },
   // Französisch
-  { id: 'tfr1', fachId: 'f4', name: 'Hören und Sprechen',                 faelligAm: '2026-04-11', stufe: [7, 8], autor: 'Jana Huber' },
-  { id: 'tfr2', fachId: 'f4', name: 'Lesen',                              faelligAm: '2026-05-09', stufe: [7, 8], autor: 'Jana Huber' },
+  { id: 'tfr1', fachId: 'f4', name: 'Hören und Sprechen',                 faelligAm: '2026-04-11', stufe: [7, 8], zyklus: [3], autor: 'Jana Huber' },
+  { id: 'tfr2', fachId: 'f4', name: 'Lesen',                              faelligAm: '2026-05-09', stufe: [7, 8], zyklus: [3], autor: 'Jana Huber' },
   // faelligAm in der Zukunft → wird aus Analytik ausgeschlossen (Demo)
-  { id: 'tfr3', fachId: 'f4', name: 'Schreiben',                          faelligAm: '2026-06-20', stufe: [7, 8], autor: 'Jana Huber' },
+  { id: 'tfr3', fachId: 'f4', name: 'Schreiben',                          faelligAm: '2026-06-20', stufe: [7, 8], zyklus: [3], autor: 'Jana Huber' },
   // Extra-Themen für Bibliothek-Demo (mehrere Autoren pro Fach)
-  { id: 'tde5', fachId: 'f1', name: 'Sprachreflexion und Grammatik',      stufe: [7, 8], autor: 'Marco Brun' },
-  { id: 'tde6', fachId: 'f1', name: 'Literarische Texte verstehen',       stufe: [6, 7], autor: 'Sarah Keller' },
-  { id: 'tma5', fachId: 'f2', name: 'Brüche und Dezimalzahlen',           stufe: [6, 7], autor: 'Lukas Meier' },
-  { id: 'tnm5', fachId: 'f3', name: 'Energie und Umwelt',                 stufe: [7, 8], autor: 'Sarah Keller' },
-  { id: 'tfr4', fachId: 'f4', name: 'Wortschatz und Grammatik',           stufe: [7, 8], autor: 'Marco Brun' },
+  { id: 'tde5', fachId: 'f1', name: 'Sprachreflexion und Grammatik',      stufe: [7, 8], zyklus: [3], autor: 'Marco Brun' },
+  { id: 'tde6', fachId: 'f1', name: 'Literarische Texte verstehen',       stufe: [6, 7], zyklus: [2, 3], autor: 'Sarah Keller' },
+  { id: 'tma5', fachId: 'f2', name: 'Brüche und Dezimalzahlen',           stufe: [6, 7], zyklus: [2, 3], autor: 'Lukas Meier' },
+  { id: 'tnm5', fachId: 'f3', name: 'Energie und Umwelt',                 stufe: [7, 8], zyklus: [3], autor: 'Sarah Keller' },
+  { id: 'tfr4', fachId: 'f4', name: 'Wortschatz und Grammatik',           stufe: [7, 8], zyklus: [3], autor: 'Marco Brun' },
   // RILZ-Themen (typ: 'rilz') – erstellt von der Heilpädagogin, keine Stufenbeschränkung
   { id: 'tma1_rilz', fachId: 'f2', name: 'Zahlen und Operationen (RILZ)',    typ: 'rilz', standardThemaId: 'tma1', autor: 'Jana Huber' },
   { id: 'tma3_rilz', fachId: 'f2', name: 'Grössen, Daten und Zufall (RILZ)', typ: 'rilz', standardThemaId: 'tma3', autor: 'Jana Huber' },
+  // Eigene Themen von Lukas Meier (autor: undefined → erscheinen im «Eigene Lernziele»-Tab)
+  { id: 'tde_e1', fachId: 'f1', name: 'Kreatives Schreiben', stufe: [5, 6], zyklus: [2] },
+  { id: 'tde_e2', fachId: 'f1', name: 'Medien und Kommunikation', stufe: [6, 7], zyklus: [2, 3] },
+  { id: 'tma_e1', fachId: 'f2', name: 'Wahrscheinlichkeit und Zufall', stufe: [6], zyklus: [2] },
+  { id: 'tma_e2', fachId: 'f2', name: 'Textaufgaben und Modellieren' },
+  { id: 'tnm_e1', fachId: 'f3', name: 'Wetter und Klima', stufe: [5], zyklus: [2] },
 ]
 
 export const SEED_LERNZIELE: Lernziel[] = [
@@ -126,6 +132,24 @@ export const SEED_LERNZIELE: Lernziel[] = [
   { id: 'lfr4a', themaId: 'tfr4', kategorie: 'grundlegend',   label: 'Grundlegende Grammatikregeln des Französischen anwenden' },
   { id: 'lfr4b', themaId: 'tfr4', kategorie: 'grundlegend',   label: 'Wortschatz aus dem Unterricht korrekt einsetzen' },
   { id: 'lfr4c', themaId: 'tfr4', kategorie: 'anspruchsvoll', label: 'Komplexe Satzstrukturen erkennen und selbst bilden' },
+  // Eigene Lernziele von Lukas Meier (zu den eigenen Themen ohne autor)
+  // tde_e1 – Kreatives Schreiben
+  { id: 'lde_e1a', themaId: 'tde_e1', kategorie: 'grundlegend',   label: 'Kurze Geschichten mit klarem Anfang, Wendepunkt und Ende erfinden', kriterien: ['Entwickelt eine eigene Figur mit Eigenschaften', 'Baut eine erkennbare Spannungskurve auf', 'Schliesst die Geschichte stimmig ab'] },
+  { id: 'lde_e1b', themaId: 'tde_e1', kategorie: 'grundlegend',   label: 'Beschreibende Sprache und Sinneseindrücke gezielt einsetzen', kriterien: ['Verwendet Adjektive und Vergleiche treffend', 'Beschreibt mindestens zwei Sinneseindrücke', 'Vermeidet Wiederholungen durch Synonyme'] },
+  { id: 'lde_e1c', themaId: 'tde_e1', kategorie: 'anspruchsvoll', label: 'Einen überraschenden oder offenen Schluss gestalten', kriterien: ['Baut eine unerwartete Wendung ein', 'Begründet die Wirkung des Endes auf den Leser', 'Setzt sprachliche Mittel bewusst ein'] },
+  // tde_e2 – Medien und Kommunikation
+  { id: 'lde_e2a', themaId: 'tde_e2', kategorie: 'grundlegend',   label: 'Nachrichten und Meinungen in Medientexten unterscheiden', kriterien: ['Benennt Aussagen, die Fakten sind', 'Erkennt wertende Formulierungen', 'Vergleicht zwei Quellen zur gleichen Information'] },
+  { id: 'lde_e2b', themaId: 'tde_e2', kategorie: 'anspruchsvoll', label: 'Absicht und Wirkung eines Medientextes einschätzen', kriterien: ['Benennt die Zielgruppe des Textes', 'Erklärt, welche Wirkung der Text erzielen will', 'Reflektiert, ob die Darstellung einseitig ist'] },
+  // tma_e1 – Wahrscheinlichkeit und Zufall
+  { id: 'lma_e1a', themaId: 'tma_e1', kategorie: 'grundlegend',   label: 'Einfache Zufallsexperimente durchführen und Ergebnisse notieren', kriterien: ['Führt Münzwurf- oder Würfelexperiment korrekt durch', 'Hält Ergebnisse in einer Tabelle fest', 'Vergleicht Erwartung mit Versuchsergebnis'] },
+  { id: 'lma_e1b', themaId: 'tma_e1', kategorie: 'anspruchsvoll', label: 'Wahrscheinlichkeiten als Brüche angeben und vergleichen', kriterien: ['Berechnet Wahrscheinlichkeit als günstige/mögliche Ergebnisse', 'Vergleicht Wahrscheinlichkeiten zweier Ereignisse', 'Begründet, ob ein Spiel fair ist'] },
+  // tma_e2 – Textaufgaben und Modellieren
+  { id: 'lma_e2a', themaId: 'tma_e2', kategorie: 'grundlegend',   label: 'Relevante Angaben aus einer Sachaufgabe herausfiltern', kriterien: ['Unterstreicht gesuchte und gegebene Grössen', 'Erkennt überflüssige Angaben', 'Skizziert die Situation wenn nötig'] },
+  { id: 'lma_e2b', themaId: 'tma_e2', kategorie: 'anspruchsvoll', label: 'Mehrstufige Sachprobleme in einen Rechenplan übersetzen', kriterien: ['Gliedert das Problem in Teilschritte', 'Wählt für jeden Schritt die richtige Operation', 'Überprüft das Endergebnis auf Plausibilität'] },
+  // tnm_e1 – Wetter und Klima
+  { id: 'lnm_e1a', themaId: 'tnm_e1', kategorie: 'grundlegend',   label: 'Wetterphänomene beobachten, messen und dokumentieren', kriterien: ['Misst Temperatur, Niederschlag und Wind korrekt', 'Führt ein Wettertagebuch über mindestens eine Woche', 'Nutzt Wettersymbole auf einer Wetterkarte'] },
+  { id: 'lnm_e1b', themaId: 'tnm_e1', kategorie: 'grundlegend',   label: 'Den Unterschied zwischen Wetter und Klima erklären', kriterien: ['Definiert Wetter als kurzfristigen Zustand', 'Beschreibt Klima als langfristiges Muster', 'Nennt ein Beispiel für ein Klimagebiet der Erde'] },
+  { id: 'lnm_e1c', themaId: 'tnm_e1', kategorie: 'anspruchsvoll', label: 'Auswirkungen des Klimawandels auf die Schweiz beschreiben und bewerten', kriterien: ['Nennt mindestens zwei messbare Folgen (z.B. Gletscherschmelze, Hitzetage)', 'Erklärt Ursache-Wirkungs-Zusammenhänge', 'Beurteilt mögliche Massnahmen auf lokaler Ebene'] },
 ]
 
 // ── Klassen ───────────────────────────────────────────────────────────────────
@@ -307,7 +331,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   // ════════════════════════════════════════════════════════════════════════════
 
   {
-    id: 's1', klassId: 'k1', name: 'Emma Bauer',
+    id: 's1', klassId: 'k1', vorname: 'Emma', nachname: 'Bauer',
     note: 'Sehr engagiert, braucht Unterstützung in Mathematik.',
     competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'not_reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -320,7 +344,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's2', klassId: 'k1', name: 'Luca Müller',
+    id: 's2', klassId: 'k1', vorname: 'Luca', nachname: 'Müller',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'partially_reached', c5: 'partially_reached', c6: 'reached' },
     lernzielStatus: {
@@ -333,7 +357,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's3', klassId: 'k1', name: 'Mia Schneider',
+    id: 's3', klassId: 'k1', vorname: 'Mia', nachname: 'Schneider',
     rilzFachIds: ['f2'],  // RILZ in Mathematik
     note: 'Zeigt grosses Interesse an Naturwissenschaften.',
     rilzLernziele: [
@@ -354,7 +378,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's4', klassId: 'k1', name: 'Noah Fischer',
+    id: 's4', klassId: 'k1', vorname: 'Noah', nachname: 'Fischer',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -367,7 +391,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's13', klassId: 'k1', name: 'Leon Wagner',
+    id: 's13', klassId: 'k1', vorname: 'Leon', nachname: 'Wagner',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'partially_reached', c3: 'reached', c4: 'reached', c5: 'partially_reached', c6: 'reached' },
     lernzielStatus: {
@@ -380,7 +404,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's14', klassId: 'k1', name: 'Anna Huber',
+    id: 's14', klassId: 'k1', vorname: 'Anna', nachname: 'Huber',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -393,20 +417,20 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's15', klassId: 'k1', name: 'Paul Koch',
+    id: 's15', klassId: 'k1', vorname: 'Paul', nachname: 'Koch',
     note: '',
-    competencyStatus: { c1: 'not_reached', c2: 'not_reached', c3: 'partially_reached', c4: 'not_reached', c5: 'not_reached', c6: 'partially_reached' },
+    competencyStatus: { c1: 'partially_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'partially_reached', c5: 'not_reached', c6: 'partially_reached' },
     lernzielStatus: {
-      lde1a: 'not_reached', lde1b: 'not_reached', lde1c: 'not_reached', lde1d: 'not_reached',
-      lde2a: 'not_reached', lde2b: 'not_reached', lde2c: 'not_reached',
-      lma1a: 'partially_reached', lma1b: 'not_reached', lma1c: 'not_reached', lma1d: 'not_reached',
-      lma2a: 'not_reached', lma2b: 'not_reached', lma2c: 'not_reached',
-      lnm1a: 'not_reached', lnm1b: 'not_reached', lnm1c: 'not_reached',
+      lde1a: 'reached',           lde1b: 'partially_reached', lde1c: 'partially_reached', lde1d: 'not_reached',
+      lde2a: 'partially_reached', lde2b: 'not_reached',        lde2c: 'not_reached',
+      lma1a: 'partially_reached', lma1b: 'partially_reached',  lma1c: 'not_reached',       lma1d: 'not_reached',
+      lma2a: 'partially_reached', lma2b: 'not_reached',        lma2c: 'not_reached',
+      lnm1a: 'partially_reached', lnm1b: 'not_reached',        lnm1c: 'not_reached',
     },
   },
 
   {
-    id: 's16', klassId: 'k1', name: 'Sophia Richter',
+    id: 's16', klassId: 'k1', vorname: 'Sophia', nachname: 'Richter',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -419,7 +443,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's17', klassId: 'k1', name: 'Finn Klein',
+    id: 's17', klassId: 'k1', vorname: 'Finn', nachname: 'Klein',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'not_reached', c3: 'not_reached', c4: 'partially_reached', c5: 'not_reached', c6: 'reached' },
     lernzielStatus: {
@@ -432,7 +456,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's18', klassId: 'k1', name: 'Lena Schmid',
+    id: 's18', klassId: 'k1', vorname: 'Lena', nachname: 'Schmid',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'partially_reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -445,7 +469,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's19', klassId: 'k1', name: 'Max Weber',
+    id: 's19', klassId: 'k1', vorname: 'Max', nachname: 'Weber',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'partially_reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -458,7 +482,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's20', klassId: 'k1', name: 'Julia Meyer',
+    id: 's20', klassId: 'k1', vorname: 'Julia', nachname: 'Meyer',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'partially_reached', c3: 'partially_reached', c4: 'partially_reached', c5: 'partially_reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -471,7 +495,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's21', klassId: 'k1', name: 'Luis Braun',
+    id: 's21', klassId: 'k1', vorname: 'Luis', nachname: 'Braun',
     note: '',
     competencyStatus: { c1: 'not_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'reached', c5: 'not_reached', c6: 'reached' },
     lernzielStatus: {
@@ -484,7 +508,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's22', klassId: 'k1', name: 'Sarah Zimmermann',
+    id: 's22', klassId: 'k1', vorname: 'Sarah', nachname: 'Zimmermann',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'partially_reached', c6: 'reached' },
     lernzielStatus: {
@@ -497,7 +521,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's23', klassId: 'k1', name: 'Tim Hoffmann',
+    id: 's23', klassId: 'k1', vorname: 'Tim', nachname: 'Hoffmann',
     note: '',
     competencyStatus: { c1: 'not_reached', c2: 'not_reached', c3: 'not_reached', c4: 'not_reached', c5: 'not_reached', c6: 'not_reached' },
     lernzielStatus: {
@@ -510,7 +534,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's24', klassId: 'k1', name: 'Alina Schäfer',
+    id: 's24', klassId: 'k1', vorname: 'Alina', nachname: 'Schäfer',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'reached', c5: 'reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -523,7 +547,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's25', klassId: 'k1', name: 'Julian Keller',
+    id: 's25', klassId: 'k1', vorname: 'Julian', nachname: 'Keller',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'reached', c4: 'partially_reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -536,20 +560,20 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's26', klassId: 'k1', name: 'Lisa Wolf',
+    id: 's26', klassId: 'k1', vorname: 'Lisa', nachname: 'Wolf',
     note: '',
-    competencyStatus: { c1: 'partially_reached', c2: 'not_reached', c3: 'partially_reached', c4: 'not_reached', c5: 'partially_reached', c6: 'not_reached' },
+    competencyStatus: { c1: 'partially_reached', c2: 'partially_reached', c3: 'partially_reached', c4: 'not_reached', c5: 'partially_reached', c6: 'not_reached' },
     lernzielStatus: {
-      lde1a: 'partially_reached', lde1b: 'not_reached', lde1c: 'not_reached', lde1d: 'not_reached',
-      lde2a: 'not_reached',        lde2b: 'not_reached', lde2c: 'not_reached',
-      lma1a: 'not_reached',        lma1b: 'not_reached', lma1c: 'not_reached', lma1d: 'not_reached',
-      lma2a: 'not_reached',        lma2b: 'not_reached', lma2c: 'not_reached',
-      lnm1a: 'partially_reached',  lnm1b: 'not_reached', lnm1c: 'not_reached',
+      lde1a: 'reached',            lde1b: 'partially_reached', lde1c: 'not_reached', lde1d: 'not_reached',
+      lde2a: 'partially_reached',  lde2b: 'not_reached',        lde2c: 'not_reached',
+      lma1a: 'partially_reached',  lma1b: 'partially_reached',  lma1c: 'not_reached', lma1d: 'not_reached',
+      lma2a: 'partially_reached',  lma2b: 'not_reached',        lma2c: 'not_reached',
+      lnm1a: 'partially_reached',  lnm1b: 'partially_reached',  lnm1c: 'not_reached',
     },
   },
 
   {
-    id: 's27', klassId: 'k1', name: 'Erik Lehmann',
+    id: 's27', klassId: 'k1', vorname: 'Erik', nachname: 'Lehmann',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'partially_reached', c3: 'reached', c4: 'reached', c5: 'partially_reached', c6: 'reached' },
     lernzielStatus: {
@@ -562,15 +586,15 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's28', klassId: 'k1', name: 'Lea Maier',
+    id: 's28', klassId: 'k1', vorname: 'Lea', nachname: 'Maier',
     note: '',
-    competencyStatus: { c1: 'not_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'partially_reached', c5: 'not_reached', c6: 'partially_reached' },
+    competencyStatus: { c1: 'not_reached', c2: 'partially_reached', c3: 'partially_reached', c4: 'partially_reached', c5: 'not_reached', c6: 'partially_reached' },
     lernzielStatus: {
-      lde1a: 'not_reached', lde1b: 'not_reached', lde1c: 'not_reached', lde1d: 'not_reached',
-      lde2a: 'not_reached', lde2b: 'not_reached', lde2c: 'not_reached',
-      lma1a: 'not_reached', lma1b: 'not_reached', lma1c: 'not_reached', lma1d: 'not_reached',
-      lma2a: 'not_reached', lma2b: 'not_reached', lma2c: 'not_reached',
-      lnm1a: 'not_reached', lnm1b: 'not_reached', lnm1c: 'not_reached',
+      lde1a: 'reached',            lde1b: 'reached',            lde1c: 'partially_reached', lde1d: 'not_reached',
+      lde2a: 'reached',            lde2b: 'partially_reached',  lde2c: 'not_reached',
+      lma1a: 'partially_reached',  lma1b: 'not_reached',        lma1c: 'not_reached',       lma1d: 'not_reached',
+      lma2a: 'not_reached',         lma2b: 'not_reached',        lma2c: 'not_reached',
+      lnm1a: 'partially_reached',  lnm1b: 'not_reached',        lnm1c: 'not_reached',
     },
   },
 
@@ -578,7 +602,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     // Negative-trend student: mastered early batch (Deutsch + lma1a-c) perfectly,
     // but all late LZ (lma1d, lma2a-c, lnm1a-c) remain unachieved after the exam →
     // Mathe line drops 100%→43%, NMG stays at 0%
-    id: 'sNeg1', klassId: 'k1', name: 'Kevin Sommer',
+    id: 'sNeg1', klassId: 'k1', vorname: 'Kevin', nachname: 'Sommer',
     note: 'War gut gestartet, kommt mit den neuen Themen nicht mit.',
     competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -592,7 +616,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's29', klassId: 'k1', name: 'Philipp Steiner',
+    id: 's29', klassId: 'k1', vorname: 'Philipp', nachname: 'Steiner',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -609,7 +633,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   // ════════════════════════════════════════════════════════════════════════════
 
   {
-    id: 's5', klassId: 'k2', name: 'Sophia Beck',
+    id: 's5', klassId: 'k2', vorname: 'Sophia', nachname: 'Beck',
     note: 'Hat deutliche Fortschritte im Sprechen gemacht.',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -623,21 +647,21 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's6', klassId: 'k2', name: 'Jonas Krause',
+    id: 's6', klassId: 'k2', vorname: 'Jonas', nachname: 'Krause',
     note: 'Braucht mehr Übung bei schriftlichen Aufgaben.',
-    competencyStatus: { c1: 'partially_reached', c2: 'not_reached', c3: 'partially_reached', c4: 'reached', c5: 'not_reached', c6: 'partially_reached' },
+    competencyStatus: { c1: 'partially_reached', c2: 'partially_reached', c3: 'partially_reached', c4: 'reached', c5: 'not_reached', c6: 'partially_reached' },
     lernzielStatus: {
-      lde3a: 'partially_reached', lde3b: 'not_reached',        lde3c: 'partially_reached',
-      lde4a: 'not_reached',        lde4b: 'not_reached',        lde4c: 'not_reached',
-      lma1a: 'partially_reached',  lma1b: 'partially_reached',  lma1c: 'not_reached',  lma1d: 'not_reached',
-      lma3a: 'not_reached',        lma3b: 'not_reached',        lma3c: 'not_reached',
-      lnm2a: 'not_reached',        lnm2b: 'not_reached',
-      lnm3a: 'not_reached',        lnm3b: 'not_reached',        lnm3c: 'not_reached',
+      lde3a: 'reached',            lde3b: 'partially_reached', lde3c: 'partially_reached',
+      lde4a: 'partially_reached',  lde4b: 'partially_reached', lde4c: 'not_reached',
+      lma1a: 'partially_reached',  lma1b: 'partially_reached', lma1c: 'not_reached',  lma1d: 'not_reached',
+      lma3a: 'partially_reached',  lma3b: 'not_reached',       lma3c: 'not_reached',
+      lnm2a: 'partially_reached',  lnm2b: 'not_reached',
+      lnm3a: 'partially_reached',  lnm3b: 'not_reached',       lnm3c: 'not_reached',
     },
   },
 
   {
-    id: 's7', klassId: 'k2', name: 'Hannah Schwarz',
+    id: 's7', klassId: 'k2', vorname: 'Hannah', nachname: 'Schwarz',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'partially_reached', c3: 'reached', c4: 'partially_reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -651,21 +675,21 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's8', klassId: 'k2', name: 'Ben Berger',
+    id: 's8', klassId: 'k2', vorname: 'Ben', nachname: 'Berger',
     note: 'Arbeitet sehr gut in Gruppenaufgaben.',
-    competencyStatus: { c1: 'not_reached', c2: 'not_reached', c3: 'not_reached', c4: 'reached', c5: 'not_reached', c6: 'reached' },
+    competencyStatus: { c1: 'partially_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'reached', c5: 'not_reached', c6: 'reached' },
     lernzielStatus: {
-      lde3a: 'reached',   lde3b: 'partially_reached', lde3c: 'not_reached',
-      lde4a: 'not_reached', lde4b: 'not_reached',      lde4c: 'not_reached',
-      lma1a: 'not_reached', lma1b: 'not_reached',      lma1c: 'not_reached', lma1d: 'not_reached',
-      lma3a: 'not_reached', lma3b: 'not_reached',      lma3c: 'not_reached',
-      lnm2a: 'not_reached', lnm2b: 'partially_reached',
-      lnm3a: 'not_reached', lnm3b: 'not_reached',      lnm3c: 'not_reached',
+      lde3a: 'reached',            lde3b: 'reached',            lde3c: 'partially_reached',
+      lde4a: 'partially_reached',  lde4b: 'not_reached',        lde4c: 'not_reached',
+      lma1a: 'partially_reached',  lma1b: 'not_reached',        lma1c: 'not_reached', lma1d: 'not_reached',
+      lma3a: 'partially_reached',  lma3b: 'not_reached',        lma3c: 'not_reached',
+      lnm2a: 'partially_reached',  lnm2b: 'partially_reached',
+      lnm3a: 'not_reached',         lnm3b: 'not_reached',        lnm3c: 'not_reached',
     },
   },
 
   {
-    id: 's9', klassId: 'k2', name: 'Laura Roth',
+    id: 's9', klassId: 'k2', vorname: 'Laura', nachname: 'Roth',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'partially_reached', c3: 'partially_reached', c4: 'partially_reached', c5: 'partially_reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -679,7 +703,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's30', klassId: 'k2', name: 'Nico Frank',
+    id: 's30', klassId: 'k2', vorname: 'Nico', nachname: 'Frank',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -693,7 +717,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's31', klassId: 'k2', name: 'Klara Schulz',
+    id: 's31', klassId: 'k2', vorname: 'Klara', nachname: 'Schulz',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'partially_reached', c6: 'reached' },
     lernzielStatus: {
@@ -707,7 +731,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's32', klassId: 'k2', name: 'Simon Ziegler',
+    id: 's32', klassId: 'k2', vorname: 'Simon', nachname: 'Ziegler',
     note: '',
     competencyStatus: { c1: 'not_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'not_reached', c5: 'not_reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -721,7 +745,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's33', klassId: 'k2', name: 'Lina Baumann',
+    id: 's33', klassId: 'k2', vorname: 'Lina', nachname: 'Baumann',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -735,21 +759,21 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's34', klassId: 'k2', name: 'Moritz Vogel',
+    id: 's34', klassId: 'k2', vorname: 'Moritz', nachname: 'Vogel',
     note: '',
-    competencyStatus: { c1: 'partially_reached', c2: 'not_reached', c3: 'partially_reached', c4: 'partially_reached', c5: 'not_reached', c6: 'not_reached' },
+    competencyStatus: { c1: 'partially_reached', c2: 'partially_reached', c3: 'partially_reached', c4: 'partially_reached', c5: 'not_reached', c6: 'not_reached' },
     lernzielStatus: {
-      lde3a: 'partially_reached', lde3b: 'not_reached', lde3c: 'not_reached',
-      lde4a: 'not_reached',        lde4b: 'not_reached', lde4c: 'not_reached',
-      lma1a: 'partially_reached',  lma1b: 'not_reached', lma1c: 'not_reached', lma1d: 'not_reached',
-      lma3a: 'not_reached',        lma3b: 'not_reached', lma3c: 'not_reached',
-      lnm2a: 'not_reached',        lnm2b: 'not_reached',
-      lnm3a: 'not_reached',        lnm3b: 'not_reached', lnm3c: 'not_reached',
+      lde3a: 'reached',            lde3b: 'partially_reached', lde3c: 'not_reached',
+      lde4a: 'partially_reached',  lde4b: 'partially_reached', lde4c: 'not_reached',
+      lma1a: 'partially_reached',  lma1b: 'partially_reached', lma1c: 'not_reached', lma1d: 'not_reached',
+      lma3a: 'partially_reached',  lma3b: 'not_reached',        lma3c: 'not_reached',
+      lnm2a: 'partially_reached',  lnm2b: 'not_reached',
+      lnm3a: 'not_reached',         lnm3b: 'not_reached',        lnm3c: 'not_reached',
     },
   },
 
   {
-    id: 's35', klassId: 'k2', name: 'Charlotte Hartmann',
+    id: 's35', klassId: 'k2', vorname: 'Charlotte', nachname: 'Hartmann',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'partially_reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -763,7 +787,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's36', klassId: 'k2', name: 'David Kramer',
+    id: 's36', klassId: 'k2', vorname: 'David', nachname: 'Kramer',
     note: '',
     competencyStatus: { c1: 'not_reached', c2: 'not_reached', c3: 'not_reached', c4: 'partially_reached', c5: 'not_reached', c6: 'reached' },
     lernzielStatus: {
@@ -777,7 +801,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's37', klassId: 'k2', name: 'Isabella Pfeiffer',
+    id: 's37', klassId: 'k2', vorname: 'Isabella', nachname: 'Pfeiffer',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'partially_reached', c3: 'reached', c4: 'reached', c5: 'reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -791,7 +815,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's38', klassId: 'k2', name: 'Daniel Haas',
+    id: 's38', klassId: 'k2', vorname: 'Daniel', nachname: 'Haas',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'partially_reached', c3: 'reached', c4: 'partially_reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -805,7 +829,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's39', klassId: 'k2', name: 'Antonia Lenz',
+    id: 's39', klassId: 'k2', vorname: 'Antonia', nachname: 'Lenz',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -819,21 +843,21 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's40', klassId: 'k2', name: 'Michael Graf',
+    id: 's40', klassId: 'k2', vorname: 'Michael', nachname: 'Graf',
     note: '',
-    competencyStatus: { c1: 'not_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'not_reached', c5: 'partially_reached', c6: 'not_reached' },
+    competencyStatus: { c1: 'not_reached', c2: 'partially_reached', c3: 'partially_reached', c4: 'not_reached', c5: 'partially_reached', c6: 'not_reached' },
     lernzielStatus: {
-      lde3a: 'not_reached', lde3b: 'not_reached', lde3c: 'not_reached',
-      lde4a: 'not_reached', lde4b: 'not_reached', lde4c: 'not_reached',
-      lma1a: 'not_reached', lma1b: 'not_reached', lma1c: 'not_reached', lma1d: 'not_reached',
-      lma3a: 'not_reached', lma3b: 'not_reached', lma3c: 'not_reached',
-      lnm2a: 'not_reached', lnm2b: 'not_reached',
-      lnm3a: 'not_reached', lnm3b: 'not_reached', lnm3c: 'not_reached',
+      lde3a: 'reached',            lde3b: 'partially_reached',  lde3c: 'not_reached',
+      lde4a: 'not_reached',        lde4b: 'partially_reached',  lde4c: 'not_reached',
+      lma1a: 'partially_reached',  lma1b: 'partially_reached',  lma1c: 'not_reached', lma1d: 'not_reached',
+      lma3a: 'partially_reached',  lma3b: 'not_reached',        lma3c: 'not_reached',
+      lnm2a: 'partially_reached',  lnm2b: 'partially_reached',
+      lnm3a: 'partially_reached',  lnm3b: 'not_reached',        lnm3c: 'not_reached',
     },
   },
 
   {
-    id: 's41', klassId: 'k2', name: 'Victoria Kunz',
+    id: 's41', klassId: 'k2', vorname: 'Victoria', nachname: 'Kunz',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'partially_reached', c6: 'reached' },
     lernzielStatus: {
@@ -847,7 +871,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's42', klassId: 'k2', name: 'Stefan Becker',
+    id: 's42', klassId: 'k2', vorname: 'Stefan', nachname: 'Becker',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'partially_reached', c3: 'reached', c4: 'reached', c5: 'partially_reached', c6: 'reached' },
     lernzielStatus: {
@@ -861,7 +885,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's43', klassId: 'k2', name: 'Amelie Gerber',
+    id: 's43', klassId: 'k2', vorname: 'Amelie', nachname: 'Gerber',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -875,7 +899,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's44', klassId: 'k2', name: 'Jan Frei',
+    id: 's44', klassId: 'k2', vorname: 'Jan', nachname: 'Frei',
     note: '',
     competencyStatus: { c1: 'not_reached', c2: 'not_reached', c3: 'not_reached', c4: 'not_reached', c5: 'not_reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -889,7 +913,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's45', klassId: 'k2', name: 'Elise Arnold',
+    id: 's45', klassId: 'k2', vorname: 'Elise', nachname: 'Arnold',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'partially_reached', c3: 'partially_reached', c4: 'partially_reached', c5: 'partially_reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -905,7 +929,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   {
     // Negative-trend: early Deutsch+Mathe-Basics all mastered, but all late LZ
     // (lma3a-c = Grössen, lnm2a-b, lnm3a-c) failed → Mathe 100%→57%, NMG 0%
-    id: 'sNeg2', klassId: 'k2', name: 'Kim Ott',
+    id: 'sNeg2', klassId: 'k2', vorname: 'Kim', nachname: 'Ott',
     rilzFachIds: ['f2', 'f3'],  // RILZ in Mathematik und NMG
     rilzThemaIds: ['tma1_rilz', 'tma3_rilz'],  // Bibliotheks-RILZ-Themen zugewiesen
     bvsa: true,
@@ -932,16 +956,16 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's46', klassId: 'k2', name: 'Tobias Widmer',
+    id: 's46', klassId: 'k2', vorname: 'Tobias', nachname: 'Widmer',
     note: '',
-    competencyStatus: { c1: 'reached', c2: 'not_reached', c3: 'partially_reached', c4: 'reached', c5: 'not_reached', c6: 'partially_reached' },
+    competencyStatus: { c1: 'reached', c2: 'partially_reached', c3: 'partially_reached', c4: 'reached', c5: 'not_reached', c6: 'partially_reached' },
     lernzielStatus: {
-      lde3a: 'reached',   lde3b: 'not_reached',       lde3c: 'not_reached',
-      lde4a: 'not_reached', lde4b: 'not_reached',     lde4c: 'not_reached',
-      lma1a: 'reached',   lma1b: 'reached',           lma1c: 'not_reached', lma1d: 'not_reached',
-      lma3a: 'partially_reached', lma3b: 'partially_reached', lma3c: 'not_reached',
-      lnm2a: 'not_reached', lnm2b: 'not_reached',
-      lnm3a: 'not_reached', lnm3b: 'not_reached',     lnm3c: 'not_reached',
+      lde3a: 'reached',            lde3b: 'partially_reached',  lde3c: 'not_reached',
+      lde4a: 'partially_reached',  lde4b: 'not_reached',        lde4c: 'not_reached',
+      lma1a: 'reached',            lma1b: 'reached',            lma1c: 'not_reached', lma1d: 'not_reached',
+      lma3a: 'partially_reached',  lma3b: 'partially_reached',  lma3c: 'not_reached',
+      lnm2a: 'partially_reached',  lnm2b: 'not_reached',
+      lnm3a: 'partially_reached',  lnm3b: 'not_reached',        lnm3c: 'not_reached',
     },
   },
 
@@ -951,7 +975,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   // ════════════════════════════════════════════════════════════════════════════
 
   {
-    id: 's10', klassId: 'k3', name: 'Felix Bucher',
+    id: 's10', klassId: 'k3', vorname: 'Felix', nachname: 'Bucher',
     note: 'Sehr selbstständiges Arbeiten, hilft anderen Schülern.',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -966,7 +990,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's11', klassId: 'k3', name: 'Marie Suter',
+    id: 's11', klassId: 'k3', vorname: 'Marie', nachname: 'Suter',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -981,7 +1005,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's12', klassId: 'k3', name: 'Tom Meier',
+    id: 's12', klassId: 'k3', vorname: 'Tom', nachname: 'Meier',
     rilzFachIds: ['f2', 'f4'],  // RILZ in Mathematik und Französisch
     note: 'Zeigt Schwierigkeiten bei der Konzentration.',
     rilzLernziele: [
@@ -1012,7 +1036,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's47', klassId: 'k3', name: 'Luise Hofer',
+    id: 's47', klassId: 'k3', vorname: 'Luise', nachname: 'Hofer',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -1027,7 +1051,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's48', klassId: 'k3', name: 'Alexander Moser',
+    id: 's48', klassId: 'k3', vorname: 'Alexander', nachname: 'Moser',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'partially_reached', c4: 'partially_reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -1042,7 +1066,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's49', klassId: 'k3', name: 'Johanna Hug',
+    id: 's49', klassId: 'k3', vorname: 'Johanna', nachname: 'Hug',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'partially_reached', c3: 'reached', c4: 'reached', c5: 'partially_reached', c6: 'reached' },
     lernzielStatus: {
@@ -1057,7 +1081,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's50', klassId: 'k3', name: 'Oliver Furrer',
+    id: 's50', klassId: 'k3', vorname: 'Oliver', nachname: 'Furrer',
     note: '',
     competencyStatus: { c1: 'not_reached', c2: 'not_reached', c3: 'partially_reached', c4: 'not_reached', c5: 'not_reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -1072,7 +1096,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's51', klassId: 'k3', name: 'Franziska Keller',
+    id: 's51', klassId: 'k3', vorname: 'Franziska', nachname: 'Keller',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -1087,7 +1111,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's52', klassId: 'k3', name: 'Sebastian Mayer',
+    id: 's52', klassId: 'k3', vorname: 'Sebastian', nachname: 'Mayer',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'not_reached', c3: 'not_reached', c4: 'partially_reached', c5: 'not_reached', c6: 'not_reached' },
     lernzielStatus: {
@@ -1102,7 +1126,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's53', klassId: 'k3', name: 'Katharina Brunner',
+    id: 's53', klassId: 'k3', vorname: 'Katharina', nachname: 'Brunner',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'partially_reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -1117,22 +1141,22 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's54', klassId: 'k3', name: 'Florian Fuchs',
+    id: 's54', klassId: 'k3', vorname: 'Florian', nachname: 'Fuchs',
     note: '',
-    competencyStatus: { c1: 'not_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'partially_reached', c5: 'not_reached', c6: 'reached' },
+    competencyStatus: { c1: 'partially_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'partially_reached', c5: 'partially_reached', c6: 'reached' },
     lernzielStatus: {
-      lde2a: 'partially_reached', lde2b: 'not_reached', lde2c: 'not_reached',
-      lma4a: 'not_reached',        lma4b: 'not_reached',
-      lnm3a: 'not_reached',        lnm3b: 'partially_reached', lnm3c: 'not_reached',
-      lnm4a: 'not_reached',        lnm4b: 'not_reached',
-      lfr1a: 'not_reached',        lfr1b: 'not_reached',        lfr1c: 'not_reached',
-      lfr2a: 'not_reached',        lfr2b: 'not_reached',
-      lfr3a: 'not_reached',        lfr3b: 'not_reached',
+      lde2a: 'partially_reached',  lde2b: 'partially_reached', lde2c: 'not_reached',
+      lma4a: 'not_reached',         lma4b: 'not_reached',
+      lnm3a: 'partially_reached',   lnm3b: 'partially_reached', lnm3c: 'not_reached',
+      lnm4a: 'partially_reached',   lnm4b: 'partially_reached',
+      lfr1a: 'partially_reached',   lfr1b: 'not_reached',        lfr1c: 'not_reached',
+      lfr2a: 'partially_reached',   lfr2b: 'not_reached',
+      lfr3a: 'not_reached',          lfr3b: 'not_reached',
     },
   },
 
   {
-    id: 's55', klassId: 'k3', name: 'Nina Reuter',
+    id: 's55', klassId: 'k3', vorname: 'Nina', nachname: 'Reuter',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -1147,7 +1171,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's56', klassId: 'k3', name: 'Markus Bühler',
+    id: 's56', klassId: 'k3', vorname: 'Markus', nachname: 'Bühler',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'partially_reached', c3: 'reached', c4: 'reached', c5: 'partially_reached', c6: 'reached' },
     lernzielStatus: {
@@ -1162,7 +1186,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's57', klassId: 'k3', name: 'Sandra Gehrig',
+    id: 's57', klassId: 'k3', vorname: 'Sandra', nachname: 'Gehrig',
     note: '',
     competencyStatus: { c1: 'not_reached', c2: 'not_reached', c3: 'not_reached', c4: 'not_reached', c5: 'not_reached', c6: 'not_reached' },
     lernzielStatus: {
@@ -1177,7 +1201,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's58', klassId: 'k3', name: 'Christian Wyss',
+    id: 's58', klassId: 'k3', vorname: 'Christian', nachname: 'Wyss',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -1192,7 +1216,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's59', klassId: 'k3', name: 'Eva Lüthi',
+    id: 's59', klassId: 'k3', vorname: 'Eva', nachname: 'Lüthi',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'partially_reached', c3: 'partially_reached', c4: 'partially_reached', c5: 'partially_reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -1207,7 +1231,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's60', klassId: 'k3', name: 'Karin Gut',
+    id: 's60', klassId: 'k3', vorname: 'Karin', nachname: 'Gut',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'not_reached', c3: 'partially_reached', c4: 'reached', c5: 'not_reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -1222,7 +1246,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's61', klassId: 'k3', name: 'Jana Bachmann',
+    id: 's61', klassId: 'k3', vorname: 'Jana', nachname: 'Bachmann',
     note: '',
     competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {
@@ -1239,7 +1263,7 @@ export const SEED_STUDENTS: Schueler[] = ([
   {
     // Negative-trend: keys reordered so French + partial others form the early batch.
     // Late LZ span every subject → ALL lines (Deutsch, Mathe, NMG, Français) drop at LATE_INTRO
-    id: 'sNeg3', klassId: 'k3', name: 'Kira Rüegg',
+    id: 'sNeg3', klassId: 'k3', vorname: 'Kira', nachname: 'Rüegg',
     note: 'Sehr guter Start, nach neuen Lernzielen in allen Fächern eingebrochen.',
     competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'partially_reached' },
     lernzielStatus: {
@@ -1259,22 +1283,22 @@ export const SEED_STUDENTS: Schueler[] = ([
   },
 
   {
-    id: 's62', klassId: 'k3', name: 'Niclas Knecht',
+    id: 's62', klassId: 'k3', vorname: 'Niclas', nachname: 'Knecht',
     note: '',
-    competencyStatus: { c1: 'not_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'not_reached', c5: 'partially_reached', c6: 'not_reached' },
+    competencyStatus: { c1: 'partially_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'not_reached', c5: 'partially_reached', c6: 'partially_reached' },
     lernzielStatus: {
-      lde2a: 'not_reached', lde2b: 'not_reached', lde2c: 'not_reached',
-      lma4a: 'not_reached', lma4b: 'not_reached',
-      lnm3a: 'not_reached', lnm3b: 'not_reached', lnm3c: 'not_reached',
-      lnm4a: 'not_reached', lnm4b: 'not_reached',
-      lfr1a: 'not_reached', lfr1b: 'not_reached', lfr1c: 'not_reached',
-      lfr2a: 'not_reached', lfr2b: 'not_reached',
-      lfr3a: 'not_reached', lfr3b: 'not_reached',
+      lde2a: 'partially_reached', lde2b: 'partially_reached',  lde2c: 'not_reached',
+      lma4a: 'not_reached',        lma4b: 'not_reached',
+      lnm3a: 'partially_reached',  lnm3b: 'partially_reached',  lnm3c: 'not_reached',
+      lnm4a: 'partially_reached',  lnm4b: 'not_reached',
+      lfr1a: 'partially_reached',  lfr1b: 'not_reached',        lfr1c: 'not_reached',
+      lfr2a: 'partially_reached',  lfr2b: 'partially_reached',
+      lfr3a: 'not_reached',         lfr3b: 'not_reached',
     },
   },
 
   {
-    id: 's63', klassId: 'k3', name: 'Amelie Steiger',
+    id: 's63', klassId: 'k3', vorname: 'Amelie', nachname: 'Steiger',
     note: '',
     competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'reached', c4: 'partially_reached', c5: 'reached', c6: 'reached' },
     lernzielStatus: {

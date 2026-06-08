@@ -57,8 +57,8 @@ interface DataContextValue {
   deleteClass: (id: string) => void
 
   // Student CRUD
-  createStudent: (klassId: string, name: string) => void
-  updateStudent: (id: string, patch: Partial<Pick<Schueler, 'name' | 'note'>>) => void
+  createStudent: (klassId: string, vorname: string, nachname: string) => void
+  updateStudent: (id: string, patch: Partial<Pick<Schueler, 'vorname' | 'nachname' | 'note'>>) => void
   deleteStudent: (id: string) => void
 
   // RILZ & BVSA
@@ -89,6 +89,8 @@ interface DataContextValue {
   // Thema assignment to Klasse
   assignThemaToKlasse: (klassId: string, themaId: string) => void
   removeThemaFromKlasse: (klassId: string, themaId: string) => void
+  closeThemaForKlasse: (klassId: string, themaId: string) => void
+  reopenThemaForKlasse: (klassId: string, themaId: string) => void
 
   // LP assignments to Klasse
   setLpZuweisung: (klassId: string, lpId: string, fachIds: string[], rolle?: import('@/types/domain').LpRolle) => void
@@ -104,7 +106,7 @@ interface DataContextValue {
 
   // Thema CRUD
   createThema: (fachId: string, name: string, typ?: 'standard' | 'rilz', standardThemaId?: string) => string
-  updateThema: (id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId'>>) => void
+  updateThema: (id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId' | 'stufe' | 'zyklus'>>) => void
   deleteThema: (id: string) => void
 
   // RILZ-Thema assignment to students
@@ -211,18 +213,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // ── Student mutations ─────────────────────────────────────────────────
 
-  const createStudent = useCallback((klassId: string, name: string) => {
+  const createStudent = useCallback((klassId: string, vorname: string, nachname: string) => {
     const competencyStatus = Object.fromEntries(
       SEED_COMPETENCIES.map((c) => [c.id, 'not_reached' as Status])
     )
     setStudents((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), klassId, name, note: '', competencyStatus, lernzielStatus: {}, rilzFachIds: [], lernzielVersuche: {} },
+      { id: crypto.randomUUID(), klassId, vorname, nachname, note: '', competencyStatus, lernzielStatus: {}, rilzFachIds: [], lernzielVersuche: {} },
     ])
   }, [])
 
   const updateStudent = useCallback(
-    (id: string, patch: Partial<Pick<Schueler, 'name' | 'note'>>) => {
+    (id: string, patch: Partial<Pick<Schueler, 'vorname' | 'nachname' | 'note'>>) => {
       setStudents((prev) =>
         prev.map((s) => (s.id === id ? { ...s, ...patch } : s))
       )
@@ -406,6 +408,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     )
   }, [])
 
+  const closeThemaForKlasse = useCallback((klassId: string, themaId: string) => {
+    setClasses((prev) =>
+      prev.map((c) =>
+        c.id === klassId && !(c.abgeschlosseneThemaIds ?? []).includes(themaId)
+          ? { ...c, abgeschlosseneThemaIds: [...(c.abgeschlosseneThemaIds ?? []), themaId] }
+          : c
+      )
+    )
+  }, [])
+
+  const reopenThemaForKlasse = useCallback((klassId: string, themaId: string) => {
+    setClasses((prev) =>
+      prev.map((c) =>
+        c.id === klassId
+          ? { ...c, abgeschlosseneThemaIds: (c.abgeschlosseneThemaIds ?? []).filter((id) => id !== themaId) }
+          : c
+      )
+    )
+  }, [])
+
   // ── LP Zuweisungen ────────────────────────────────────────────────────
 
   const setLpZuweisung = useCallback((klassId: string, lpId: string, fachIds: string[], rolle?: import('@/types/domain').LpRolle) => {
@@ -446,6 +468,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           name: neuerName,
           schuljahr: neuesSchuljahr,
           vorgaengerKlasseId: vorgaengerKlasseId,
+          abgeschlosseneThemaIds: [],
         },
       ])
       // Clone all students into the new class
@@ -513,7 +536,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return id
   }, [])
 
-  const updateThema = useCallback((id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId'>>) => {
+  const updateThema = useCallback((id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId' | 'stufe' | 'zyklus'>>) => {
     setThemen((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
   }, [])
 
@@ -652,6 +675,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         deleteThemaKommentar,
         assignThemaToKlasse,
         removeThemaFromKlasse,
+        closeThemaForKlasse,
+        reopenThemaForKlasse,
         setLpZuweisung,
         removeLpFromKlasse,
         createFolgeklasse,

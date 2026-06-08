@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useData } from '@/contexts/DataContext'
-import { cn } from '@/lib/utils'
+import { cn, getFachColor } from '@/lib/utils'
 import { Plus, Pencil, Trash2, Check } from 'lucide-react'
 import type { Schueler, Thema, Status, RilzLernziel } from '@/types/domain'
 import { STATUS_CYCLE } from '@/types/domain'
@@ -156,7 +156,8 @@ function StudentCard({
   themen: Thema[]
   faecher: { id: string; name: string }[]
 }) {
-  const { addRilzLernziel, getFachForThema } = useData()
+  const { addRilzLernziel, getFachForThema, faecher } = useData()
+  const allFachIds = faecher.map(f => f.id)
   const rilzLernziele = student.rilzLernziele ?? []
 
   const themenMitLz = themen.filter(t => {
@@ -177,11 +178,12 @@ function StudentCard({
       {themenMitLz.map(thema => {
         const fach = getFachForThema(thema.id)
         const themaLz = rilzLernziele.filter(lz => lz.themaId === thema.id)
+        const fachColor = fach ? getFachColor(fach.id, allFachIds) : null
         return (
           <div key={thema.id} className="rounded-xl border border-border bg-card overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border">
+            <div className={cn('flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border border-l-4', fachColor?.border ?? 'border-l-transparent')}>
               {fach && (
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{fach.name}</span>
+                <span className={cn('text-[10px] font-semibold uppercase tracking-wide', fachColor?.text ?? 'text-muted-foreground')}>{fach.name}</span>
               )}
               <span className="text-sm font-medium">{thema.name}</span>
               <span className="ml-auto text-[10px] text-muted-foreground tabular-nums">{themaLz.length} LZ</span>
@@ -227,12 +229,12 @@ export function RilzBeurteilungView({
           <div className="flex items-center gap-2.5 mb-3">
             <div className={cn(
               'size-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0',
-              getAvatarColor(student.name),
+              getAvatarColor(student.vorname + ' ' + student.nachname),
             )}>
-              {getInitials(student.name)}
+              {getInitials(student.vorname + ' ' + student.nachname)}
             </div>
             <div>
-              <p className="text-sm font-semibold">{student.name}</p>
+              <p className="text-sm font-semibold">{student.vorname} {student.nachname}</p>
               <div className="flex gap-1 flex-wrap">
                 {student.bvsa && (
                   <span className="rounded px-1 py-0 text-[9px] font-semibold bg-purple-100 text-purple-700">BVSA</span>

@@ -5,7 +5,7 @@ import { useData } from '@/contexts/DataContext'
 import { cn } from '@/lib/utils'
 import { generatePdfBlob, downloadZip, triggerDownload } from '@/lib/berichtUtils'
 import type { SchuelerBerichtPDFProps } from '@/components/berichte/SchuelerBerichtPDF'
-import { Download, Loader2, FileText, Users, User } from 'lucide-react'
+import { ChevronDown, ChevronRight, Download, Loader2, FileText, Users, User } from 'lucide-react'
 
 export default function BerichtePage() {
   const { classes, getStudentsForClass, getThemenForKlasse, getLernzieleForThema, getFachForThema, getClass } = useData()
@@ -15,6 +15,7 @@ export default function BerichtePage() {
   const [studentSelection, setStudentSelection] = useState<'all' | string>('all')
   const [kommentare, setKommentare] = useState<Record<string, string>>({})
   const [isGenerating, setIsGenerating] = useState(false)
+  const [commentsOpen, setCommentsOpen] = useState(false)
 
   const klasse = selectedKlasseId ? getClass(selectedKlasseId) : null
   const themenForKlasse = selectedKlasseId ? getThemenForKlasse(selectedKlasseId) : []
@@ -33,12 +34,14 @@ export default function BerichtePage() {
     setSelectedThemaId(null)
     setStudentSelection('all')
     setKommentare({})
+    setCommentsOpen(false)
   }
 
   function selectThema(id: string) {
     setSelectedThemaId(id)
     setStudentSelection('all')
     setKommentare({})
+    setCommentsOpen(false)
   }
 
   async function handleDownload() {
@@ -53,7 +56,7 @@ export default function BerichtePage() {
       const entries = await Promise.all(
         targetStudents.map(async (student) => {
           const props: SchuelerBerichtPDFProps = {
-            studentName: student.name,
+            studentName: `${student.vorname} ${student.nachname}`,
             klassenName: klasse.name,
             fachName: fach?.name ?? '',
             themaName: thema.name,
@@ -66,7 +69,7 @@ export default function BerichtePage() {
             kommentar: kommentare[student.id] || undefined,
           }
           const blob = await generatePdfBlob(props)
-          const safeName = student.name.replace(/\s+/g, '_')
+          const safeName = `${student.vorname}_${student.nachname}`
           const safeThema = thema.name.replace(/\s+/g, '_')
           return { filename: `Bericht_${safeName}_${safeThema}.pdf`, blob }
         })
@@ -84,10 +87,10 @@ export default function BerichtePage() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-8 space-y-8">
+    <main className="mx-auto w-full max-w-7xl px-6 py-5 space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">Berichterstellung</h1>
-        <p className="text-sm text-muted-foreground mt-1">Lernstandsberichte für Eltern als PDF herunterladen</p>
+        <h1 className="text-2xl font-bold tracking-tight">Berichterstellung</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Lernstandsberichte für Eltern als PDF herunterladen</p>
       </div>
 
       {/* Schritt 1: Klasse */}
@@ -127,7 +130,7 @@ export default function BerichtePage() {
                     key={t.id}
                     onClick={() => selectThema(t.id)}
                     className={cn(
-                      'rounded-full border px-4 py-1.5 text-sm transition-all',
+                      'rounded-md border px-4 py-1.5 text-sm transition-all',
                       selectedThemaId === t.id
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-border bg-card text-foreground hover:border-primary/40 hover:bg-accent/40'
@@ -143,70 +146,44 @@ export default function BerichtePage() {
         </section>
       )}
 
-      {/* Schritt 3: Schüler + Kommentare */}
+      {/* Schritt 3: Schüler */}
       {selectedThemaId && (
         <section className="space-y-4">
-          <StepLabel number={3} label="Schüler und Kommentare" done={false} />
+          <StepLabel number={3} label="Schüler wählen" done={false} />
 
           {/* Schüler-Auswahl */}
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Für wen?</p>
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setStudentSelection('all')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md border px-4 py-1.5 text-sm transition-all',
+                studentSelection === 'all'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-card hover:border-primary/40'
+              )}
+            >
+              <Users className="size-3.5" />
+              Alle Schüler/innen
+            </button>
+            {studentsForKlasse.map((s) => (
               <button
-                onClick={() => setStudentSelection('all')}
+                key={s.id}
+                onClick={() => setStudentSelection(s.id)}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm transition-all',
-                  studentSelection === 'all'
+                  'flex items-center gap-1.5 rounded-md border px-4 py-1.5 text-sm transition-all',
+                  studentSelection === s.id
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-border bg-card hover:border-primary/40'
                 )}
               >
-                <Users className="size-3.5" />
-                Alle Schüler/innen
+                <User className="size-3.5" />
+                {s.vorname} {s.nachname}
               </button>
-              {studentsForKlasse.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setStudentSelection(s.id)}
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm transition-all',
-                    studentSelection === s.id
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-card hover:border-primary/40'
-                  )}
-                >
-                  <User className="size-3.5" />
-                  {s.name}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
 
-          {/* Kommentarfelder */}
-          {targetStudents.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                Kommentar (optional)
-              </p>
-              {targetStudents.map((s) => (
-                <div key={s.id} className="space-y-1">
-                  {targetStudents.length > 1 && (
-                    <label className="text-xs font-medium text-foreground">{s.name}</label>
-                  )}
-                  <textarea
-                    value={kommentare[s.id] ?? ''}
-                    onChange={(e) => setKommentare((prev) => ({ ...prev, [s.id]: e.target.value }))}
-                    placeholder="Persönlicher Kommentar für den Elternbericht…"
-                    rows={3}
-                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Download-Button */}
-          <div className="pt-2">
+          <div>
             <button
               onClick={handleDownload}
               disabled={isGenerating || targetStudents.length === 0 || lernzieleForThema.length === 0}
@@ -234,6 +211,42 @@ export default function BerichtePage() {
               <p className="text-xs text-muted-foreground mt-2">Dieses Thema hat noch keine Lernziele.</p>
             )}
           </div>
+
+          {/* Kommentare – eingeklappt */}
+          {targetStudents.length > 0 && (
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <button
+                onClick={() => setCommentsOpen(v => !v)}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-accent/20 transition-colors"
+              >
+                {commentsOpen
+                  ? <ChevronDown className="size-4 text-muted-foreground shrink-0" />
+                  : <ChevronRight className="size-4 text-muted-foreground shrink-0" />}
+                <span className="text-sm font-medium">Kommentare hinzufügen</span>
+                <span className="text-xs text-muted-foreground ml-1">(optional)</span>
+              </button>
+              {commentsOpen && (
+                <div className="px-3 pb-3 border-t border-border">
+                  <div className="pt-3 space-y-3">
+                    {targetStudents.map((s) => (
+                      <div key={s.id} className="space-y-1">
+                        {targetStudents.length > 1 && (
+                          <label className="text-xs font-medium text-foreground">{s.vorname} {s.nachname}</label>
+                        )}
+                        <textarea
+                          value={kommentare[s.id] ?? ''}
+                          onChange={(e) => setKommentare((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                          placeholder="Persönlicher Kommentar für den Elternbericht…"
+                          rows={3}
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </section>
       )}
     </main>
@@ -245,7 +258,7 @@ function StepLabel({ number, label, done }: { number: number; label: string; don
     <div className="flex items-center gap-2">
       <span
         className={cn(
-          'flex size-5 items-center justify-center rounded-full text-xs font-bold',
+          'flex size-5 items-center justify-center rounded-md text-xs font-bold',
           done ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
         )}
       >

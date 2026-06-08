@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Check, Minus, X, ClipboardList, Star, Plus, ChevronDown, Search } from 'lucide-react'
+import { Check, Minus, X, ClipboardList, Star, Plus, ChevronDown, Search, CheckCircle2, CircleDashed } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
-import { cn } from '@/lib/utils'
+import { cn, getFachColor } from '@/lib/utils'
 import { RilzStudentCard } from './RilzStudentCard'
 import type { Status, Thema } from '@/types/domain'
+import { isThemaClosed } from '@/types/domain'
 
 function nextStatus(current: Status | undefined): Status | undefined {
   if (current === undefined) return 'reached'
@@ -17,31 +18,43 @@ function nextStatus(current: Status | undefined): Status | undefined {
 function StatusCell({
   status,
   onSelect,
+  readOnly = false,
 }: {
   status: Status | undefined
   onSelect: (s: Status | undefined) => void
+  readOnly?: boolean
 }) {
   return (
     <div className="flex justify-center">
       <button
-        onClick={() => onSelect(nextStatus(status))}
+        onClick={() => !readOnly && onSelect(nextStatus(status))}
         title={
-          status === 'reached' ? 'Erreicht'
+          readOnly ? undefined
+          : status === 'reached' ? 'Erreicht'
           : status === 'partially_reached' ? 'Teilweise erreicht'
           : status === 'not_reached' ? 'Nicht erreicht'
           : 'Nicht bewertet'
         }
         className={cn(
-          'w-7 h-7 rounded-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer',
-          status === 'reached' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' :
-          status === 'partially_reached' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' :
-          status === 'not_reached' ? 'bg-red-100 text-red-500 hover:bg-red-200' :
-          'bg-slate-100 text-slate-400 hover:bg-slate-200',
+          'w-7 h-7 rounded-md flex items-center justify-center transition-all',
+          readOnly
+            ? 'cursor-default opacity-80'
+            : 'hover:scale-110 active:scale-95 cursor-pointer',
+          status === 'reached' ? 'bg-emerald-100 text-emerald-700' :
+          status === 'partially_reached' ? 'bg-amber-100 text-amber-700' :
+          status === 'not_reached' ? 'bg-red-100 text-red-500' :
+          'bg-slate-100 text-slate-400',
+          !readOnly && (
+            status === 'reached' ? 'hover:bg-emerald-200' :
+            status === 'partially_reached' ? 'hover:bg-amber-200' :
+            status === 'not_reached' ? 'hover:bg-red-200' :
+            'hover:bg-slate-200'
+          ),
         )}
       >
         {status === 'reached' && <Check className="size-3 stroke-[2.5]" />}
         {status === 'partially_reached' && <Minus className="size-3 stroke-[2.5]" />}
-        {status === 'not_reached' && <X className="size-2.5 stroke-[2]" />}
+        {status === 'not_reached' && <X className="size-3 stroke-[2.5]" />}
         {status === undefined && <span className="size-1.5 rounded-full bg-slate-300" />}
       </button>
     </div>
@@ -118,10 +131,12 @@ function ThemaSelect({
   themenByFach,
   themaIds,
   getLernzieleForThema,
+  allFachIds,
 }: {
   value: string | null
   onChange: (id: string) => void
   placeholder: string
+  allFachIds: string[]
   themenByFach: { fach: { id: string; name: string }; themen: { id: string; name: string }[] }[]
   themaIds: (string | null)[]
   getLernzieleForThema: (id: string) => unknown[]
@@ -158,11 +173,20 @@ function ThemaSelect({
     ? themenByFach.flatMap(f => f.themen).find(t => t.id === value)?.name ?? null
     : null
 
+  const selectedFachId = value
+    ? themenByFach.find(({ themen }) => themen.some(t => t.id === value))?.fach.id ?? null
+    : null
+  const selectedFachColor = selectedFachId ? getFachColor(selectedFachId, allFachIds) : null
+
   return (
     <div ref={containerRef} className="relative">
       <button
         onClick={() => setOpen(v => !v)}
-        className="h-7 min-w-44 rounded-md border border-border bg-card px-2 pr-6 text-xs font-medium shadow-sm flex items-center cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
+        className={cn(
+          'h-7 min-w-44 rounded-md border border-border bg-card px-2 pr-6 text-xs font-medium shadow-sm flex items-center cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring overflow-hidden',
+          selectedFachColor && 'border-l-[3px]',
+          selectedFachColor?.border,
+        )}
       >
         <span className={cn('truncate flex-1 text-left', selectedName ? 'text-foreground' : 'text-muted-foreground')}>
           {selectedName ?? placeholder}
@@ -189,7 +213,8 @@ function ThemaSelect({
             ) : (
               filtered.map(({ fach, themen }) => (
                 <div key={fach.id}>
-                  <p className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">
+                  <p className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60 flex items-center gap-1">
+                    <span className={cn('size-1.5 rounded-full shrink-0', getFachColor(fach.id, allFachIds).dot)} />
                     {fach.name}
                   </p>
                   {themen.map(thema => {
@@ -246,6 +271,7 @@ const SLOT_STYLES = [
 
 export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; filterFachIds?: string[] }) {
   const {
+    getClass,
     getStudentsForClass,
     getThemenForKlasse,
     getLernzieleForThema,
@@ -253,8 +279,12 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
     faecher,
     themen,
     updateLernzielStatus,
+    closeThemaForKlasse,
+    reopenThemaForKlasse,
     students: allStudents,
   } = useData()
+
+  const klasse = getClass(klassId)
 
   const students = getStudentsForClass(klassId)
   const allAssignedThemen = getThemenForKlasse(klassId)
@@ -303,7 +333,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
   }))
 
   const allLernziele = lernzieleGroups.flatMap(g => g.lernziele)
-  const sortedStudents = [...students].sort((a, b) => a.name.localeCompare(b.name, 'de'))
+  const sortedStudents = [...students].sort((a, b) => a.vorname.localeCompare(b.vorname, 'de'))
   const selectedFachIds = new Set(selectedThemen.map(t => t.fachId))
 
   // Students RILZ'd in any selected fach OR with a library RILZ Thema matching a selected Thema
@@ -323,6 +353,9 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
   const showComment = lernzieleGroups.length === 1
   const kommentarWidth = 160
   const pctRight = showComment ? kommentarWidth : 0
+
+  const closedSelectedThemen = selectedThemen.filter(t => isThemaClosed(t, klasse?.abgeschlosseneThemaIds))
+  const isReadOnly = closedSelectedThemen.length > 0
 
   const [focusedCell, setFocusedCell] = useState<{ row: number; col: number } | null>(null)
   const [tableScrollWidth, setTableScrollWidth] = useState(0)
@@ -366,7 +399,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
   }
 
   function handleTableKeyDown(e: React.KeyboardEvent) {
-    if (!focusedCell) return
+    if (!focusedCell || isReadOnly) return
     const { row, col } = focusedCell
     const maxRow = orderedStudents.length - 1
     const maxCol = allLernziele.length - 1
@@ -441,6 +474,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                   themenByFach={themenByFach}
                   themaIds={themaIds}
                   getLernzieleForThema={getLernzieleForThema}
+                  allFachIds={faecher.map(f => f.id)}
                 />
                 {i > 0 && (
                   <button
@@ -452,6 +486,33 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                   </button>
                 )}
               </div>
+              {id && (() => {
+                const thema = assignedThemen.find(t => t.id === id)
+                if (!thema) return null
+                const isClosed = isThemaClosed(thema, klasse?.abgeschlosseneThemaIds)
+                return isClosed ? (
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                      <CheckCircle2 className="size-3" />
+                      Alle beurteilt
+                    </span>
+                    <button
+                      onClick={() => reopenThemaForKlasse(klassId, id)}
+                      className="text-[11px] text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+                    >
+                      Bearbeiten
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => closeThemaForKlasse(klassId, id)}
+                    className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground/60 hover:text-emerald-600 transition-colors"
+                  >
+                    <CircleDashed className="size-3" />
+                    Thema abschliessen
+                  </button>
+                )
+              })()}
             </div>
           )
         })}
@@ -485,6 +546,18 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
               {label}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Assessed banner */}
+      {isReadOnly && (
+        <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2">
+          <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+          <span className="text-xs text-emerald-800">
+            {closedSelectedThemen.length === 1
+              ? `«${closedSelectedThemen[0].name}» ist abgeschlossen – Beurteilungen sind schreibgeschützt.`
+              : `${closedSelectedThemen.length} Themen sind abgeschlossen – Beurteilungen sind schreibgeschützt.`}
+          </span>
         </div>
       )}
 
@@ -635,7 +708,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                             onClick={() => { setFocusedCell({ row: rowIdx, col: 0 }); tableScrollRef.current?.focus() }}
                             title="Klicken, dann Pfeiltasten + Enter zum Bewerten"
                           >
-                            {student.name}
+                            {student.vorname} {student.nachname}
                           </td>
                           {/* status cells */}
                           {lernzieleGroups.map(({ lernziele }, gi) =>
@@ -666,6 +739,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                                   <StatusCell
                                     status={isSkipped ? undefined : status}
                                     onSelect={s => !isSkipped && updateLernzielStatus(student.id, lz.id, s)}
+                                    readOnly={isReadOnly}
                                   />
                                 </td>
                               )

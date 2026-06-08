@@ -1,0 +1,480 @@
+'use client'
+
+import { useState } from 'react'
+import { Check, ChevronDown, ChevronRight, Download, FileText, Loader2, User, Users, CheckCircle2 } from 'lucide-react'
+import { useData } from '@/contexts/DataContext'
+import { cn } from '@/lib/utils'
+import { generatePdfBlob, downloadZip, triggerDownload } from '@/lib/berichtUtils'
+import type { SchuelerBerichtPDFProps } from '@/components/berichte/SchuelerBerichtPDF'
+import { isThemaClosed } from '@/types/domain'
+import { BerichtPreviewModal } from '@/components/berichte/BerichtPreviewModal'
+
+export function BerichteTab({ klassId }: { klassId: string }) {
+  const {
+    getClass,
+    getThemenForKlasse,
+    getLernzieleForThema,
+    getStudentsForClass,
+    getKommentar,
+    getThemaKommentar,
+    faecher,
+  } = useData()
+
+  const klasse = getClass(klassId)!
+  const allThemen = getThemenForKlasse(klassId)
+  const students = getStudentsForClass(klassId)
+
+  // Which accordion step is currently open (1–4, or null)
+  const [openStep, setOpenStep] = useState<1 | 2 | 3 | 4 | null>(1)
+
+  const [selectedFachId, setSelectedFachId] = useState<string | null>(null)
+  const [selectedThemaId, setSelectedThemaId] = useState<string | null>(null)
+  const [excludedLzIds, setExcludedLzIds] = useState<Set<string>>(new Set())
+  const [lzOpen, setLzOpen] = useState(false)
+  const [studentMode, setStudentMode] = useState<'all' | 'individual' | null>(null)
+  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set())
+  const [reportKommentare, setReportKommentare] = useState<Record<string, string>>({})
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [previewStudentId, setPreviewStudentId] = useState<string | null>(null)
+
+  const fachWithThemen = faecher
+    .map(f => ({ fach: f, themen: allThemen.filter(t => t.fachId === f.id) }))
+    .filter(({ themen }) => themen.length > 0)
+
+  const themenForFach = selectedFachId ? allThemen.filter(t => t.fachId === selectedFachId) : []
+  const thema = selectedThemaId ? allThemen.find(t => t.id === selectedThemaId) : null
+  const fach = selectedFachId ? faecher.find(f => f.id === selectedFachId) : null
+  const allLz = selectedThemaId ? getLernzieleForThema(selectedThemaId) : []
+  const activeLz = allLz.filter(lz => !excludedLzIds.has(lz.id))
+
+  const targetStudents =
+    studentMode === 'all' ? students :
+    studentMode === 'individual' ? students.filter(s => selectedStudentIds.has(s.id)) :
+    []
+
+  const canDownload = !!selectedThemaId && activeLz.length > 0 && targetStudents.length > 0 && !isGenerating
+
+  // ── Selection handlers ──────────────────────────────────────────────────
+
+  function selectFach(id: string) {
+    setSelectedFachId(id)
+    setSelectedThemaId(null)
+    setExcludedLzIds(new Set())
+    setLzOpen(false)
+    setStudentMode(null)
+    setSelectedStudentIds(new Set())
+    setReportKommentare({})
+    setOpenStep(2)
+  }
+
+  function selectThema(id: string) {
+    const next = id === selectedThemaId ? null : id
+    setSelectedThemaId(next)
+    setExcludedLzIds(new Set())
+    setLzOpen(false)
+    setStudentMode(null)
+    setSelectedStudentIds(new Set())
+    setReportKommentare({})
+    if (next) setOpenStep(3)
+  }
+
+  function selectStudentMode(mode: 'all' | 'individual') {
+    setStudentMode(mode)
+    if (mode === 'individual') setSelectedStudentIds(new Set())
+    if (mode === 'all') setOpenStep(4)
+  }
+
+  function toggleStudent(studentId: string) {
+    setSelectedStudentIds(prev => {
+      const next = new Set(prev)
+      next.has(studentId) ? next.delete(studentId) : next.add(studentId)
+      return next
+    })
+  }
+
+  function toggleLz(lzId: string) {
+    setExcludedLzIds(prev => {
+      const next = new Set(prev)
+      next.has(lzId) ? next.delete(lzId) : next.add(lzId)
+      return next
+    })
+  }
+
+  function toggleStep(step: 1 | 2 | 3 | 4) {
+    setOpenStep(prev => prev === step ? null : step)
+  }
+
+  // ── PDF generation ──────────────────────────────────────────────────────
+
+  async function handleDownload() {
+    if (!canDownload || !thema || !fach) return
+    setIsGenerating(true)
+    try {
+      const dateStr = new Date().toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' })
+      const entries = await Promise.all(
+        targetStudents.map(async (student) => {
+          const props: SchuelerBerichtPDFProps = {
+            studentName: `${student.vorname} ${student.nachname}`,
+            klassenName: klasse.name,
+            fachName: fach.name,
+            themaName: thema.name,
+            date: dateStr,
+            lernziele: activeLz.map(lz => ({
+              label: lz.label,
+              kategorie: lz.kategorie,
+              status: student.lernzielStatus[lz.id] ?? 'not_reached',
+            })),
+            kommentar: reportKommentare[student.id] || undefined,
+          }
+          const blob = await generatePdfBlob(props)
+          const safeName = `${student.vorname}_${student.nachname}`
+          const safeThema = thema.name.replace(/\s+/g, '_')
+          return { filename: `Bericht_${safeName}_${safeThema}.pdf`, blob }
+        })
+      )
+      if (entries.length === 1) {
+        triggerDownload(entries[0].blob, entries[0].filename)
+      } else {
+        await downloadZip(entries, `Berichte_${klasse.name.replace(/\s+/g, '_')}.zip`)
+      }
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  // ── Empty state ─────────────────────────────────────────────────────────
+
+  if (allThemen.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center space-y-2">
+        <p className="text-sm text-muted-foreground">Dieser Klasse sind noch keine Themen zugewiesen.</p>
+        <p className="text-xs text-muted-foreground">Füge zuerst Themen unter <strong>Lernziel-Management</strong> hinzu.</p>
+      </div>
+    )
+  }
+
+  // ── Student mode summary label ──────────────────────────────────────────
+
+  const studentSummary =
+    studentMode === 'all' ? `Alle (${students.length})` :
+    studentMode === 'individual' ? `${targetStudents.length} von ${students.length}` :
+    undefined
+
+  // ── Render ──────────────────────────────────────────────────────────────
+
+  return (
+    <div className="space-y-2 max-w-2xl">
+
+      {/* Step 1: Fach */}
+      <StepCard
+        title="Fach"
+        summary={fach?.name}
+        isOpen={openStep === 1}
+        onToggle={() => toggleStep(1)}
+      >
+        <div className="flex flex-wrap gap-2">
+          {fachWithThemen.map(({ fach: f }) => (
+            <button
+              key={f.id}
+              onClick={() => selectFach(f.id)}
+              className={cn(
+                'rounded-md border px-4 py-1.5 text-sm transition-all',
+                selectedFachId === f.id
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+              )}
+            >
+              {f.name}
+            </button>
+          ))}
+        </div>
+      </StepCard>
+
+      {/* Step 2: Thema */}
+      {selectedFachId && (
+        <StepCard
+          title="Thema"
+          summary={thema?.name}
+          isOpen={openStep === 2}
+          onToggle={() => toggleStep(2)}
+        >
+          <div className="flex flex-wrap gap-2">
+            {themenForFach.map(t => {
+              const closed = isThemaClosed(t, klasse.abgeschlosseneThemaIds)
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => selectThema(t.id)}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-md border px-4 py-1.5 text-sm transition-all',
+                    selectedThemaId === t.id
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+                  )}
+                >
+                  {closed && <CheckCircle2 className="size-3 shrink-0 text-emerald-500" />}
+                  {t.name}
+                </button>
+              )
+            })}
+          </div>
+        </StepCard>
+      )}
+
+      {/* LZ sub-accordion (optional, persistent after Thema selected) */}
+      {selectedThemaId && (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <button
+            onClick={() => setLzOpen(v => !v)}
+            className="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-accent/20 transition-colors"
+          >
+            {lzOpen
+              ? <ChevronDown className="size-4 text-muted-foreground shrink-0" />
+              : <ChevronRight className="size-4 text-muted-foreground shrink-0" />}
+            <span className="text-sm font-medium">Lernziele anpassen</span>
+            <span className="ml-auto text-xs text-muted-foreground">{activeLz.length} / {allLz.length}</span>
+          </button>
+          {lzOpen && (
+            <div className="border-t border-border divide-y divide-border/40">
+              {allLz.map(lz => {
+                const isIncluded = !excludedLzIds.has(lz.id)
+                return (
+                  <button
+                    key={lz.id}
+                    onClick={() => toggleLz(lz.id)}
+                    className={cn(
+                      'flex items-center gap-3 w-full px-4 py-2 text-left transition-colors hover:bg-accent/20',
+                      !isIncluded && 'opacity-40',
+                    )}
+                  >
+                    <div className={cn(
+                      'flex size-4 shrink-0 items-center justify-center rounded-sm border-2 transition-all',
+                      isIncluded ? 'border-primary bg-primary' : 'border-muted-foreground/30 bg-background',
+                    )}>
+                      {isIncluded && <Check className="size-2.5 text-white stroke-[3]" />}
+                    </div>
+                    <span className="flex-1 text-sm">{lz.label}</span>
+                    <span className={cn(
+                      'text-xs px-1.5 py-0.5 rounded font-medium shrink-0',
+                      lz.kategorie === 'grundlegend' ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'
+                    )}>
+                      {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Step 3: Schüler */}
+      {selectedThemaId && (
+        <StepCard
+          title="Schüler/innen"
+          summary={studentSummary}
+          isOpen={openStep === 3}
+          onToggle={() => toggleStep(3)}
+        >
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <button
+                onClick={() => selectStudentMode('all')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md border px-4 py-1.5 text-sm font-medium transition-all',
+                  studentMode === 'all'
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+                )}
+              >
+                <Users className="size-3.5" />
+                Alle ({students.length})
+              </button>
+              <button
+                onClick={() => selectStudentMode('individual')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md border px-4 py-1.5 text-sm font-medium transition-all',
+                  studentMode === 'individual'
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+                )}
+              >
+                <User className="size-3.5" />
+                Einzelne
+              </button>
+            </div>
+            {studentMode === 'individual' && (
+              <div className="flex flex-wrap gap-2">
+                {students.map(s => {
+                  const isSelected = selectedStudentIds.has(s.id)
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => toggleStudent(s.id)}
+                      className={cn(
+                        'rounded-md border px-3 py-1.5 text-sm transition-all',
+                        isSelected
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+                      )}
+                    >
+                      {s.vorname} {s.nachname}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </StepCard>
+      )}
+
+      {/* Step 4: Kommentar */}
+      {selectedThemaId && studentMode !== null && (
+        <StepCard
+          title="Kommentar"
+          summary="optional"
+          isOpen={openStep === 4}
+          onToggle={() => toggleStep(4)}
+        >
+          <div className="space-y-4">
+            {targetStudents.map(s => {
+              const themaKommentar = getThemaKommentar(s.id, selectedThemaId)
+              const lzKommentare = activeLz
+                .map(lz => ({ lz, k: getKommentar(s.id, lz.id) }))
+                .filter(({ k }) => !!k)
+              const hasInspiration = !!themaKommentar || lzKommentare.length > 0
+
+              return (
+                <div key={s.id} className="space-y-2">
+                  {targetStudents.length > 1 && (
+                    <p className="text-xs font-medium text-foreground">{s.vorname} {s.nachname}</p>
+                  )}
+                  <textarea
+                    value={reportKommentare[s.id] ?? ''}
+                    onChange={e => setReportKommentare(prev => ({ ...prev, [s.id]: e.target.value }))}
+                    onClick={() => setPreviewStudentId(s.id)}
+                    placeholder="Klicken für Vorschau und Kommentar…"
+                    rows={3}
+                    readOnly
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  />
+                  {hasInspiration && (
+                    <div className="rounded-md bg-muted/50 px-3 py-2 space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground">Notizen aus der Beurteilung</p>
+                      {themaKommentar && (
+                        <p className="text-xs text-muted-foreground italic">{themaKommentar.text}</p>
+                      )}
+                      {lzKommentare.map(({ lz, k }) => (
+                        <p key={lz.id} className="text-xs text-muted-foreground">
+                          <span className="font-medium not-italic">{lz.label}: </span>
+                          <span className="italic">{k!.text}</span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </StepCard>
+      )}
+
+      {/* PDF preview modal */}
+      {previewStudentId && fach && thema && (() => {
+        const s = students.find(st => st.id === previewStudentId)!
+        return (
+          <BerichtPreviewModal
+            open={true}
+            onClose={() => setPreviewStudentId(null)}
+            student={s}
+            klasse={klasse}
+            fach={fach}
+            thema={thema}
+            activeLz={activeLz}
+            kommentar={reportKommentare[s.id] ?? ''}
+            onKommentarChange={(val) => setReportKommentare(prev => ({ ...prev, [s.id]: val }))}
+            themaKommentar={getThemaKommentar(s.id, selectedThemaId!)?.text}
+            inspirationNotes={activeLz
+              .map(lz => ({ lz, k: getKommentar(s.id, lz.id) }))
+              .filter(({ k }) => !!k)
+              .map(({ lz, k }) => ({ label: lz.label, text: k!.text }))}
+          />
+        )
+      })()}
+
+      {/* Download button */}
+      {selectedThemaId && studentMode !== null && (
+        <div className="pt-1">
+          <button
+            onClick={handleDownload}
+            disabled={!canDownload}
+            className={cn(
+              'flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all',
+              canDownload
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98]'
+                : 'bg-muted text-muted-foreground cursor-not-allowed',
+            )}
+          >
+            {isGenerating ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : targetStudents.length === 1 ? (
+              <FileText className="size-4" />
+            ) : (
+              <Download className="size-4" />
+            )}
+            {isGenerating
+              ? 'Wird erstellt…'
+              : targetStudents.length === 1
+                ? 'PDF herunterladen'
+                : `ZIP herunterladen (${targetStudents.length} PDFs)`}
+          </button>
+          {activeLz.length === 0 && allLz.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-2">Bitte mindestens ein Lernziel einschliessen.</p>
+          )}
+          {studentMode === 'individual' && targetStudents.length === 0 && (
+            <p className="text-xs text-muted-foreground mt-2">Bitte mindestens eine/n Schüler/in wählen.</p>
+          )}
+        </div>
+      )}
+
+    </div>
+  )
+}
+
+// ── Step card component ───────────────────────────────────────────────────
+
+function StepCard({
+  title,
+  summary,
+  isOpen,
+  onToggle,
+  children,
+}: {
+  title: string
+  summary?: string
+  isOpen: boolean
+  onToggle: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-accent/20 transition-colors"
+      >
+        {isOpen
+          ? <ChevronDown className="size-4 text-muted-foreground shrink-0" />
+          : <ChevronRight className="size-4 text-muted-foreground shrink-0" />}
+        <span className="text-sm font-medium">{title}</span>
+        {!isOpen && summary && (
+          <span className="ml-auto text-sm text-primary font-medium">{summary}</span>
+        )}
+      </button>
+      {isOpen && (
+        <div className="px-4 pb-4 pt-3 border-t border-border">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}

@@ -45,7 +45,7 @@ function TrendChart({
   series,
 }: {
   snapshots: StatusSnapshot[]
-  series: { label: string; lernzieleIds: string[] }[]
+  series: { label: string; lernzieleIds: string[]; faint?: boolean }[]
 }) {
   const n = snapshots.length
   if (n < 2) {
@@ -102,25 +102,27 @@ function TrendChart({
           ) : null
         )}
 
-        {/* One line per Fach */}
-        {series.map(({ label, lernzieleIds }, si) => {
-          const color = getColor(label, si)
+        {/* One line per series */}
+        {series.map(({ label, lernzieleIds, faint }, si) => {
+          const color = faint ? 'currentColor' : getColor(label, si)
+          const opacity = faint ? 0.18 : 1
           const pts = snapshots.map((snap, i) => [
             xPos(i),
             yPos(calcPct(snap, lernzieleIds)),
           ] as [number, number])
           const d = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
           return (
-            <g key={si}>
+            <g key={si} opacity={opacity}>
               <path
                 d={d}
                 fill="none"
                 stroke={color}
-                strokeWidth={2.5}
+                strokeWidth={faint ? 2 : 2.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                strokeDasharray={faint ? '4 3' : undefined}
               />
-              {pts.map(([x, y], i) => (
+              {!faint && pts.map(([x, y], i) => (
                 <circle key={i} cx={x} cy={y} r={i === n - 1 ? 4 : 2.5} fill={color} />
               ))}
             </g>
@@ -128,17 +130,21 @@ function TrendChart({
         })}
       </svg>
 
-      {/* Legend */}
+      {/* Legend — skip faint (Gesamt) series */}
       <div className="flex flex-wrap gap-x-4 gap-y-1">
-        {series.map(({ label }, si) => (
-          <div key={si} className="flex items-center gap-1.5">
-            <span
-              className="inline-block size-2.5 rounded-full"
-              style={{ background: getColor(label, si) }}
-            />
-            <span className="text-xs text-muted-foreground">{label}</span>
-          </div>
-        ))}
+        {series.filter((s) => !s.faint).map(({ label }, si) => {
+          // si here refers to position among all series; need original index for color
+          const originalIdx = series.findIndex((s) => s.label === label)
+          return (
+            <div key={si} className="flex items-center gap-1.5">
+              <span
+                className="inline-block size-2.5 rounded-full"
+                style={{ background: getColor(label, originalIdx) }}
+              />
+              <span className="text-xs text-muted-foreground">{label}</span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -151,9 +157,10 @@ interface StudentVerlaufProps {
   assignedThemen: Thema[]
   lernziele: Lernziel[]
   faecher: Fach[]
+  showGesamt?: boolean
 }
 
-export function StudentVerlauf({ student, assignedThemen, lernziele, faecher }: StudentVerlaufProps) {
+export function StudentVerlauf({ student, assignedThemen, lernziele, faecher, showGesamt = false }: StudentVerlaufProps) {
   if (assignedThemen.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -173,6 +180,14 @@ export function StudentVerlauf({ student, assignedThemen, lernziele, faecher }: 
     })
     .filter((s): s is NonNullable<typeof s> => s !== null)
 
+  const allIds = assignedThemen.flatMap((t) =>
+    lernziele.filter((lz) => lz.themaId === t.id).map((lz) => lz.id)
+  )
+
+  const gesamtSeries = showGesamt && allIds.length > 0
+    ? [{ label: 'Gesamt', lernzieleIds: allIds, faint: true }]
+    : []
+
   const history = student.progressHistory ?? []
   const currentSnapshot: StatusSnapshot = {
     date: new Date().toISOString().slice(0, 10),
@@ -180,5 +195,5 @@ export function StudentVerlauf({ student, assignedThemen, lernziele, faecher }: 
   }
   const allSnapshots = [...history, currentSnapshot]
 
-  return <TrendChart snapshots={allSnapshots} series={fachSeries} />
+  return <TrendChart snapshots={allSnapshots} series={[...gesamtSeries, ...fachSeries]} />
 }
