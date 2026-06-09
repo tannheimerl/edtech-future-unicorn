@@ -7,22 +7,7 @@ import { cn, getFachColor } from '@/lib/utils'
 import { AddLzRow } from './RilzBeurteilungView'
 import type { Schueler, Thema, Lernziel, Status, RilzLernziel } from '@/types/domain'
 import { STATUS_CYCLE } from '@/types/domain'
-
-function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  return name.slice(0, 2).toUpperCase()
-}
-
-const AVATAR_COLORS = [
-  'bg-indigo-100 text-indigo-700', 'bg-emerald-100 text-emerald-700',
-  'bg-amber-100 text-amber-700',   'bg-rose-100 text-rose-700',
-  'bg-violet-100 text-violet-700', 'bg-teal-100 text-teal-700',
-]
-function getAvatarColor(name: string) {
-  let h = 0; for (const c of name) h = (h << 5) - h + c.charCodeAt(0)
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]
-}
+import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 
 // Square status cell — same visual as main grid, for class grundlegend Lernziele
 function StatusCell({

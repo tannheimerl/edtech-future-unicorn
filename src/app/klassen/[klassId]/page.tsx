@@ -19,38 +19,11 @@ import { Breadcrumb } from '@/components/shared/Breadcrumb'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { Modal } from '@/components/shared/Modal'
 import { cn, getFachColor } from '@/lib/utils'
+import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 import { KatBadge } from '@/components/shared/KatBadge'
 import { LzCountCluster } from '@/components/shared/LzCountCluster'
 import { type LpRolle, LP_ROLLE_LABELS, isThemaClosed } from '@/types/domain'
 import type { Schueler, Lernziel as LernzielType, Fach, Thema, RilzLernziel } from '@/types/domain'
-
-// ── Helpers ───────────────────────────────────────────────────────────────
-
-function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  return name.slice(0, 2).toUpperCase()
-}
-
-const AVATAR_COLORS = [
-  'bg-indigo-100 text-indigo-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-amber-100 text-amber-700',
-  'bg-rose-100 text-rose-700',
-  'bg-violet-100 text-violet-700',
-  'bg-teal-100 text-teal-700',
-  'bg-sky-100 text-sky-700',
-  'bg-orange-100 text-orange-700',
-]
-
-function getAvatarColor(name: string): string {
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = ((hash << 5) - hash) + name.charCodeAt(i)
-    hash = hash & hash
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-}
 
 
 function compPct(student: Schueler, comps: { id: string }[]): number {
