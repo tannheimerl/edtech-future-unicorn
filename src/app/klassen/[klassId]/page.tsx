@@ -21,8 +21,7 @@ import { Modal } from '@/components/shared/Modal'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { cn, getFachColor } from '@/lib/utils'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
-import { KatBadge } from '@/components/shared/KatBadge'
-import { LzCountCluster } from '@/components/shared/LzCountCluster'
+
 import { type LpRolle, LP_ROLLE_LABELS } from '@/types/domain'
 import type { Schueler, Lernziel as LernzielType, Fach, Thema, RilzLernziel } from '@/types/domain'
 
@@ -449,7 +448,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
 
   const [collapsedFaecher, setCollapsedFaecher] = useState<Set<string>>(new Set())
   const [expandedThemen, setExpandedThemen] = useState<Set<string>>(new Set())
-  const [expandedRilzThemen, setExpandedRilzThemen] = useState<Set<string>>(new Set())
+
   const [popupLZ, setPopupLZ] = useState<LernzielType | null>(null)
   const [search, setSearch] = useState('')
   const [addFachId, setAddFachId] = useState<string | null>(null)
@@ -457,9 +456,6 @@ function LernzieleTab({ klassId }: { klassId: string }) {
 
   function toggleThema(themaId: string) {
     setExpandedThemen(prev => { const n = new Set(prev); n.has(themaId) ? n.delete(themaId) : n.add(themaId); return n })
-  }
-  function toggleRilzThema(id: string) {
-    setExpandedRilzThemen(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
 
   const q = search.trim().toLowerCase()
@@ -497,7 +493,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
   const catalogHasThemen = themen.some(t => (!t.typ || t.typ === 'standard') && t.autor == null)
 
   // RILZ data: library + ad-hoc RILZ themen of students in this class, grouped by Fach
-  type RilzThemaEntry = { thema: Thema; studentCount: number; lzCount: number; isAdHoc: boolean }
+  type RilzThemaEntry = { thema: Thema; studentCount: number; lzCount: number; isAdHoc: boolean; lz: RilzLernziel[] }
   const rilzData = useMemo(() => {
     const students = getStudentsForClass(klassId)
 
@@ -532,10 +528,10 @@ function LernzieleTab({ klassId }: { klassId: string }) {
 
     for (const [, { thema, studs }] of libraryMap) {
       const lzCount = lernziele.filter(lz => lz.themaId === thema.id).length
-      addEntry(thema.fachId, { thema, studentCount: studs.length, lzCount, isAdHoc: false })
+      addEntry(thema.fachId, { thema, studentCount: studs.length, lzCount, isAdHoc: false, lz: [] })
     }
     for (const [, { thema, lz, studs }] of adHocMap) {
-      addEntry(thema.fachId, { thema, studentCount: studs.length, lzCount: lz.length, isAdHoc: true })
+      addEntry(thema.fachId, { thema, studentCount: studs.length, lzCount: lz.length, isAdHoc: true, lz })
     }
 
     return [...byFach.values()]
@@ -570,17 +566,23 @@ function LernzieleTab({ klassId }: { klassId: string }) {
             <p className="text-sm text-muted-foreground">Noch keine Themen im Katalog.</p>
             <a href="/lernziele" className="text-xs text-primary hover:underline">Jetzt anlegen →</a>
           </div>
-        ) : assignedData.length === 0 && !q ? (
+        ) : assignedData.length === 0 && rilzData.length === 0 && !q ? (
           <EmptyState
             size="sm"
             title="Noch keine Themen ausgewählt"
             description={<>Wähle ein Fach und klicke auf <strong>+</strong>, um Themen hinzuzufügen.</>}
           />
-        ) : assignedData.length === 0 ? (
+        ) : assignedData.length === 0 && rilzData.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">Keine Ergebnisse für „{search}"</p>
         ) : (
           <div className="space-y-3">
-            {assignedData.map(({ fach, themen: fachThemen }) => {
+            {faecher.map(fach => {
+              const stdEntry = assignedData.find(d => d.fach.id === fach.id)
+              const rilzFachThemen = (rilzData.find(d => d.fach.id === fach.id)?.themen ?? [])
+                .filter(({ thema }) => !q || thema.name.toLowerCase().includes(q) || fach.name.toLowerCase().includes(q))
+              const fachThemen = stdEntry?.themen ?? []
+              if (fachThemen.length === 0 && rilzFachThemen.length === 0) return null
+
               const fachCollapsed = !q && collapsedFaecher.has(fach.id)
               const fachLZCount = fachThemen.reduce((s, { lz }) => s + lz.length, 0)
               const fachColor = getFachColor(fach.id, faecher.map(f => f.id))
@@ -595,7 +597,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
 
               return (
                 <div key={fach.id} className={cn(
-                  'rounded-2xl border bg-card overflow-hidden shadow-sm border-l-4',
+                  'rounded-xl border bg-card overflow-hidden shadow-sm border-l-4',
                   fachColor.border,
                 )}>
                   {/* Fach header */}
@@ -628,31 +630,18 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                     <div className="divide-y divide-border/40">
                       {fachThemen.map(({ thema, lz: themaLZ }) => {
                         const isExpanded = !!q || expandedThemen.has(thema.id)
-                        const today = new Date().toISOString().slice(0, 10)
                         const isDateEditing = editDateThemaId === thema.id
-                        const isOverdue = thema.faelligAm ? thema.faelligAm < today : false
-                        const daysUntil = thema.faelligAm
-                          ? Math.ceil((new Date(thema.faelligAm).getTime() - Date.now()) / 86400000)
-                          : null
-                        const isNearDeadline = daysUntil !== null && daysUntil >= 0 && daysUntil <= 14
-                        const isRilz = thema.typ === 'rilz'
 
-                        // Progress: how many students have all LZ in this thema assessed
-                        const totalStudents = klassStudents.filter(s => !s.rilzFachIds?.includes(fach.id) || !isRilz).length
+                        const totalStudents = klassStudents.length
                         const assessedStudents = totalStudents > 0
-                          ? klassStudents.filter(s => {
-                              if (isRilz && s.rilzFachIds?.includes(fach.id)) return false
-                              return themaLZ.every(lz => s.lernzielStatus[lz.id] != null)
-                            }).length
+                          ? klassStudents.filter(s =>
+                              themaLZ.every(lz => s.lernzielStatus[lz.id] != null)
+                            ).length
                           : 0
-                        const allLZ = lernziele.filter(lz => lz.themaId === thema.id)
-                        const gCount = allLZ.filter(lz => lz.kategorie === 'grundlegend').length
-                        const aCount = allLZ.filter(lz => lz.kategorie === 'anspruchsvoll').length
 
                         return (
                           <div key={thema.id}>
-                            {/* Thema row */}
-                            <div className="group/row flex items-center gap-2 px-3 py-2 hover:bg-accent/20 transition-colors">
+                            <div className="group/row relative flex items-center gap-2 pl-3 pr-8 py-2 hover:bg-accent/20 transition-colors">
                               <button
                                 className="flex items-center gap-2 flex-1 min-w-0 text-left"
                                 onClick={() => toggleThema(thema.id)}
@@ -662,15 +651,8 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                   : <ChevronRight className="size-3 text-muted-foreground shrink-0" />
                                 }
                                 <span className="text-sm font-medium truncate"><Highlight text={thema.name} query={q} /></span>
-                                {isRilz && (
-                                  <span className="shrink-0 rounded px-1 py-px text-[9px] font-semibold bg-orange-100 text-orange-700">RILZ</span>
-                                )}
                               </button>
 
-                              {/* Inline meta */}
-                              <LzCountCluster g={gCount} a={aCount} />
-
-                              {/* Progress: X/Y bewertet */}
                               {totalStudents > 0 && (
                                 <span className="text-[10px] tabular-nums text-muted-foreground shrink-0 hidden sm:block">
                                   {assessedStudents}/{totalStudents}
@@ -701,11 +683,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                   className={cn(
                                     'flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5 transition-colors',
                                     thema.faelligAm
-                                      ? isOverdue
-                                        ? 'bg-rose-100 text-rose-600 hover:bg-rose-200'
-                                        : isNearDeadline
-                                          ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
-                                          : 'bg-muted text-muted-foreground hover:bg-accent'
+                                      ? 'bg-muted text-muted-foreground hover:bg-accent'
                                       : 'opacity-0 group-hover/row:opacity-60 text-muted-foreground hover:bg-accent',
                                   )}
                                   aria-label="Fälligkeitsdatum setzen"
@@ -716,21 +694,19 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                               )}
                               <button
                                 onClick={e => { e.stopPropagation(); removeThemaFromKlasse(klassId, thema.id) }}
-                                className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
                                 aria-label="Thema entfernen"
                               >
                                 <Trash2 className="size-3.5" />
                               </button>
                             </div>
 
-                            {/* Expanded LZ list */}
                             {isExpanded && (
                               <div className="border-t border-border/40 bg-muted/10">
                                 {themaLZ.map(lz => {
                                   const hasKriterien = (lz.kriterien?.length ?? 0) > 0
                                   return (
                                     <div key={lz.id} className="flex items-center gap-2 pl-8 pr-3 py-1.5 border-t first:border-t-0 border-border/30 hover:bg-accent/20 transition-colors group">
-                                      <KatBadge kat={lz.kategorie} />
                                       <span className="flex-1 text-xs text-foreground">
                                         <Highlight text={lz.label} query={q} />
                                       </span>
@@ -746,6 +722,60 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                     </div>
                                   )
                                 })}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+
+                      {rilzFachThemen.map(({ thema, studentCount, isAdHoc, lz: adHocLz }) => {
+                        const rilzKey = thema.id + '-rilz'
+                        const isExpanded = !!q || expandedThemen.has(rilzKey)
+                        const libLz = !isAdHoc ? lernziele.filter(lz => lz.themaId === thema.id) : []
+
+                        return (
+                          <div key={rilzKey}>
+                            <div className="group/row flex items-center gap-2 px-3 py-2 hover:bg-accent/20 transition-colors">
+                              <button
+                                className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                                onClick={() => toggleThema(rilzKey)}
+                              >
+                                {isExpanded
+                                  ? <ChevronDown className="size-3 text-muted-foreground shrink-0" />
+                                  : <ChevronRight className="size-3 text-muted-foreground shrink-0" />
+                                }
+                                <span className="text-sm font-medium truncate">{thema.name}</span>
+                                <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700">
+                                  {isAdHoc ? 'RILZ ad-hoc' : 'RILZ'}
+                                </span>
+                                <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground/60 shrink-0">
+                                  <UserRound className="size-3" />
+                                  {studentCount}
+                                </span>
+                              </button>
+
+                              {thema.faelligAm && (
+                                <span className="flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5 bg-muted text-muted-foreground">
+                                  <Calendar className="size-3" />
+                                  {new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
+                                </span>
+                              )}
+                            </div>
+
+                            {isExpanded && (
+                              <div className="border-t border-border/40 bg-muted/10">
+                                {isAdHoc
+                                  ? adHocLz.map(lz => (
+                                      <div key={lz.id} className="flex items-center gap-2 pl-8 pr-3 py-1.5 border-t first:border-t-0 border-border/30 text-xs text-foreground">
+                                        {lz.label}
+                                      </div>
+                                    ))
+                                  : libLz.map(lz => (
+                                      <div key={lz.id} className="flex items-center gap-2 pl-8 pr-3 py-1.5 border-t first:border-t-0 border-border/30 hover:bg-accent/20 transition-colors">
+                                        <span className="flex-1 text-xs text-foreground">{lz.label}</span>
+                                      </div>
+                                    ))
+                                }
                               </div>
                             )}
                           </div>
@@ -810,71 +840,6 @@ function LernzieleTab({ klassId }: { klassId: string }) {
 
       </div>
 
-      {/* RILZ Lernziele section */}
-      {rilzData.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50/60 px-4 py-2.5">
-            <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-orange-100">
-              <span className="text-[10px] font-bold text-orange-600">R</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-orange-700">RILZ – Individuelle Lernziele</p>
-              <p className="text-[10px] text-orange-600/70">Reduzierte Lernziele für einzelne Schüler:innen</p>
-            </div>
-          </div>
-
-          {rilzData.map(({ fach, themen: rilzThemen }) => (
-            <div key={fach.id} className="rounded-2xl border border-orange-100 bg-orange-50/30 overflow-hidden shadow-sm">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50/60 border-b border-orange-100">
-                <span className="text-xs font-semibold text-orange-700">{fach.name}</span>
-                <span className="rounded-full bg-orange-100 text-orange-600 text-xs px-1.5 py-0.5">{rilzThemen.length}</span>
-              </div>
-              <div className="flex flex-wrap gap-2 p-3">
-                {rilzThemen.map(({ thema, lzCount, studentCount, isAdHoc }) => {
-                  const isExpanded = expandedRilzThemen.has(thema.id)
-                  return (
-                    <div key={thema.id} className="flex flex-col gap-1.5">
-                      <button
-                        onClick={() => toggleRilzThema(thema.id)}
-                        className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-background px-2.5 py-1.5 text-xs hover:bg-orange-50 hover:border-orange-400 transition-all text-left"
-                      >
-                        <span className="font-medium">{thema.name}</span>
-                        <span className="rounded px-1 py-0.5 text-[9px] font-semibold bg-orange-100 text-orange-700">
-                          {isAdHoc ? 'RILZ ad-hoc' : 'RILZ'}
-                        </span>
-                        <span className="tabular-nums text-muted-foreground">· {lzCount}</span>
-                        <span className="flex items-center gap-0.5 text-muted-foreground/60">
-                          <UserRound className="size-2.5" />
-                          {studentCount}
-                        </span>
-                        {isExpanded
-                          ? <ChevronDown className="size-3 text-muted-foreground ml-0.5" />
-                          : <ChevronRight className="size-3 text-muted-foreground ml-0.5" />
-                        }
-                      </button>
-                      {isExpanded && (
-                        <div className="ml-2 space-y-0.5">
-                          {lernziele.filter(lz => lz.themaId === thema.id).map(lz => (
-                            <div key={lz.id} className="flex items-center gap-1.5 text-xs text-muted-foreground px-2 py-1">
-                              <span className={cn(
-                                'rounded px-1 py-0.5 text-[9px] font-semibold shrink-0',
-                                lz.kategorie === 'grundlegend' ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700',
-                              )}>
-                                {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
-                              </span>
-                              <span>{lz.label}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {popupLZ && <LernzielPopup lz={popupLZ} onClose={() => setPopupLZ(null)} />}
     </div>
