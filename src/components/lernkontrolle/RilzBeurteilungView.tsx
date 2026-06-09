@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useData } from '@/contexts/DataContext'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { cn, getFachColor } from '@/lib/utils'
 import { Plus, Pencil, Trash2, Check } from 'lucide-react'
 import type { Schueler, Thema, Status, RilzLernziel } from '@/types/domain'
@@ -200,9 +201,11 @@ export function RilzBeurteilungView({
 }) {
   if (rilzStudents.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card py-12 text-center">
-        <p className="text-sm font-semibold text-muted-foreground">Keine Schülerinnen oder Schüler mit RILZ in dieser Klasse.</p>
-      </div>
+      <EmptyState
+        title="Keine RILZ-Schüler:innen"
+        description="Keine Schülerinnen oder Schüler mit RILZ in dieser Klasse."
+        size="sm"
+      />
     )
   }
 

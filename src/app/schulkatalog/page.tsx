@@ -14,6 +14,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { KatBadge } from '@/components/shared/KatBadge'
 import { LzCountCluster } from '@/components/shared/LzCountCluster'
+import { EmptyState } from '@/components/shared/EmptyState'
+import { Tooltip } from '@/components/ui/tooltip'
 import { cn, getFachColor } from '@/lib/utils'
 
 const CURRENT_LP = 'Lukas Meier'
@@ -88,7 +90,9 @@ function ThemaCard({
               {stufeLabel}
             </span>
           )}
-          <Lock className="size-2.5 text-muted-foreground/30 ml-auto shrink-0" />
+          <Tooltip content="Dieses Thema wurde von einer anderen Lehrperson erstellt. Du kannst es in deine Sammlung kopieren." side="top">
+            <Lock className="size-2.5 text-muted-foreground/40 ml-auto shrink-0" />
+          </Tooltip>
         </div>
 
         {/* Thema name */}
@@ -442,13 +446,10 @@ export default function SchulkatalogPage() {
 
       {/* Content */}
       {filteredThemen.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card py-12 text-center">
-          <Library className="size-8 text-muted-foreground/50" />
-          <div>
-            <p className="font-semibold">Keine Themen gefunden</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">Versuche einen anderen Suchbegriff oder Filter.</p>
-          </div>
-        </div>
+        <EmptyState
+          title="Keine Themen gefunden"
+          description="Versuche einen anderen Suchbegriff oder Filter."
+        />
       ) : (
         <div className="space-y-3">
           {byAutor.has(CURRENT_LP) && (

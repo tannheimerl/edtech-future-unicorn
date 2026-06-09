@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal } from '@/components/shared/Modal'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { sv } from '@/lib/utils'
 import type { Status } from '@/types/domain'
 
@@ -86,20 +87,17 @@ function KlasseStats({ klassId }: { klassId: string }) {
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-muted/60 rounded-md px-2.5 py-2 text-center ring-1 ring-border/40">
           <p className="text-[10px] font-mono uppercase tracking-normal leading-none text-muted-foreground mb-0.5">Ø Score</p>
-          <p className={
-            'text-base font-bold tabular-nums ' +
-            (avgScore >= 75 ? 'text-emerald-600' : avgScore >= 25 ? 'text-amber-600' : 'text-red-500')
-          }>
+          <p className={`text-base font-bold tabular-nums ${avgScore >= 75 ? 'text-status-reached' : avgScore >= 25 ? 'text-status-partial' : 'text-status-not-reached'}`}>
             {allLZIds.length > 0 ? `${avgScore}%` : '—'}
           </p>
         </div>
         <div className="bg-muted/60 rounded-md px-2.5 py-2 text-center ring-1 ring-border/40">
           <p className="text-[10px] font-mono uppercase tracking-normal leading-none text-muted-foreground mb-0.5">Sehr gut</p>
-          <p className="text-base font-bold tabular-nums text-emerald-600">{excellent}</p>
+          <p className="text-base font-bold tabular-nums text-status-reached">{excellent}</p>
         </div>
         <div className="bg-muted/60 rounded-md px-2.5 py-2 text-center ring-1 ring-border/40">
-          <p className="text-[10px] font-mono uppercase tracking-normal leading-none text-muted-foreground mb-0.5">Förderb.</p>
-          <p className={`text-base font-bold tabular-nums ${atRisk > 0 ? 'text-red-500' : 'text-muted-foreground'}`}>{atRisk}</p>
+          <p className="text-[10px] font-mono uppercase tracking-normal leading-none text-muted-foreground mb-0.5">Förderbedarf</p>
+          <p className={`text-base font-bold tabular-nums ${atRisk > 0 ? 'text-status-not-reached' : 'text-muted-foreground'}`}>{atRisk}</p>
         </div>
       </div>
     </div>
@@ -184,16 +182,13 @@ export default function KlassenPage() {
 
       {/* Empty state */}
       {classes.length === 0 && (
-        <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border bg-card py-20 text-center">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-muted">
-            <Users className="size-6 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="font-semibold text-foreground">Noch keine Klassen angelegt</p>
-            <p className="mt-1 text-sm text-muted-foreground">Erstelle deine erste Klasse und füge Schüler hinzu.</p>
-          </div>
-          <Button onClick={() => setCreateOpen(true)}>Erste Klasse erstellen</Button>
-        </div>
+        <EmptyState
+          size="lg"
+          icon={<Users className="size-6 text-accent-foreground" />}
+          title="Noch keine Klassen angelegt"
+          description="Erstelle deine erste Klasse und füge Schüler hinzu."
+          action={<Button onClick={() => setCreateOpen(true)}>Erste Klasse erstellen</Button>}
+        />
       )}
 
       {/* Class grid */}

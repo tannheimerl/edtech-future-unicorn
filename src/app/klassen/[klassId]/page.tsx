@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Breadcrumb } from '@/components/shared/Breadcrumb'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { Modal } from '@/components/shared/Modal'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { cn, getFachColor } from '@/lib/utils'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 import { KatBadge } from '@/components/shared/KatBadge'
@@ -101,9 +102,9 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'schueler',         label: 'Schüler' },
     { key: 'beurteilung',      label: 'Beurteilung' },
-    { key: 'klassenübersicht', label: 'Klassen-Statistiken' },
+    { key: 'klassenübersicht', label: 'Statistiken' },
     { key: 'lernziele',        label: 'Lernziele' },
-    { key: 'berichte',         label: 'Berichte drucken' },
+    { key: 'berichte',         label: 'Berichte' },
     { key: 'lehrpersonen',     label: 'Lehrpersonen' },
   ]
   return (
@@ -573,10 +574,11 @@ function LernzieleTab({ klassId }: { klassId: string }) {
             <a href="/lernziele" className="text-xs text-primary hover:underline">Jetzt anlegen →</a>
           </div>
         ) : assignedData.length === 0 && !q ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center space-y-2">
-            <p className="text-sm text-muted-foreground">Noch keine Themen für diese Klasse ausgewählt.</p>
-            <p className="text-xs text-muted-foreground">Wähle ein Fach und klicke auf <strong>+</strong>, um Themen hinzuzufügen.</p>
-          </div>
+          <EmptyState
+            size="sm"
+            title="Noch keine Themen ausgewählt"
+            description={<>Wähle ein Fach und klicke auf <strong>+</strong>, um Themen hinzuzufügen.</>}
+          />
         ) : assignedData.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">Keine Ergebnisse für „{search}"</p>
         ) : (
@@ -837,12 +839,14 @@ function LernzieleTab({ klassId }: { klassId: string }) {
       {/* RILZ Lernziele section */}
       {rilzData.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="h-px flex-1 bg-orange-200" />
-            <span className="text-[10px] font-semibold tracking-wider text-orange-600 uppercase">
-              RILZ – Individuelle Lernziele
-            </span>
-            <div className="h-px flex-1 bg-orange-200" />
+          <div className="flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50/60 px-4 py-2.5">
+            <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-orange-100">
+              <span className="text-[10px] font-bold text-orange-600">R</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-orange-700">RILZ – Individuelle Lernziele</p>
+              <p className="text-[10px] text-orange-600/70">Reduzierte Lernziele für einzelne Schüler:innen</p>
+            </div>
           </div>
 
           {rilzData.map(({ fach, themen: rilzThemen }) => (
@@ -1168,16 +1172,12 @@ export default function KlasseDetailPage() {
       {tab === 'schueler' && (
         <>
           {students.length === 0 && (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card py-10 text-center">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-accent">
-                <UserRound className="size-6 text-accent-foreground" />
-              </div>
-              <div>
-                <p className="font-semibold">Noch keine Schüler</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">Füge Schüler zu dieser Klasse hinzu.</p>
-              </div>
-              <Button onClick={() => setCreateOpen(true)}>Ersten Schüler hinzufügen</Button>
-            </div>
+            <EmptyState
+              icon={<UserRound className="size-6 text-accent-foreground" />}
+              title="Noch keine Schüler"
+              description="Füge Schüler zu dieser Klasse hinzu."
+              action={<Button onClick={() => setCreateOpen(true)}>Ersten Schüler hinzufügen</Button>}
+            />
           )}
           {students.length > 0 && (
             <>
@@ -1280,11 +1280,7 @@ export default function KlasseDetailPage() {
                                 const fach = faecher.find(f => f.id === fachId)
                                 if (fach) badges.push({ key: fachId, node: <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-orange-100 text-orange-700 shrink-0">RILZ {fach.name}</span> })
                               }
-                              if (badges.length === 0) return (
-                                <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-muted text-muted-foreground shrink-0">
-                                  Keine besonderen Bedürfnisse
-                                </span>
-                              )
+                              if (badges.length === 0) return null
                               const MAX = 4
                               const overflow = badges.length - MAX
                               return (

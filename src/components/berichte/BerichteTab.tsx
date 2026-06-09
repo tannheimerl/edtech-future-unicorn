@@ -165,8 +165,14 @@ export function BerichteTab({ klassId }: { klassId: string }) {
   return (
     <div className="space-y-2 max-w-2xl">
 
+      {/* Subtitle */}
+      <p className="text-sm text-muted-foreground pb-1">
+        Wähle Fach, Thema und Schüler:innen — dann kannst du individuelle Berichte herunterladen.
+      </p>
+
       {/* Step 1: Fach */}
       <StepCard
+        step={1}
         title="Fach"
         summary={fach?.name}
         isOpen={openStep === 1}
@@ -193,6 +199,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
       {/* Step 2: Thema */}
       {selectedFachId && (
         <StepCard
+          step={2}
           title="Thema"
           summary={thema?.name}
           isOpen={openStep === 2}
@@ -271,6 +278,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
       {/* Step 3: Schüler */}
       {selectedThemaId && (
         <StepCard
+          step={3}
           title="Schüler/innen"
           summary={studentSummary}
           isOpen={openStep === 3}
@@ -331,6 +339,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
       {/* Step 4: Kommentar */}
       {selectedThemaId && studentMode !== null && (
         <StepCard
+          step={4}
           title="Kommentar"
           summary="optional"
           isOpen={openStep === 4}
@@ -444,12 +453,14 @@ export function BerichteTab({ klassId }: { klassId: string }) {
 // ── Step card component ───────────────────────────────────────────────────
 
 function StepCard({
+  step,
   title,
   summary,
   isOpen,
   onToggle,
   children,
 }: {
+  step?: number
   title: string
   summary?: string
   isOpen: boolean
@@ -460,15 +471,25 @@ function StepCard({
     <div className="rounded-xl border border-border bg-card overflow-hidden">
       <button
         onClick={onToggle}
-        className="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-accent/20 transition-colors"
+        className="flex w-full items-center gap-2 px-4 py-2.5 text-left hover:bg-accent/20 transition-colors"
       >
-        {isOpen
+        {step !== undefined && (
+          <span className={cn(
+            'flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
+            isOpen ? 'bg-primary text-primary-foreground' : summary ? 'bg-status-reached text-white' : 'bg-muted text-muted-foreground',
+          )}>
+            {summary && !isOpen ? '✓' : step}
+          </span>
+        )}
+        {!step && (isOpen
           ? <ChevronDown className="size-4 text-muted-foreground shrink-0" />
-          : <ChevronRight className="size-4 text-muted-foreground shrink-0" />}
+          : <ChevronRight className="size-4 text-muted-foreground shrink-0" />)}
         <span className="text-sm font-medium">{title}</span>
         {!isOpen && summary && (
-          <span className="ml-auto text-sm text-primary font-medium">{summary}</span>
+          <span className="ml-auto text-sm text-primary font-medium truncate max-w-[50%]">{summary}</span>
         )}
+        {step && isOpen && <ChevronDown className="size-4 text-muted-foreground shrink-0 ml-auto" />}
+        {step && !isOpen && !summary && <ChevronRight className="size-4 text-muted-foreground shrink-0 ml-auto" />}
       </button>
       {isOpen && (
         <div className="px-4 pb-4 pt-3 border-t border-border">

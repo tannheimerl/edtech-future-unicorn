@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Check, Minus, X, ClipboardList, Star, Plus, ChevronDown, Search, CheckCircle2, CircleDashed } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { cn, getFachColor } from '@/lib/utils'
 import { RilzStudentCard } from './RilzStudentCard'
 import type { Status, Thema } from '@/types/domain'
@@ -376,25 +377,20 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
 
   if (assignedThemen.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card py-12 text-center">
-        <div className="flex size-12 items-center justify-center rounded-2xl bg-accent">
-          <ClipboardList className="size-6 text-accent-foreground" />
-        </div>
-        <div>
-          <p className="font-semibold">Keine Themen zugewiesen</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Weise dieser Klasse zuerst Themen unter <em>Einstellungen</em> zu.
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        icon={<ClipboardList className="size-6 text-accent-foreground" />}
+        title="Keine Themen zugewiesen"
+        description={<>Weise dieser Klasse zuerst Themen unter <em>Einstellungen</em> zu.</>}
+      />
     )
   }
 
   if (students.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card py-12 text-center">
-        <p className="font-semibold text-muted-foreground">Noch keine Schüler in dieser Klasse.</p>
-      </div>
+      <EmptyState
+        title="Noch keine Schüler in dieser Klasse"
+        description="Füge Schüler unter dem Tab «Schüler» hinzu."
+      />
     )
   }
 
