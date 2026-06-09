@@ -98,6 +98,9 @@ export function BerichtPreviewModal({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
+  // Intentionally limited deps: we only regenerate when the modal opens or the
+  // comment changes. Props like student/thema/lernziele are stable for the
+  // modal's lifetime because the parent re-mounts on selection change.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, kommentar])
 
