@@ -43,7 +43,6 @@ export interface Lernziel {
   kategorie: LernzielKategorie
   label: string
   kriterien?: string[]
-  wichtig?: boolean
   // Library / provenance fields
   source?: LernzielSource   // undefined or 'eigene' = own; 'bibliothek' = published
   stufe?: number[]          // e.g. [5, 6] — school years this LZ targets
@@ -69,17 +68,9 @@ export interface Klasse {
   id: string
   name: string
   assignedThemaIds: string[]
-  abgeschlosseneThemaIds?: string[]  // topic IDs closed/locked for this class year
   lpZuweisungen?: LpZuweisung[]
   schuljahr?: string           // e.g. "2025/26"
   vorgaengerKlasseId?: string  // pointer to previous year's class
-}
-
-export function isThemaClosed(thema: Thema, abgeschlosseneIds: string[] | undefined): boolean {
-  const closed = new Set(abgeschlosseneIds ?? [])
-  if (closed.has(thema.id)) return true
-  if (thema.typ === 'rilz' && thema.standardThemaId) return closed.has(thema.standardThemaId)
-  return false
 }
 
 // A single assessment attempt for a Lernziel

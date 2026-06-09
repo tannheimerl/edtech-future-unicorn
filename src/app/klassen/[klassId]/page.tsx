@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   SquarePen, Plus, UserRound,
   ChevronDown, ChevronRight, Trash2, Check, X,
-  Search, Info, Pencil, Calendar, BookMarked, CheckCircle2, CircleDashed,
+  Search, Info, Pencil, Calendar, BookMarked,
 } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { ClassAnalytics } from '@/components/analytics/ClassAnalytics'
@@ -23,7 +23,7 @@ import { cn, getFachColor } from '@/lib/utils'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 import { KatBadge } from '@/components/shared/KatBadge'
 import { LzCountCluster } from '@/components/shared/LzCountCluster'
-import { type LpRolle, LP_ROLLE_LABELS, isThemaClosed } from '@/types/domain'
+import { type LpRolle, LP_ROLLE_LABELS } from '@/types/domain'
 import type { Schueler, Lernziel as LernzielType, Fach, Thema, RilzLernziel } from '@/types/domain'
 
 
@@ -108,13 +108,14 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
     { key: 'lehrpersonen',     label: 'Lehrpersonen' },
   ]
   return (
-    <div className="flex gap-1 p-1 rounded-xl bg-muted w-fit mb-2">
+    <div className="overflow-x-auto scrollbar-hide mb-2">
+      <div className="flex gap-1 p-1 rounded-xl bg-muted w-fit min-w-full sm:min-w-0">
       {tabs.map(({ key, label }) => (
         <button
           key={key}
           onClick={() => onChange(key)}
           className={cn(
-            'px-3 py-1 rounded-lg text-sm font-medium transition-all',
+            'px-3 py-1 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0',
             active === key
               ? 'bg-card text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground',
@@ -123,6 +124,7 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
           {label}
         </button>
       ))}
+      </div>
     </div>
   )
 }
@@ -370,9 +372,15 @@ function AddLernzieleModal({
       }
     >
       {fachThemen.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Keine Themen für diese Klassenstufe verfügbar.</p>
+        <div className="text-center space-y-2">
+          <p className="text-sm text-muted-foreground">Keine Themen für diese Klassenstufe verfügbar.</p>
+          <a href="/lernziele" className="text-xs text-primary hover:underline">In «Meine Lernziele» Themen anlegen →</a>
+        </div>
       ) : availableThemen.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Alle Themen dieses Fachs sind bereits zugewiesen.</p>
+        <div className="text-center space-y-2">
+          <p className="text-sm text-muted-foreground">Alle Themen dieses Fachs sind bereits zugewiesen.</p>
+          <a href="/lernziele" className="text-xs text-primary hover:underline">Weitere Themen in «Meine Lernziele» anlegen →</a>
+        </div>
       ) : (
         <div className="space-y-2">
           {availableThemen.map(thema => {
@@ -431,7 +439,6 @@ function LernzieleTab({ klassId }: { klassId: string }) {
     getClass,
     faecher, themen, lernziele,
     assignThemaToKlasse, removeThemaFromKlasse,
-    closeThemaForKlasse, reopenThemaForKlasse,
     updateThema,
     getStudentsForClass,
     students: allStudents,
@@ -478,9 +485,6 @@ function LernzieleTab({ klassId }: { klassId: string }) {
         }))
         .filter(({ lz, thema }) => !q || lz.length > 0 || thema.name.toLowerCase().includes(q) || f.name.toLowerCase().includes(q))
         .sort((a, b) => {
-          const aClosed = isThemaClosed(a.thema, klasse.abgeschlosseneThemaIds)
-          const bClosed = isThemaClosed(b.thema, klasse.abgeschlosseneThemaIds)
-          if (aClosed !== bClosed) return aClosed ? 1 : -1
           if (!a.thema.faelligAm && !b.thema.faelligAm) return 0
           if (!a.thema.faelligAm) return 1
           if (!b.thema.faelligAm) return -1
@@ -557,14 +561,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
             />
           </div>
           <span className="text-xs text-muted-foreground tabular-nums shrink-0 ml-auto">
-            {(() => {
-              const total = klasse.assignedThemaIds.length
-              const closed = (klasse.abgeschlosseneThemaIds ?? []).filter(id => klasse.assignedThemaIds.includes(id)).length
-              const open = total - closed
-              return closed > 0
-                ? `${open} offen · ${closed} beurteilt`
-                : `${total} Themen · ${assignedLzIds.size} Lernziele`
-            })()}
+            {`${klasse.assignedThemaIds.length} Themen · ${assignedLzIds.size} Lernziele`}
           </span>
         </div>
 
@@ -602,7 +599,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                   fachColor.border,
                 )}>
                   {/* Fach header */}
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/40 select-none">
+                  <div className={cn('flex items-center gap-2 px-3 py-1.5 select-none', fachColor.bg)}>
                     <button
                       onClick={() => toggleFach(fach.id)}
                       className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
@@ -638,7 +635,6 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                           ? Math.ceil((new Date(thema.faelligAm).getTime() - Date.now()) / 86400000)
                           : null
                         const isNearDeadline = daysUntil !== null && daysUntil >= 0 && daysUntil <= 14
-                        const isClosed = isThemaClosed(thema, klasse.abgeschlosseneThemaIds)
                         const isRilz = thema.typ === 'rilz'
 
                         // Progress: how many students have all LZ in this thema assessed
@@ -654,7 +650,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                         const aCount = allLZ.filter(lz => lz.kategorie === 'anspruchsvoll').length
 
                         return (
-                          <div key={thema.id} className={cn(isClosed && 'opacity-60')}>
+                          <div key={thema.id}>
                             {/* Thema row */}
                             <div className="group/row flex items-center gap-2 px-3 py-2 hover:bg-accent/20 transition-colors">
                               <button
@@ -665,7 +661,6 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                   ? <ChevronDown className="size-3 text-muted-foreground shrink-0" />
                                   : <ChevronRight className="size-3 text-muted-foreground shrink-0" />
                                 }
-                                {isClosed && <CheckCircle2 className="size-3 text-emerald-600 shrink-0" />}
                                 <span className="text-sm font-medium truncate"><Highlight text={thema.name} query={q} /></span>
                                 {isRilz && (
                                   <span className="shrink-0 rounded px-1 py-px text-[9px] font-semibold bg-orange-100 text-orange-700">RILZ</span>
@@ -676,7 +671,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                               <LzCountCluster g={gCount} a={aCount} />
 
                               {/* Progress: X/Y bewertet */}
-                              {totalStudents > 0 && !isClosed && (
+                              {totalStudents > 0 && (
                                 <span className="text-[10px] tabular-nums text-muted-foreground shrink-0 hidden sm:block">
                                   {assessedStudents}/{totalStudents}
                                 </span>
@@ -719,27 +714,6 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                   {thema.faelligAm ? new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' }) : ''}
                                 </button>
                               )}
-                              <button
-                                onClick={e => {
-                                  e.stopPropagation()
-                                  isClosed
-                                    ? reopenThemaForKlasse(klassId, thema.id)
-                                    : closeThemaForKlasse(klassId, thema.id)
-                                }}
-                                className={cn(
-                                  'shrink-0 transition-all rounded-full',
-                                  isClosed
-                                    ? 'text-emerald-600 hover:text-emerald-700'
-                                    : 'text-muted-foreground/30 hover:text-emerald-600 opacity-0 group-hover/row:opacity-100',
-                                )}
-                                aria-label={isClosed ? 'Als nicht beurteilt markieren' : 'Alle Schüler beurteilt markieren'}
-                                title={isClosed ? 'Als nicht beurteilt markieren' : 'Alle Schüler beurteilt'}
-                              >
-                                {isClosed
-                                  ? <CheckCircle2 className="size-4" />
-                                  : <CircleDashed className="size-4" />
-                                }
-                              </button>
                               <button
                                 onClick={e => { e.stopPropagation(); removeThemaFromKlasse(klassId, thema.id) }}
                                 className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
@@ -1099,13 +1073,15 @@ export default function KlasseDetailPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-6 py-3">
-      <Breadcrumb
-        className="mb-2"
-        items={[{ label: 'Klassen', href: '/klassen' }, { label: klasse.name }]}
-      />
+      <div>
+        <Breadcrumb
+          className="mb-2"
+          items={[{ label: 'Klassen', href: '/klassen' }, { label: klasse.name }]}
+        />
+      </div>
 
       {/* Header */}
-      <div className="mb-2 flex items-center justify-between">
+      <div className="relative mb-2 flex items-center justify-between">
         <div>
           {editingName ? (
             <form
@@ -1140,33 +1116,13 @@ export default function KlasseDetailPage() {
           )}
           <p className="mt-0.5 text-sm text-muted-foreground">
             {students.length} Schüler
-            {assignedThemen.length > 0 && (
-              <span className="ml-2 text-muted-foreground/60">
-                · {assignedThemen.length} Themen · {lernziele.filter(lz => assignedThemen.some(t => t.id === lz.themaId)).length} Lernziele
-              </span>
-            )}
           </p>
         </div>
       </div>
 
-      {/* LP team strip */}
-      {(klasse.lpZuweisungen ?? []).length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 mb-2">
-          <span className="text-xs text-muted-foreground shrink-0">Team:</span>
-          {(klasse.lpZuweisungen ?? []).map(z => {
-            const lp = lehrpersonen.find(l => l.id === z.lpId)
-            if (!lp) return null
-            return (
-              <span
-                key={z.lpId}
-                className="rounded-full px-2.5 py-0.5 text-xs font-medium border border-border text-muted-foreground"
-              >{lp.name}{z.rolle ? ` · ${LP_ROLLE_LABELS[z.rolle]}` : ''}</span>
-            )
-          })}
-        </div>
-      )}
-
-      <TabBar active={tab} onChange={setTab} />
+      <div>
+        <TabBar active={tab} onChange={setTab} />
+      </div>
 
       {/* Schüler tab */}
       {tab === 'schueler' && (
@@ -1347,13 +1303,15 @@ export default function KlasseDetailPage() {
 
       {/* Klassenübersicht tab */}
       {tab === 'klassenübersicht' && (
-        <ClassAnalytics
-          klassId={klassId}
-          students={students}
-          themen={assignedThemen}
-          lernziele={lernziele.filter(lz => lz.source !== 'bibliothek')}
-          faecher={faecher}
-        />
+        <div>
+          <ClassAnalytics
+            klassId={klassId}
+            students={students}
+            themen={assignedThemen}
+            lernziele={lernziele.filter(lz => lz.source !== 'bibliothek')}
+            faecher={faecher}
+          />
+        </div>
       )}
 
       {/* Lernziele tab */}

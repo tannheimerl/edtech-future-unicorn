@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { GraduationCap, Plus, Users, TrendingUp, AlertTriangle } from 'lucide-react'
+import { Plus, Users, TrendingUp, AlertTriangle } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,8 +36,7 @@ function KlasseStats({ klassId }: { klassId: string }) {
 
   const today = new Date().toISOString().slice(0, 10)
   const classThemen = getThemenForKlasse(klassId).filter(t =>
-    (!t.faelligAm || t.faelligAm <= today) &&
-    !(klasse?.abgeschlosseneThemaIds ?? []).includes(t.id)
+    !t.faelligAm || t.faelligAm <= today
   )
   const allLZ = classThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id && lz.source !== 'bibliothek'))
   const allLZIds = allLZ.map(lz => lz.id)
@@ -160,40 +159,29 @@ function KlasseFormModal({ open, onOpenChange, initialName = '', onSubmit }: Kla
 
 export default function KlassenPage() {
   const router = useRouter()
-  const { classes, getStudentsForClass, createClass } = useData()
+  const { classes, currentLpId, getStudentsForClass, createClass } = useData()
+  const myClasses = classes.filter(k => (k.lpZuweisungen ?? []).some(z => z.lpId === currentLpId))
   const [createOpen, setCreateOpen] = useState(false)
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-3">
-
-      {/* Header */}
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight"><GraduationCap className="size-5 text-primary" />Meine Klassen</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {classes.length} {classes.length === 1 ? 'Klasse' : 'Klassen'} gesamt
-          </p>
-        </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus />
-          Neue Klasse
-        </Button>
-      </div>
+    <div className="mx-auto w-full max-w-7xl px-6 py-8">
 
       {/* Empty state */}
-      {classes.length === 0 && (
-        <EmptyState
-          size="lg"
-          icon={<Users className="size-6 text-accent-foreground" />}
-          title="Noch keine Klassen angelegt"
-          description="Erstelle deine erste Klasse und füge Schüler hinzu."
-          action={<Button onClick={() => setCreateOpen(true)}>Erste Klasse erstellen</Button>}
-        />
+      {myClasses.length === 0 && (
+        <div>
+          <EmptyState
+            size="lg"
+            icon={<Users className="size-6 text-accent-foreground" />}
+            title="Noch keine Klassen angelegt"
+            description="Erstelle deine erste Klasse und füge Schüler hinzu."
+            action={<Button onClick={() => setCreateOpen(true)}>Erste Klasse erstellen</Button>}
+          />
+        </div>
       )}
 
       {/* Class grid */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {classes.map((klasse) => {
+        {myClasses.map((klasse) => {
           const students = getStudentsForClass(klasse.id)
           return (
             <div
@@ -221,13 +209,21 @@ export default function KlassenPage() {
             </div>
           )
         })}
+
+        {/* Add new class card */}
+        <button
+          onClick={() => setCreateOpen(true)}
+          className="flex items-center justify-center size-10 rounded-md bg-muted/80 hover:bg-muted transition-colors"
+        >
+          <Plus className="size-5 text-muted-foreground" />
+        </button>
       </div>
 
       {/* Create modal */}
       <KlasseFormModal
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onSubmit={(name) => createClass(name)}
+        onSubmit={(name) => { const id = createClass(name); router.push(`/klassen/${id}`) }}
       />
 
     </div>

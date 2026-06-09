@@ -29,6 +29,9 @@ import {
 // ── Public interface ─────────────────────────────────────────────────────
 
 interface DataContextValue {
+  // Identity
+  currentLpId: string
+
   // State
   classes: Klasse[]
   students: Schueler[]
@@ -52,7 +55,7 @@ interface DataContextValue {
   getVersuche: (student: Schueler, lernzielId: string) => Versuch[]
 
   // Class CRUD
-  createClass: (name: string) => void
+  createClass: (name: string) => string
   updateClass: (id: string, name: string) => void
   deleteClass: (id: string) => void
 
@@ -89,8 +92,6 @@ interface DataContextValue {
   // Thema assignment to Klasse
   assignThemaToKlasse: (klassId: string, themaId: string) => void
   removeThemaFromKlasse: (klassId: string, themaId: string) => void
-  closeThemaForKlasse: (klassId: string, themaId: string) => void
-  reopenThemaForKlasse: (klassId: string, themaId: string) => void
 
   // LP assignments to Klasse
   setLpZuweisung: (klassId: string, lpId: string, fachIds: string[], rolle?: import('@/types/domain').LpRolle) => void
@@ -115,7 +116,7 @@ interface DataContextValue {
 
   // Lernziel CRUD
   createLernziel: (themaId: string, label: string, kategorie: LernzielKategorie) => void
-  updateLernziel: (id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie' | 'wichtig'>>) => void
+  updateLernziel: (id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie'>>) => void
   deleteLernziel: (id: string) => void
   copyLernzielToEigene: (lzId: string) => string | undefined
   copyThemaToEigene: (themaId: string, targetFachId?: string) => string | undefined
@@ -198,8 +199,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // ── Class mutations ───────────────────────────────────────────────────
 
-  const createClass = useCallback((name: string) => {
-    setClasses((prev) => [...prev, { id: crypto.randomUUID(), name, assignedThemaIds: [], lpZuweisungen: [] }])
+  const createClass = useCallback((name: string): string => {
+    const id = crypto.randomUUID()
+    setClasses((prev) => [...prev, { id, name, assignedThemaIds: [], lpZuweisungen: [] }])
+    return id
   }, [])
 
   const updateClass = useCallback((id: string, name: string) => {
@@ -408,26 +411,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     )
   }, [])
 
-  const closeThemaForKlasse = useCallback((klassId: string, themaId: string) => {
-    setClasses((prev) =>
-      prev.map((c) =>
-        c.id === klassId && !(c.abgeschlosseneThemaIds ?? []).includes(themaId)
-          ? { ...c, abgeschlosseneThemaIds: [...(c.abgeschlosseneThemaIds ?? []), themaId] }
-          : c
-      )
-    )
-  }, [])
-
-  const reopenThemaForKlasse = useCallback((klassId: string, themaId: string) => {
-    setClasses((prev) =>
-      prev.map((c) =>
-        c.id === klassId
-          ? { ...c, abgeschlosseneThemaIds: (c.abgeschlosseneThemaIds ?? []).filter((id) => id !== themaId) }
-          : c
-      )
-    )
-  }, [])
-
   // ── LP Zuweisungen ────────────────────────────────────────────────────
 
   const setLpZuweisung = useCallback((klassId: string, lpId: string, fachIds: string[], rolle?: import('@/types/domain').LpRolle) => {
@@ -468,7 +451,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           name: neuerName,
           schuljahr: neuesSchuljahr,
           vorgaengerKlasseId: vorgaengerKlasseId,
-          abgeschlosseneThemaIds: [],
         },
       ])
       // Clone all students into the new class
@@ -580,7 +562,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setLernziele((prev) => [...prev, { id: crypto.randomUUID(), themaId, kategorie, label }])
   }, [])
 
-  const updateLernziel = useCallback((id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie' | 'wichtig'>>) => {
+  const updateLernziel = useCallback((id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie'>>) => {
     setLernziele((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
   }, [])
 
@@ -612,6 +594,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return newThemaId
   }, [themen, lernziele])
 
+  const CURRENT_LP_ID = 'lp1'
   const CURRENT_LP_NAME = 'Lukas Meier'
 
   const publishThemaToLibrary = useCallback((themaId: string): void => {
@@ -636,6 +619,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   return (
     <DataContext.Provider
       value={{
+        currentLpId: CURRENT_LP_ID,
         classes,
         students,
         competencies,
@@ -675,8 +659,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         deleteThemaKommentar,
         assignThemaToKlasse,
         removeThemaFromKlasse,
-        closeThemaForKlasse,
-        reopenThemaForKlasse,
         setLpZuweisung,
         removeLpFromKlasse,
         createFolgeklasse,

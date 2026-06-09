@@ -2,12 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 import {
-  BookOpen, BookMarked, ChevronDown, ChevronRight, PencilLine, Plus,
+  BookOpen, ChevronDown, ChevronRight, PencilLine, Plus,
   X, Check, Users, GraduationCap, Trash2, Search,
   Calendar, Settings2,
 } from 'lucide-react'
-import { InfoTooltip } from '@/components/ui/tooltip'
-import Link from 'next/link'
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -909,33 +907,10 @@ export default function LernzielePage() {
   const hasAnyThemen = tableData.some(d => d.themen.length > 0)
   const newThemaFachId = activeTab !== 'alle' ? (activeTab as string) : (faecher[0]?.id ?? null)
 
-  const hasActiveFilters = zyklusFilter !== 'alle' || typFilter !== 'alle' || q
+  const hasActiveFilters = activeTab !== 'alle' || zyklusFilter !== 'alle' || typFilter !== 'alle' || q
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-3">
-
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <BookMarked className="size-5 text-primary" />
-            <h1 className="text-xl font-bold tracking-tight">Lernzielkatalog</h1>
-            <InfoTooltip
-              content={<>
-                <strong>Dein persönlicher Katalog</strong> — Verwalte deine eigenen Lernziele nach Fach und Thema. Themen aus der Schulbibliothek übernimmst du im{' '}
-                <Link href="/schulkatalog" className="underline hover:text-sky-900">Schulkatalog</Link>.
-              </>}
-            />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {faecher.length} {faecher.length === 1 ? 'Fach' : 'Fächer'} · {personalThemenCount} Themen · {ownLZ.length} eigene Lernziele
-          </p>
-        </div>
-        <Link href="/schulkatalog"
-          className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
-          Schulkatalog <ChevronRight className="size-3" />
-        </Link>
-      </div>
+    <div className="mx-auto w-full max-w-7xl px-6 py-8">
 
       {/* Empty state */}
       {faecher.length === 0 && (
@@ -953,70 +928,52 @@ export default function LernzielePage() {
 
       {faecher.length > 0 && (
         <>
-          {/* Tab bar */}
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex gap-1 p-1 rounded-xl bg-muted">
-              <button
-                onClick={() => setActiveTab('alle')}
-                className={cn(
-                  'px-3 py-1 rounded-lg text-sm font-medium transition-all',
-                  activeTab === 'alle'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}>
-                Alle
-              </button>
-              {faecher.map(fach => {
-                const fc = getFachColor(fach.id, faecher.map(f => f.id))
-                return (
-                <div key={fach.id} className="group relative">
-                  <button
-                    onClick={() => setActiveTab(fach.id)}
-                    className={cn(
-                      'px-3 py-1 pr-7 rounded-lg text-sm font-medium transition-all',
-                      activeTab === fach.id
-                        ? 'bg-card text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground',
-                    )}>
-                    <span className={cn('inline-block size-2 rounded-full mr-1.5 align-middle', fc.dot)} />
-                    {fach.name}
-                  </button>
-                  <button
-                    onClick={() => setEditFachId(fach.id)}
-                    className={cn(
-                      'absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 transition-all text-muted-foreground hover:text-primary',
-                      activeTab === fach.id
-                        ? 'opacity-30 hover:opacity-100'
-                        : 'opacity-0 group-hover:opacity-40 hover:!opacity-100',
-                    )}
-                    aria-label={`${fach.name} konfigurieren`}>
-                    <Settings2 className="size-3" />
-                  </button>
-                </div>
-                )
-              })}
-            </div>
-            <Button variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-primary"
-              onClick={() => setFachCreateOpen(true)} aria-label="Neues Fach erstellen">
-              <Plus className="size-4" />
-            </Button>
-          </div>
+          {/* Filter row */}
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            {/* Fach */}
+            <Select
+              value={activeTab}
+              onValueChange={v => {
+                if (!v) return
+                if (v === '__new_fach__') { setFachCreateOpen(true) }
+                else { setActiveTab(v) }
+              }}
+            >
+              <SelectTrigger className="min-w-[160px] h-10 font-medium">
+                <span className="flex items-center gap-2 flex-1 text-left min-w-0">
+                  {activeTab !== 'alle' && (
+                    <span className={cn('size-2.5 rounded-full shrink-0', getFachColor(activeTab, faecher.map(f => f.id)).dot)} />
+                  )}
+                  <span className="truncate">
+                    {activeTab === 'alle' ? 'Alle Fächer' : faecher.find(f => f.id === activeTab)?.name ?? 'Alle Fächer'}
+                  </span>
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="alle">Alle Fächer</SelectItem>
+                {faecher.map(f => {
+                  const fc = getFachColor(f.id, faecher.map(fx => fx.id))
+                  return (
+                    <SelectItem key={f.id} value={f.id}>
+                      <span className="flex items-center gap-2">
+                        <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
+                        {f.name}
+                      </span>
+                    </SelectItem>
+                  )
+                })}
+                <SelectItem value="__new_fach__">
+                  <span className="flex items-center gap-2 text-primary">
+                    <Plus className="size-3.5" /> Neues Fach
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
 
-          {/* Toolbar */}
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <div className="relative flex-1 min-w-[160px] max-w-xs">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-              <Input
-                placeholder="Thema suchen…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-8 h-8 text-sm"
-              />
-            </div>
-
+            {/* Zyklus */}
             <Select value={String(zyklusFilter)} onValueChange={v => setZyklusFilter(v === 'alle' ? 'alle' : Number(v))}>
-              <SelectTrigger className="w-[130px] h-8 text-xs">
-                <span className="flex-1 text-left">
+              <SelectTrigger className="min-w-[140px] h-10 font-medium">
+                <span className="flex-1 text-left truncate">
                   {zyklusFilter === 'alle' ? 'Alle Zyklen' : `Zyklus ${zyklusFilter}`}
                 </span>
               </SelectTrigger>
@@ -1028,9 +985,10 @@ export default function LernzielePage() {
               </SelectContent>
             </Select>
 
+            {/* Typ */}
             <Select value={typFilter} onValueChange={v => setTypFilter(v as 'alle' | 'standard' | 'rilz')}>
-              <SelectTrigger className="w-[130px] h-8 text-xs">
-                <span className="flex-1 text-left">
+              <SelectTrigger className="min-w-[140px] h-10 font-medium">
+                <span className="flex-1 text-left truncate">
                   {typFilter === 'alle' ? 'Alle Typen' : typFilter === 'rilz' ? 'Nur RILZ' : 'Nur Standard'}
                 </span>
               </SelectTrigger>
@@ -1043,15 +1001,26 @@ export default function LernzielePage() {
 
             {hasActiveFilters && (
               <button
-                onClick={() => { setSearch(''); setZyklusFilter('alle'); setTypFilter('alle') }}
+                onClick={() => { setSearch(''); setZyklusFilter('alle'); setTypFilter('alle'); setActiveTab('alle') }}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="size-3" /> Filter zurücksetzen
               </button>
             )}
 
+            {/* Search — far right */}
+            <div className="relative ml-auto min-w-[200px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Thema suchen…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9 h-10"
+              />
+            </div>
+
             {newThemaFachId && (
-              <Button size="sm" className="ml-auto" onClick={() => setThemaCreateFachId(newThemaFachId)}>
+              <Button size="sm" onClick={() => setThemaCreateFachId(newThemaFachId)}>
                 <Plus className="size-3.5" /> Neues Thema
               </Button>
             )}
@@ -1073,7 +1042,7 @@ export default function LernzielePage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {tableData.map(({ fach, themen: fachThemen }) => {
+              {tableData.map(({ fach, themen: fachThemen }, fachIdx) => {
                 const fachColor = getFachColor(fach.id, faecher.map(f => f.id))
                 const fachCollapsed = collapsedFaecher.has(fach.id)
                 const fachLZCount = fachThemen.reduce((s, t) => s + lernziele.filter(lz => lz.themaId === t.id && lz.source !== 'bibliothek').length, 0)
@@ -1083,7 +1052,7 @@ export default function LernzielePage() {
                   fachColor.border,
                 )}>
                   {/* Fach header */}
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/40 select-none">
+                  <div className={cn('flex items-center gap-2 px-3 py-1.5 select-none', fachColor.bg)}>
                     <button
                       onClick={() => toggleFach(fach.id)}
                       className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"

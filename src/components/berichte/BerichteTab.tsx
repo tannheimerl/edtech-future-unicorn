@@ -1,12 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, ChevronDown, ChevronRight, Download, FileText, Loader2, User, Users, CheckCircle2 } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, Download, FileText, Loader2, User, Users } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { cn } from '@/lib/utils'
 import { generatePdfBlob, downloadZip, triggerDownload } from '@/lib/berichtUtils'
 import type { SchuelerBerichtPDFProps } from '@/components/berichte/SchuelerBerichtPDF'
-import { isThemaClosed } from '@/types/domain'
 import { BerichtPreviewModal } from '@/components/berichte/BerichtPreviewModal'
 
 export function BerichteTab({ klassId }: { klassId: string }) {
@@ -206,24 +205,20 @@ export function BerichteTab({ klassId }: { klassId: string }) {
           onToggle={() => toggleStep(2)}
         >
           <div className="flex flex-wrap gap-2">
-            {themenForFach.map(t => {
-              const closed = isThemaClosed(t, klasse.abgeschlosseneThemaIds)
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => selectThema(t.id)}
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-md border px-4 py-1.5 text-sm transition-all',
-                    selectedThemaId === t.id
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
-                  )}
-                >
-                  {closed && <CheckCircle2 className="size-3 shrink-0 text-emerald-500" />}
-                  {t.name}
-                </button>
-              )
-            })}
+            {themenForFach.map(t => (
+              <button
+                key={t.id}
+                onClick={() => selectThema(t.id)}
+                className={cn(
+                  'rounded-md border px-4 py-1.5 text-sm transition-all',
+                  selectedThemaId === t.id
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+                )}
+              >
+                {t.name}
+              </button>
+            ))}
           </div>
         </StepCard>
       )}

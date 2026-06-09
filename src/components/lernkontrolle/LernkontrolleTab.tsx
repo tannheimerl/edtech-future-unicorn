@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Check, Minus, X, ClipboardList, Star, Plus, ChevronDown, Search, CheckCircle2, CircleDashed } from 'lucide-react'
+import { Check, Minus, X, ClipboardList, Plus, ChevronDown, Search } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { Tooltip } from '@/components/ui/tooltip'
 import { cn, getFachColor } from '@/lib/utils'
 import { RilzStudentCard } from './RilzStudentCard'
 import type { Status, Thema } from '@/types/domain'
-import { isThemaClosed } from '@/types/domain'
 
 function nextStatus(current: Status | undefined): Status | undefined {
   if (current === undefined) return 'reached'
@@ -280,8 +280,6 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
     faecher,
     themen,
     updateLernzielStatus,
-    closeThemaForKlasse,
-    reopenThemaForKlasse,
     students: allStudents,
   } = useData()
 
@@ -355,9 +353,6 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
   const kommentarWidth = 160
   const pctRight = showComment ? kommentarWidth : 0
 
-  const closedSelectedThemen = selectedThemen.filter(t => isThemaClosed(t, klasse?.abgeschlosseneThemaIds))
-  const isReadOnly = closedSelectedThemen.length > 0
-
   const [focusedCell, setFocusedCell] = useState<{ row: number; col: number } | null>(null)
   const [tableScrollWidth, setTableScrollWidth] = useState(0)
   const topScrollRef = useRef<HTMLDivElement>(null)
@@ -395,7 +390,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
   }
 
   function handleTableKeyDown(e: React.KeyboardEvent) {
-    if (!focusedCell || isReadOnly) return
+    if (!focusedCell) return
     const { row, col } = focusedCell
     const maxRow = orderedStudents.length - 1
     const maxCol = allLernziele.length - 1
@@ -482,33 +477,6 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                   </button>
                 )}
               </div>
-              {id && (() => {
-                const thema = assignedThemen.find(t => t.id === id)
-                if (!thema) return null
-                const isClosed = isThemaClosed(thema, klasse?.abgeschlosseneThemaIds)
-                return isClosed ? (
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
-                      <CheckCircle2 className="size-3" />
-                      Alle beurteilt
-                    </span>
-                    <button
-                      onClick={() => reopenThemaForKlasse(klassId, id)}
-                      className="text-[11px] text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-                    >
-                      Bearbeiten
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => closeThemaForKlasse(klassId, id)}
-                    className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground/60 hover:text-emerald-600 transition-colors"
-                  >
-                    <CircleDashed className="size-3" />
-                    Thema abschliessen
-                  </button>
-                )
-              })()}
             </div>
           )
         })}
@@ -542,18 +510,6 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
               {label}
             </span>
           ))}
-        </div>
-      )}
-
-      {/* Assessed banner */}
-      {isReadOnly && (
-        <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2">
-          <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
-          <span className="text-xs text-emerald-800">
-            {closedSelectedThemen.length === 1
-              ? `«${closedSelectedThemen[0].name}» ist abgeschlossen – Beurteilungen sind schreibgeschützt.`
-              : `${closedSelectedThemen.length} Themen sind abgeschlossen – Beurteilungen sind schreibgeschützt.`}
-          </span>
         </div>
       )}
 
@@ -623,7 +579,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
 
                   {/* LZ column headers */}
                   <tr className="border-b border-border bg-muted/20">
-                    <th className="sticky left-0 z-10 bg-card w-32 min-w-32 border-r border-border px-2 py-1.5 align-bottom" />
+                    <th className="sticky left-0 z-10 bg-card w-32 min-w-32 border-r border-border px-2 py-1.5 align-bottom shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]" />
                     {lernzieleGroups.map(({ thema, lernziele }, gi) =>
                       lernziele.map((lz, lzIdx) => {
                         const isLastInGroup = lzIdx === lernziele.length - 1 && gi < lernzieleGroups.length - 1
@@ -644,9 +600,6 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                                 )}>
                                   {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                                 </span>
-                                {lz.wichtig && (
-                                  <span title="Wichtig"><Star className="size-2.5 text-yellow-500 fill-yellow-400" /></span>
-                                )}
                               </div>
                               <span className="text-[11px] font-medium text-foreground leading-snug">{lz.label}</span>
                             </div>
@@ -698,7 +651,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                           {/* name — click to enter keyboard mode */}
                           <td
                             className={cn(
-                              'sticky left-0 z-10 bg-card px-3 py-1 text-sm font-medium border-r border-border whitespace-nowrap overflow-hidden text-ellipsis max-w-32 cursor-pointer select-none hover:bg-muted/40 transition-colors',
+                              'sticky left-0 z-10 bg-card px-3 py-1 text-sm font-medium border-r border-border whitespace-nowrap overflow-hidden text-ellipsis max-w-32 cursor-pointer select-none hover:bg-muted/40 transition-colors shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]',
                               focusedCell?.row === rowIdx && 'bg-primary/5 text-primary',
                             )}
                             onClick={() => { setFocusedCell({ row: rowIdx, col: 0 }); tableScrollRef.current?.focus() }}
@@ -735,7 +688,6 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                                   <StatusCell
                                     status={isSkipped ? undefined : status}
                                     onSelect={s => !isSkipped && updateLernzielStatus(student.id, lz.id, s)}
-                                    readOnly={isReadOnly}
                                   />
                                 </td>
                               )

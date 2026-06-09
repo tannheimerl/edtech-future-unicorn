@@ -2,32 +2,36 @@
 
 import { useMemo, useState } from 'react'
 import {
-  Library, ChevronDown, ChevronRight, Copy, Check, Search,
-  UserRound, ArrowRight, Lock,
+  ChevronRight, ChevronDown, Copy, Check, Search,
+  ArrowRight, BookOpen,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { KatBadge } from '@/components/shared/KatBadge'
-import { LzCountCluster } from '@/components/shared/LzCountCluster'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { Tooltip } from '@/components/ui/tooltip'
 import { cn, getFachColor } from '@/lib/utils'
 
 const CURRENT_LP = 'Lukas Meier'
 
-function ThemaCard({
+function ZyklusBadge({ z }: { z: number }) {
+  return (
+    <span className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200">
+      Z{z}
+    </span>
+  )
+}
+
+function ThemaRow({
   themaId,
-  onCopy,
   copiedNewId,
+  onCopy,
 }: {
   themaId: string
-  onCopy: (newId: string) => void
   copiedNewId: string | null
+  onCopy: (newId: string) => void
 }) {
   const { themen, lernziele, faecher, copyThemaToEigene } = useData()
   const router = useRouter()
@@ -38,24 +42,16 @@ function ThemaCard({
   const thema = themen.find(t => t.id === themaId)
   if (!thema) return null
 
-  const fach = faecher.find(f => f.id === thema.fachId)
-  const fachColor = getFachColor(thema.fachId, faecher.map(f => f.id))
-  const themaLZ = lernziele.filter(l => l.themaId === themaId && l.source !== 'bibliothek')
-  const gCount = themaLZ.filter(l => l.kategorie === 'grundlegend').length
-  const aCount = themaLZ.filter(l => l.kategorie === 'anspruchsvoll').length
-  const previewLZ = themaLZ.slice(0, 3)
-  const stufeLabel = thema.stufe?.length
-    ? `Kl. ${Math.min(...thema.stufe)}–${Math.max(...thema.stufe)}`
-    : null
-
+  const isRilz = thema.typ === 'rilz'
+  const isMe = thema.autor === CURRENT_LP
   const done = copiedNewId != null
+  const themaLZ = lernziele.filter(l => l.themaId === themaId && l.source !== 'bibliothek')
+  const stufeLabel = thema.stufe?.length
+    ? `${Math.min(...thema.stufe)}–${Math.max(...thema.stufe)}`
+    : '—'
 
-  function handleUebernehmen() {
-    if (faecher.length > 1) {
-      setPickingFach(true)
-      setPickedFachId('')
-      return
-    }
+  function handleKopieren() {
+    if (faecher.length > 1) { setPickingFach(true); setPickedFachId(''); return }
     const newId = copyThemaToEigene(themaId, faecher[0]?.id)
     if (newId) onCopy(newId)
   }
@@ -63,186 +59,178 @@ function ThemaCard({
   function confirmFach() {
     const newId = copyThemaToEigene(themaId, pickedFachId || undefined)
     if (newId) onCopy(newId)
-    setPickingFach(false)
-    setPickedFachId('')
+    setPickingFach(false); setPickedFachId('')
   }
 
   return (
-    <div className={cn(
-      'rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-md overflow-hidden flex flex-col border-l-4',
-      fachColor.border,
-      done && 'border-emerald-200 bg-emerald-50/30',
-    )}>
-      {/* Card body */}
-      <div className="px-3.5 pt-3 pb-2.5 space-y-2 flex-1">
-        {/* Fach pill + stufe + lock */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {fach && (
-            <span className={cn(
-              'text-[9px] font-semibold px-1.5 py-px rounded-full',
-              fachColor.bg, fachColor.text,
-            )}>
-              {fach.name}
+    <>
+      <tr className={cn(
+        'border-b border-border/50 transition-colors group',
+        done ? 'bg-emerald-50/40' : 'hover:bg-muted/20',
+      )}>
+        <td className="py-2.5 pl-3 pr-3">
+          <button
+            onClick={() => setExpanded(p => !p)}
+            className="flex items-center gap-2 w-full text-left"
+            disabled={themaLZ.length === 0}
+          >
+            {themaLZ.length > 0
+              ? expanded
+                ? <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+                : <ChevronRight className="size-3.5 shrink-0 text-muted-foreground opacity-40 group-hover:opacity-100 transition-opacity" />
+              : <span className="size-3.5 shrink-0" />
+            }
+            <span className="text-sm font-medium leading-snug line-clamp-1" title={thema.name}>
+              {thema.name}
             </span>
-          )}
-          {stufeLabel && (
-            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
-              {stufeLabel}
-            </span>
-          )}
-          <Tooltip content="Dieses Thema wurde von einer anderen Lehrperson erstellt. Du kannst es in deine Sammlung kopieren." side="top">
-            <Lock className="size-2.5 text-muted-foreground/40 ml-auto shrink-0" />
-          </Tooltip>
-        </div>
+          </button>
+        </td>
 
-        {/* Thema name */}
-        <p className="text-sm font-semibold leading-snug">{thema.name}</p>
+        <td className="py-2.5 px-3 w-[160px]">
+          <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            {thema.autor ?? '—'}
+            {isMe && (
+              <span className="rounded-full bg-primary/10 px-1.5 py-px text-[9px] font-semibold text-primary leading-none">Ich</span>
+            )}
+          </span>
+        </td>
 
-        {/* LZ count cluster */}
-        <LzCountCluster g={gCount} a={aCount} />
-
-        {/* Fach picker */}
-        {pickingFach && !done && (
-          <div className="rounded-lg border border-border bg-muted/30 p-2.5 space-y-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">In welches Fach kopieren?</p>
-            <div className="flex flex-wrap gap-1">
-              {faecher.map(f => {
-                const fc = getFachColor(f.id, faecher.map(fx => fx.id))
-                return (
-                  <button key={f.id}
-                    onClick={() => setPickedFachId(f.id)}
-                    className={cn(
-                      'rounded-lg border px-2 py-1 text-xs font-medium transition-all flex items-center gap-1',
-                      pickedFachId === f.id
-                        ? cn('border-l-4', fc.border, fc.bg, fc.text)
-                        : 'border-border bg-background text-foreground hover:bg-accent',
-                    )}
-                  >
-                    <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
-                    {pickedFachId === f.id && <Check className="inline size-2.5 mr-0.5" />}
-                    {f.name}
-                  </button>
-                )
-              })}
-            </div>
-            <div className="flex gap-1.5">
-              <Button size="sm" className="h-6 text-[10px] px-2" onClick={confirmFach} disabled={!pickedFachId}>
-                Kopieren
-              </Button>
-              <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => setPickingFach(false)}>
-                Abbrechen
-              </Button>
-            </div>
+        <td className="py-2.5 px-3 w-[80px]">
+          <div className="flex gap-1 flex-wrap">
+            {thema.zyklus?.length
+              ? thema.zyklus.map(z => <ZyklusBadge key={z} z={z} />)
+              : <span className="text-sm text-muted-foreground/40">—</span>
+            }
           </div>
-        )}
+        </td>
 
-        {/* LZ preview */}
-        {themaLZ.length > 0 && (
-          <div>
-            <div className="space-y-0.5">
-              {previewLZ.map(lz => (
-                <div key={lz.id} className="flex items-center gap-1.5">
+        <td className="py-2.5 px-3 w-[70px]">
+          <span className="text-sm text-muted-foreground">{stufeLabel}</span>
+        </td>
+
+        <td className="py-2.5 px-3 w-[64px]">
+          {isRilz
+            ? <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700 ring-1 ring-orange-200">RILZ</span>
+            : <span className="text-muted-foreground/30 text-sm">—</span>
+          }
+        </td>
+
+        <td className="py-2.5 pl-3 pr-4 w-[120px] text-right">
+          {done ? (
+            <span className="flex items-center justify-end gap-1 text-[11px] font-medium text-emerald-700">
+              <Check className="size-3" /> Kopiert
+              <button onClick={() => router.push('/lernziele')} className="ml-1 flex items-center gap-0.5 text-emerald-600 hover:underline">
+                <ArrowRight className="size-3" />
+              </button>
+            </span>
+          ) : (
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 px-2.5" onClick={handleKopieren}>
+              <Copy className="size-3" /> Kopieren
+            </Button>
+          )}
+        </td>
+      </tr>
+
+      {expanded && themaLZ.length > 0 && (
+        <tr className="border-b border-border/40 bg-muted/10">
+          <td colSpan={6} className="pl-10 pr-4 py-2.5">
+            <div className="space-y-1">
+              {themaLZ.map(lz => (
+                <div key={lz.id} className="flex items-start gap-2">
                   <KatBadge kat={lz.kategorie} />
-                  <p className="text-[11px] text-muted-foreground leading-snug truncate">{lz.label}</p>
+                  <span className="text-[12px] text-muted-foreground leading-snug">{lz.label}</span>
                 </div>
               ))}
             </div>
-            {themaLZ.length > 3 && (
-              <button
-                onClick={() => setExpanded(p => !p)}
-                className="flex items-center gap-0.5 mt-1 text-[10px] text-muted-foreground/60 hover:text-primary transition-colors"
-              >
-                {expanded ? (
-                  <><ChevronDown className="size-3" /> Weniger anzeigen</>
-                ) : (
-                  <><ChevronRight className="size-3" /> {themaLZ.length - 3} weitere Lernziele</>
-                )}
-              </button>
-            )}
-            {expanded && themaLZ.slice(3).map(lz => (
-              <div key={lz.id} className="flex items-center gap-1.5 mt-0.5">
-                <KatBadge kat={lz.kategorie} />
-                <p className="text-[11px] text-muted-foreground leading-snug truncate">{lz.label}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+          </td>
+        </tr>
+      )}
 
-      {/* Card footer — copy action */}
-      <div className={cn(
-        'px-3.5 py-2 border-t border-border/40 flex items-center justify-between gap-2',
-        done && 'border-emerald-200/60',
-      )}>
-        {done ? (
-          <>
-            <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-700">
-              <Check className="size-2.5" /> Kopiert
-            </span>
-            <button
-              onClick={() => router.push('/lernziele')}
-              className="flex items-center gap-1 text-[10px] text-emerald-600 hover:underline"
-            >
-              Bearbeiten <ArrowRight className="size-3" />
-            </button>
-          </>
-        ) : (
-          <Button size="sm" className="h-7 w-full text-xs" onClick={handleUebernehmen}>
-            <Copy className="size-3" /> In meine Sammlung kopieren
-          </Button>
-        )}
-      </div>
-    </div>
+      {pickingFach && !done && (
+        <tr className="border-b border-border/50 bg-muted/20">
+          <td colSpan={6} className="px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0">In welches Fach kopieren?</span>
+              <div className="flex flex-wrap gap-1.5">
+                {faecher.map(f => {
+                  const fc = getFachColor(f.id, faecher.map(fx => fx.id))
+                  return (
+                    <button key={f.id} onClick={() => setPickedFachId(f.id)} className={cn(
+                      'rounded-lg border px-2.5 py-1 text-xs font-medium transition-all flex items-center gap-1.5',
+                      pickedFachId === f.id ? cn('border-l-4', fc.border, fc.bg, fc.text) : 'border-border bg-background text-foreground hover:bg-accent',
+                    )}>
+                      <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
+                      {pickedFachId === f.id && <Check className="size-3" />}
+                      {f.name}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex gap-1.5 ml-auto">
+                <Button size="sm" className="h-7 text-xs" onClick={confirmFach} disabled={!pickedFachId}>Kopieren</Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setPickingFach(false)}>Abbrechen</Button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   )
 }
 
-function LehrpersonSection({
-  autor,
-  themaIds,
-  copiedMap,
-  onCopy,
-  defaultOpen,
+function KatalogTable({
+  themaIds, copiedMap, onCopy,
 }: {
-  autor: string
   themaIds: string[]
   copiedMap: Map<string, string>
-  onCopy: (themaId: string, newId: string) => void
-  defaultOpen: boolean
+  onCopy: (sourceId: string, newId: string) => void
 }) {
-  const [open, setOpen] = useState(defaultOpen)
-  const isMe = autor === CURRENT_LP
+  return (
+    <table className="w-full text-sm border-collapse">
+      <thead>
+        <tr className="border-b border-border/60 bg-muted/30">
+          <th className="py-2 pl-10 pr-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Thema</th>
+          <th className="py-2 px-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide w-[160px]">Lehrperson</th>
+          <th className="py-2 px-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide w-[80px]">Zyklus</th>
+          <th className="py-2 px-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide w-[70px]">Klasse</th>
+          <th className="py-2 px-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide w-[64px]">RILZ</th>
+          <th className="py-2 pl-3 pr-4 w-[120px]" />
+        </tr>
+      </thead>
+      <tbody>
+        {themaIds.map(tid => (
+          <ThemaRow key={tid} themaId={tid} copiedNewId={copiedMap.get(tid) ?? null} onCopy={(newId) => onCopy(tid, newId)} />
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+function FachSection({
+  fachId, themaIds, selectedStufe, copiedMap, onCopy,
+}: {
+  fachId: string
+  themaIds: string[]
+  selectedStufe: number | null
+  copiedMap: Map<string, string>
+  onCopy: (sourceId: string, newId: string) => void
+}) {
+  const { faecher } = useData()
+  const fach = faecher.find(f => f.id === fachId)
+  const fachColor = getFachColor(fachId, faecher.map(f => f.id))
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-      <button
-        className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
-        onClick={() => setOpen(p => !p)}
-      >
-        {open
-          ? <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-          : <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-        }
-        <UserRound className="size-3.5 shrink-0 text-muted-foreground" />
-        <span className="font-semibold flex-1 truncate">{autor}</span>
-        {isMe && (
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-semibold text-primary">Ich</span>
+    <div className={cn('rounded-2xl border bg-card overflow-hidden shadow-sm border-l-4', fachColor.border)}>
+      <div className={cn('flex items-center gap-3 px-4 py-2.5 border-b border-border/60 select-none', fachColor.bg)}>
+        <span className="text-xs font-semibold uppercase tracking-wider text-foreground">{fach?.name}</span>
+        {selectedStufe != null && (
+          <span className="text-xs text-muted-foreground">{selectedStufe}. Klasse</span>
         )}
-        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-          {themaIds.length}
+        <span className="ml-auto rounded-full bg-background/60 px-2.5 py-0.5 text-xs text-muted-foreground font-medium">
+          {themaIds.length} {themaIds.length === 1 ? 'Thema' : 'Themen'}
         </span>
-      </button>
-      {open && (
-        <div className="border-t bg-muted/10 px-4 py-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {themaIds.map(tid => (
-            <ThemaCard
-              key={tid}
-              themaId={tid}
-              copiedNewId={copiedMap.get(tid) ?? null}
-              onCopy={(newId) => onCopy(tid, newId)}
-            />
-          ))}
-        </div>
-      )}
+      </div>
+      <KatalogTable themaIds={themaIds} copiedMap={copiedMap} onCopy={onCopy} />
     </div>
   )
 }
@@ -250,121 +238,122 @@ function LehrpersonSection({
 export default function SchulkatalogPage() {
   const { faecher, themen } = useData()
 
-  const [search, setSearch] = useState('')
-  const [selectedFachId, setSelectedFachId] = useState<string | 'alle'>('alle')
-  const [stufeFilter, setStufeFilter] = useState<number | 'alle'>('alle')
-  const [zyklusFilter, setZyklusFilter] = useState<number | 'alle'>('alle')
+  const [selectedFachId, setSelectedFachId] = useState<string | null>(null)
+  const [selectedStufe, setSelectedStufe] = useState<number | null>(null)
   const [autorFilter, setAutorFilter] = useState<'alle' | string>('alle')
-  const [autorOpen, setAutorOpen] = useState(false)
+  const [search, setSearch] = useState('')
   const [copiedMap, setCopiedMap] = useState<Map<string, string>>(new Map())
 
-  const libraryThemen = useMemo(
-    () => themen.filter(t => t.autor != null && t.typ !== 'rilz'),
-    [themen],
-  )
+  const libraryThemen = useMemo(() => themen.filter(t => t.autor != null), [themen])
 
+  // Only show Lehrpersonen who have themen matching the current Fach+Stufe selection
   const allAutors = useMemo(() => {
-    const names = Array.from(new Set(libraryThemen.map(t => t.autor!)))
+    const relevant = libraryThemen.filter(t => {
+      if (selectedFachId && t.fachId !== selectedFachId) return false
+      if (selectedStufe != null && !t.stufe?.includes(selectedStufe)) return false
+      return true
+    })
+    const names = Array.from(new Set(relevant.map(t => t.autor!)))
     return names.sort((a, b) => {
       if (a === CURRENT_LP) return -1
       if (b === CURRENT_LP) return 1
       return a.localeCompare(b)
     })
-  }, [libraryThemen])
+  }, [libraryThemen, selectedFachId, selectedStufe])
 
+  // Only show Fächer that the selected LP has published
+  const availableFaecher = useMemo(() => {
+    if (autorFilter === 'alle') return faecher
+    const target = autorFilter === 'ich' ? CURRENT_LP : autorFilter
+    const fachIds = new Set(libraryThemen.filter(t => t.autor === target).map(t => t.fachId))
+    return faecher.filter(f => fachIds.has(f.id))
+  }, [faecher, libraryThemen, autorFilter])
+
+  // Stufen filtered by both Fach and LP selection
   const allStufen = useMemo(() => {
     const grades = new Set<number>()
     for (const t of libraryThemen) {
+      if (selectedFachId && t.fachId !== selectedFachId) continue
+      if (autorFilter !== 'alle') {
+        const target = autorFilter === 'ich' ? CURRENT_LP : autorFilter
+        if (t.autor !== target) continue
+      }
       for (const s of (t.stufe ?? [])) grades.add(s)
     }
     return Array.from(grades).sort((a, b) => a - b)
-  }, [libraryThemen])
+  }, [libraryThemen, selectedFachId, autorFilter])
 
   const q = search.trim().toLowerCase()
 
+  // Show table when: Fach+Stufe both set, OR a specific LP is selected
+  const ready = (selectedFachId != null && selectedStufe != null) || autorFilter !== 'alle'
+
   const filteredThemen = useMemo(() => {
+    if (!ready) return []
     return libraryThemen.filter(t => {
-      if (selectedFachId !== 'alle' && t.fachId !== selectedFachId) return false
-      if (q && !t.name.toLowerCase().includes(q)) return false
+      if (selectedFachId && t.fachId !== selectedFachId) return false
+      if (selectedStufe != null && !t.stufe?.includes(selectedStufe)) return false
       if (autorFilter !== 'alle') {
         const target = autorFilter === 'ich' ? CURRENT_LP : autorFilter
         if (t.autor !== target) return false
       }
-      if (stufeFilter !== 'alle') {
-        if (t.stufe && !t.stufe.includes(stufeFilter as number)) return false
-      }
-      if (zyklusFilter !== 'alle') {
-        if (!t.zyklus?.includes(zyklusFilter as number)) return false
-      }
+      if (q && !t.name.toLowerCase().includes(q)) return false
       return true
     })
-  }, [libraryThemen, selectedFachId, q, autorFilter, stufeFilter, zyklusFilter])
+  }, [ready, libraryThemen, selectedFachId, selectedStufe, autorFilter, q])
 
-  const byAutor = useMemo(() => {
-    const map: Map<string, string[]> = new Map()
+  // Group by Fach for rendering (supports multi-fach when LP-only mode)
+  const byFach = useMemo(() => {
+    const map = new Map<string, string[]>()
     for (const t of filteredThemen) {
-      const a = t.autor!
-      if (!map.has(a)) map.set(a, [])
-      map.get(a)!.push(t.id)
+      if (!map.has(t.fachId)) map.set(t.fachId, [])
+      map.get(t.fachId)!.push(t.id)
     }
     return map
   }, [filteredThemen])
 
-  const sortedAutors = useMemo(() => {
-    const keys = Array.from(byAutor.keys())
-    return keys.sort((a, b) => {
-      if (a === CURRENT_LP) return -1
-      if (b === CURRENT_LP) return 1
-      return a.localeCompare(b)
+  const sortedFachIds = useMemo(() => {
+    return Array.from(byFach.keys()).sort((a, b) => {
+      const fa = faecher.find(f => f.id === a)?.name ?? ''
+      const fb = faecher.find(f => f.id === b)?.name ?? ''
+      return fa.localeCompare(fb)
     })
-  }, [byAutor])
+  }, [byFach, faecher])
 
   function handleCopy(sourceThemaId: string, newThemaId: string) {
     setCopiedMap(prev => new Map(prev).set(sourceThemaId, newThemaId))
   }
 
-  const totalLibraryCount = libraryThemen.length
+  const selectedFachColor = selectedFachId
+    ? getFachColor(selectedFachId, faecher.map(f => f.id))
+    : null
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-3">
-      <div className="mb-3">
-        <div className="flex items-center gap-2 mb-0.5">
-          <Library className="size-5 text-primary" />
-          <h1 className="text-xl font-bold tracking-tight">Schulkatalog</h1>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {totalLibraryCount} {totalLibraryCount === 1 ? 'Thema' : 'Themen'} von {new Set(libraryThemen.map(t => t.autor)).size} Lehrpersonen — kopiere Themen in deine eigene Sammlung und bearbeite sie dort
-        </p>
-      </div>
-
-      {/* Filter row */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="relative flex-1 min-w-[180px] max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Thema suchen …"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9 rounded-lg"
-          />
-        </div>
-
-        <Select value={selectedFachId} onValueChange={v => setSelectedFachId(v ?? 'alle')}>
-          <SelectTrigger className="w-[148px]">
-            <span className="flex items-center gap-1.5 flex-1 text-left min-w-0">
-              {selectedFachId !== 'alle' && (
-                <span className={cn('size-2 rounded-full shrink-0', getFachColor(selectedFachId, faecher.map(f => f.id)).dot)} />
+    <div className="mx-auto w-full max-w-7xl px-6 py-8">
+      {/* Filter row — all filters always visible; search pushed to far right */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        {/* Fach */}
+        <Select
+          value={selectedFachId ?? ''}
+          onValueChange={v => { setSelectedFachId(v || null); setSelectedStufe(null) }}
+        >
+          <SelectTrigger className="min-w-[160px] h-10 font-medium">
+            <span className="flex items-center gap-2 flex-1 text-left min-w-0">
+              {selectedFachId && selectedFachColor && (
+                <span className={cn('size-2.5 rounded-full shrink-0', selectedFachColor.dot)} />
               )}
-              <span className="truncate">{selectedFachId === 'alle' ? 'Alle Fächer' : (faecher.find(f => f.id === selectedFachId)?.name ?? 'Fach')}</span>
+              <span className="truncate">
+                {faecher.find(f => f.id === selectedFachId)?.name ?? 'Alle Fächer'}
+              </span>
             </span>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="alle">Alle Fächer</SelectItem>
-            {faecher.map(f => {
+            <SelectItem value="">Alle Fächer</SelectItem>
+            {availableFaecher.map(f => {
               const fc = getFachColor(f.id, faecher.map(fx => fx.id))
               return (
                 <SelectItem key={f.id} value={f.id}>
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-2">
                     <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
                     {f.name}
                   </span>
@@ -374,116 +363,80 @@ export default function SchulkatalogPage() {
           </SelectContent>
         </Select>
 
-        {allStufen.length > 0 && (
-          <Select
-            value={String(stufeFilter)}
-            onValueChange={v => setStufeFilter(!v || v === 'alle' ? 'alle' : Number(v))}
-          >
-            <SelectTrigger className="w-[140px]">
-              <span className="flex flex-1 text-left">
-                {stufeFilter === 'alle' ? 'Alle Stufen' : `${stufeFilter}. Klasse`}
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="alle">Alle Stufen</SelectItem>
-              {allStufen.map(s => (
-                <SelectItem key={s} value={String(s)}>{s}. Klasse</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
+        {/* Stufe */}
         <Select
-          value={String(zyklusFilter)}
-          onValueChange={v => setZyklusFilter(!v || v === 'alle' ? 'alle' : Number(v))}
+          value={selectedStufe != null ? String(selectedStufe) : ''}
+          onValueChange={v => setSelectedStufe(v ? Number(v) : null)}
         >
-          <SelectTrigger className="w-[130px]">
-            <span className="flex flex-1 text-left">
-              {zyklusFilter === 'alle' ? 'Alle Zyklen' : `Zyklus ${zyklusFilter}`}
+          <SelectTrigger className="min-w-[140px] h-10 font-medium">
+            <span className="flex-1 text-left truncate">
+              {selectedStufe != null ? `${selectedStufe}. Klasse` : 'Alle Stufen'}
             </span>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="alle">Alle Zyklen</SelectItem>
-            <SelectItem value="1">Zyklus 1</SelectItem>
-            <SelectItem value="2">Zyklus 2</SelectItem>
-            <SelectItem value="3">Zyklus 3</SelectItem>
+            <SelectItem value="">Alle Stufen</SelectItem>
+            {allStufen.map(s => (
+              <SelectItem key={s} value={String(s)}>{s}. Klasse</SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
-        <Popover open={autorOpen} onOpenChange={setAutorOpen}>
-          <PopoverTrigger className="flex w-[190px] h-5 items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+        {/* Lehrperson */}
+        <Select value={autorFilter} onValueChange={v => setAutorFilter(v ?? 'alle')}>
+          <SelectTrigger className="min-w-[180px] h-10">
             <span className="flex-1 text-left truncate">
-              {autorFilter === 'alle' ? 'Alle Lehrpersonen'
-                : autorFilter === 'ich' ? 'Ich'
-                : autorFilter}
+              {autorFilter === 'alle' ? 'Alle Lehrpersonen' : autorFilter === 'ich' ? 'Ich' : autorFilter}
             </span>
-            <ChevronDown className="size-4 shrink-0 text-muted-foreground pointer-events-none" />
-          </PopoverTrigger>
-          <PopoverContent className="w-[220px] p-0">
-            <Command>
-              <CommandInput placeholder="Lehrperson suchen…" className="h-9" />
-              <CommandList>
-                <CommandEmpty>Keine Treffer.</CommandEmpty>
-                <CommandItem value="alle" onSelect={() => { setAutorFilter('alle'); setAutorOpen(false) }}>
-                  <Check className={cn('mr-2 size-4', autorFilter === 'alle' ? 'opacity-100' : 'opacity-0')} />
-                  Alle Lehrpersonen
-                </CommandItem>
-                <CommandItem value="ich" onSelect={() => { setAutorFilter('ich'); setAutorOpen(false) }}>
-                  <Check className={cn('mr-2 size-4', autorFilter === 'ich' ? 'opacity-100' : 'opacity-0')} />
-                  Ich
-                </CommandItem>
-                {allAutors.filter(a => a !== CURRENT_LP).map(name => (
-                  <CommandItem key={name} value={name} onSelect={() => { setAutorFilter(name); setAutorOpen(false) }}>
-                    <Check className={cn('mr-2 size-4', autorFilter === name ? 'opacity-100' : 'opacity-0')} />
-                    {name}
-                  </CommandItem>
-                ))}
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="alle">Alle Lehrpersonen</SelectItem>
+            <SelectItem value="ich">Ich</SelectItem>
+            {allAutors.filter(a => a !== CURRENT_LP).map(name => (
+              <SelectItem key={name} value={name}>{name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Search — far right */}
+        <div className="relative ml-auto min-w-[200px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Thema suchen …"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 h-10"
+          />
+        </div>
       </div>
 
       {/* Content */}
-      {filteredThemen.length === 0 ? (
-        <EmptyState
-          title="Keine Themen gefunden"
-          description="Versuche einen anderen Suchbegriff oder Filter."
-        />
+      {!ready ? (
+        <div className="mt-12">
+          <EmptyState
+            icon={<BookOpen className="size-6 text-muted-foreground" />}
+            title="Filter setzen"
+            description="Wähle ein Fach + Stufe, oder eine Lehrperson, um Themen anzuzeigen."
+          />
+        </div>
+      ) : filteredThemen.length === 0 ? (
+        <div>
+          <EmptyState
+            title="Keine Themen gefunden"
+            description="Für diese Kombination wurden noch keine Themen veröffentlicht."
+          />
+        </div>
       ) : (
         <div className="space-y-3">
-          {byAutor.has(CURRENT_LP) && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-2">Meine früheren Themen</p>
-              <LehrpersonSection
-                autor={CURRENT_LP}
-                themaIds={byAutor.get(CURRENT_LP)!}
-                copiedMap={copiedMap}
-                onCopy={handleCopy}
-                defaultOpen={true}
-              />
-            </div>
-          )}
-
-          {sortedAutors.filter(a => a !== CURRENT_LP).length > 0 && (
-            <div>
-              {byAutor.has(CURRENT_LP) && (
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 mt-4">Andere Lehrpersonen</p>
-              )}
-              <div className="space-y-2">
-                {sortedAutors.filter(a => a !== CURRENT_LP).map(autor => (
-                  <LehrpersonSection
-                    key={autor}
-                    autor={autor}
-                    themaIds={byAutor.get(autor)!}
-                    copiedMap={copiedMap}
-                    onCopy={handleCopy}
-                    defaultOpen={false}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          {sortedFachIds.map(fachId => (
+            <FachSection
+              key={fachId}
+              fachId={fachId}
+              themaIds={byFach.get(fachId)!}
+              selectedStufe={selectedStufe}
+              copiedMap={copiedMap}
+              onCopy={handleCopy}
+            />
+          ))}
         </div>
       )}
     </div>
