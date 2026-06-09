@@ -1,4 +1,5 @@
 import type { Schueler, Thema, Lernziel, Fach, Versuch } from '@/types/domain'
+import { sv } from '@/lib/utils'
 
 export interface ThemaKpi {
   thema: Thema
@@ -45,10 +46,6 @@ export interface StudentKpis {
   notReached: number
   fachKpis: FachKpi[]
   themaKpis: ThemaKpi[]
-}
-
-function sv(status: string): number {
-  return status === 'reached' ? 1 : status === 'partially_reached' ? 0.5 : 0
 }
 
 export function computeStudentKpis(

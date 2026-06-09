@@ -2,16 +2,12 @@
 
 import React, { useState } from 'react'
 import { ChevronDown, ChevronRight, Camera, Trash2 } from 'lucide-react'
-import { cn, getFachColor } from '@/lib/utils'
+import { cn, getFachColor, sv } from '@/lib/utils'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
 import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach, Status } from '@/types/domain'
 import { STATUS_LABELS } from '@/types/domain'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-function sv(status: Status): number {
-  return status === 'reached' ? 1 : status === 'partially_reached' ? 0.5 : 0
-}
 
 function studentLZScore(student: Schueler, ids: string[]): number {
   if (ids.length === 0) return 0

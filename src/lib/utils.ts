@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { Status } from '@/types/domain'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -23,4 +24,8 @@ export type FachColor = (typeof FACH_COLORS)[number]
 export function getFachColor(fachId: string, allFachIds: string[]): FachColor {
   const idx = allFachIds.indexOf(fachId)
   return FACH_COLORS[idx === -1 ? 0 : idx % FACH_COLORS.length]
+}
+
+export function sv(status: Status | string): number {
+  return status === 'reached' ? 1 : status === 'partially_reached' ? 0.5 : 0
 }

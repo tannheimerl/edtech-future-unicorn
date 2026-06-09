@@ -8,13 +8,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal } from '@/components/shared/Modal'
+import { sv } from '@/lib/utils'
 import type { Status } from '@/types/domain'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
-
-function sv(status: Status): number {
-  return status === 'reached' ? 1 : status === 'partially_reached' ? 0.5 : 0
-}
 
 function isSpecial(s: { bvsa?: boolean; rilzFachIds?: string[] }): boolean {
   return !!(s.bvsa || s.rilzFachIds?.length)
