@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { ChevronDown, ChevronRight, Camera, Trash2 } from 'lucide-react'
-import { cn, getFachColor, sv } from '@/lib/utils'
+import { cn, getFachColor, sv, scoreColor } from '@/lib/utils'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
 import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach, Status } from '@/types/domain'
 import { STATUS_LABELS } from '@/types/domain'
@@ -34,10 +34,6 @@ function studentLZScoreAdjusted(student: Schueler, lzList: Lernziel[], themen: T
 function formatDate(iso: string): string {
   const d = new Date(iso + 'T00:00:00Z')
   return d.toLocaleDateString('de-DE', { month: 'short', year: '2-digit' })
-}
-
-function scoreColor(pct: number): string {
-  return pct >= 75 ? 'text-emerald-600' : pct >= 25 ? 'text-amber-600' : 'text-red-500'
 }
 
 function sName(s: Schueler): string {
@@ -99,7 +95,7 @@ function Chip({
         'h-7 px-2.5 rounded-md text-xs font-medium transition-all whitespace-nowrap',
         dotClass && 'flex items-center gap-1.5',
         active
-          ? cn('shadow-sm', activeClass ?? 'bg-foreground text-background')
+          ? cn('shadow-sm', activeClass ?? 'bg-primary text-primary-foreground')
           : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground',
       )}
     >

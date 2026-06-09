@@ -16,15 +16,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Breadcrumb } from '@/components/shared/Breadcrumb'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 import { computeStudentKpis } from '@/lib/student-kpis'
-import { cn, getFachColor } from '@/lib/utils'
+import { cn, getFachColor, scoreColor } from '@/lib/utils'
 import type { Status } from '@/types/domain'
 import { STATUS_LABELS, STATUS_CYCLE } from '@/types/domain'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
-
-function scoreColor(pct: number): string {
-  return pct >= 75 ? 'text-emerald-600' : pct >= 25 ? 'text-amber-600' : 'text-red-500'
-}
 
 function StackedBar({ reached, partial, total }: { reached: number; partial: number; total: number }) {
   if (total === 0) return <div className="h-1.5 rounded-full bg-muted w-full" />

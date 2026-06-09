@@ -29,3 +29,7 @@ export function getFachColor(fachId: string, allFachIds: string[]): FachColor {
 export function sv(status: Status | string): number {
   return status === 'reached' ? 1 : status === 'partially_reached' ? 0.5 : 0
 }
+
+export function scoreColor(pct: number): string {
+  return pct >= 75 ? 'text-status-reached' : pct >= 25 ? 'text-status-partial' : 'text-status-not-reached'
+}
