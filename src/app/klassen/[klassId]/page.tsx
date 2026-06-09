@@ -1384,7 +1384,6 @@ export default function KlasseDetailPage() {
           themen={assignedThemen}
           lernziele={lernziele.filter(lz => lz.source !== 'bibliothek')}
           faecher={faecher}
-          competencies={competencies}
         />
       )}
 

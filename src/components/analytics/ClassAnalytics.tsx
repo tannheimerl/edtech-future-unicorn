@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { ChevronDown, ChevronRight, Camera, Trash2 } from 'lucide-react'
 import { cn, getFachColor } from '@/lib/utils'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
-import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach, Kompetenz, Status } from '@/types/domain'
+import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach, Status } from '@/types/domain'
 import { STATUS_LABELS } from '@/types/domain'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -559,11 +559,10 @@ interface ClassAnalyticsProps {
   themen: Thema[]
   lernziele: Lernziel[]
   faecher: Fach[]
-  competencies: Kompetenz[]
 }
 
 export function ClassAnalytics({
-  klassId, students, themen, lernziele, faecher, competencies,
+  klassId, students, themen, lernziele, faecher,
 }: ClassAnalyticsProps) {
   const [selectedFachIds, setSelectedFachIds] = useState<string[]>([])
   const [tier, setTier] = useState<Tier>('all')
@@ -735,9 +734,6 @@ export function ClassAnalytics({
   }
 
   const showFachContext = selectedFachIds.length !== 1
-
-  // unused but required by interface
-  void competencies
 
   return (
     <div className="space-y-6">
