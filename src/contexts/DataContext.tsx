@@ -73,9 +73,6 @@ interface DataContextValue {
   updateRilzLernzielLabel: (studentId: string, lzId: string, label: string) => void
   deleteRilzLernziel: (studentId: string, lzId: string) => void
 
-  // Competency status
-  updateCompetencyStatus: (studentId: string, competencyId: string, status: Status) => void
-
   // Lernziel status
   updateLernzielStatus: (studentId: string, lernzielId: string, status: Status | undefined) => void
 
@@ -295,19 +292,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // ── Status mutations ──────────────────────────────────────────────────
-
-  const updateCompetencyStatus = useCallback(
-    (studentId: string, competencyId: string, status: Status) => {
-      setStudents((prev) =>
-        prev.map((s) =>
-          s.id === studentId
-            ? { ...s, competencyStatus: { ...s.competencyStatus, [competencyId]: status } }
-            : s
-        )
-      )
-    },
-    []
-  )
 
   const updateLernzielStatus = useCallback(
     (studentId: string, lernzielId: string, status: Status | undefined) => {
@@ -690,7 +674,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         updateRilzLernzielStatus,
         updateRilzLernzielLabel,
         deleteRilzLernziel,
-        updateCompetencyStatus,
         updateLernzielStatus,
         upsertKommentar,
         deleteKommentar,

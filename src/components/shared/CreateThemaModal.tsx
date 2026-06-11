@@ -20,6 +20,7 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
   const [name, setName] = useState('')
   const [typ, setTyp] = useState<'standard' | 'rilz'>('standard')
   const [stufe, setStufe] = useState<number | ''>('')
+  const [faelligAm, setFaelligAm] = useState('')
   const [lernziele, setLernziele] = useState<{ id: string; label: string; kategorie: LernzielKategorie }[]>([])
   const [newLzG, setNewLzG] = useState('')
   const [newLzA, setNewLzA] = useState('')
@@ -29,6 +30,7 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
       setName('')
       setTyp('standard')
       setStufe('')
+      setFaelligAm('')
       setLernziele([])
       setNewLzG('')
       setNewLzA('')
@@ -53,6 +55,7 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
     const id = createThema(fachId, name.trim(), typ)
     updateThema(id, {
       stufe: stufe !== '' ? [stufe as number] : undefined,
+      faelligAm: faelligAm || undefined,
     })
     for (const lz of lernziele) {
       createLernziel(id, lz.label, lz.kategorie)
@@ -77,36 +80,42 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
             placeholder="z. B. Zahlen & Rechnen" autoFocus />
         </div>
 
-        {/* Metadaten-Zeile: Typ | Schulstufe */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="col-span-2 grid gap-1">
-            <Label className="text-[11px]">Typ</Label>
-            <div className="flex rounded-lg border overflow-hidden h-7">
-              {(['standard', 'rilz'] as const).map(t => (
-                <button key={t} type="button" onClick={() => setTyp(t)}
-                  className={cn(
-                    'flex-1 text-xs font-medium transition-colors',
-                    typ === t
-                      ? t === 'rilz' ? 'bg-orange-500 text-white' : 'bg-primary text-primary-foreground'
-                      : 'bg-background text-muted-foreground hover:bg-muted',
-                  )}>
-                  {t === 'standard' ? 'Standard' : 'RILZ'}
-                </button>
-              ))}
-            </div>
+        {/* Typ-Toggle */}
+        <div className="grid gap-1.5">
+          <Label>Typ</Label>
+          <div className="flex rounded-lg border overflow-hidden h-8">
+            {(['standard', 'rilz'] as const).map(t => (
+              <button key={t} type="button" onClick={() => setTyp(t)}
+                className={cn(
+                  'flex-1 text-xs font-medium transition-colors',
+                  typ === t
+                    ? t === 'rilz' ? 'bg-orange-500 text-white' : 'bg-primary text-primary-foreground'
+                    : 'bg-background text-muted-foreground hover:bg-muted',
+                )}>
+                {t === 'standard' ? 'Standard' : 'RILZ'}
+              </button>
+            ))}
           </div>
-          <div className="grid gap-1">
-            <Label className="text-[11px]">Schulstufe</Label>
+        </div>
+
+        {/* Schulstufe | Fällig am */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-1.5">
+            <Label>Schulstufe</Label>
             <select
               value={stufe}
               onChange={(e) => setStufe(e.target.value ? Number(e.target.value) : '')}
-              className="h-7 text-xs rounded-lg border border-border bg-background px-2 focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-8 text-xs rounded-lg border border-border bg-background px-2 focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="">— keine —</option>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
                 <option key={n} value={n}>Klasse {n}</option>
               ))}
             </select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Fällig am <span className="font-normal text-muted-foreground">(opt.)</span></Label>
+            <Input type="date" lang="de" value={faelligAm} onChange={e => setFaelligAm(e.target.value)} />
           </div>
         </div>
 

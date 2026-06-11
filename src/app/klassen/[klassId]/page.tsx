@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   SquarePen, Plus, UserRound,
-  ChevronDown, ChevronRight, Trash2, Check, X,
-  Search, Info, Pencil, Calendar, BookMarked,
+  ChevronDown, ChevronRight, Trash2,
+  Search, Info, Pencil, PencilLine, Calendar, BookMarked,
 } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { ClassAnalytics } from '@/components/analytics/ClassAnalytics'
@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Breadcrumb } from '@/components/shared/Breadcrumb'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { AddThemenModal } from '@/components/shared/AddThemenModal'
+import { CreateThemaModal } from '@/components/shared/CreateThemaModal'
 import { Modal } from '@/components/shared/Modal'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { cn, getFachColor } from '@/lib/utils'
@@ -332,14 +333,58 @@ function LernzielPopup({ lz, onClose }: { lz: LernzielType; onClose: () => void 
   )
 }
 
+function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
+  themaId: string; klassId: string; allowRemove: boolean; onClose: () => void
+}) {
+  const { themen, updateThema, removeThemaFromKlasse } = useData()
+  const thema = themen.find(t => t.id === themaId)!
+  const [name, setName] = useState(thema.name)
+  const [faelligAm, setFaelligAm] = useState(thema.faelligAm ?? '')
+
+  function save() {
+    updateThema(themaId, { name: name.trim() || thema.name, faelligAm: faelligAm || undefined })
+    onClose()
+  }
+  function remove() {
+    removeThemaFromKlasse(klassId, themaId)
+    onClose()
+  }
+
+  return (
+    <Modal open onOpenChange={v => !v && onClose()} title="Thema bearbeiten" size="sm"
+      footer={
+        <div className="flex w-full items-center gap-2">
+          {allowRemove && (
+            <Button variant="outline" className="text-destructive hover:text-destructive border-destructive/30" onClick={remove}>
+              Aus Klasse entfernen
+            </Button>
+          )}
+          <div className="flex-1" />
+          <Button variant="outline" onClick={onClose}>Abbrechen</Button>
+          <Button onClick={save} disabled={!name.trim()}>Speichern</Button>
+        </div>
+      }
+    >
+      <div className="grid gap-3">
+        <div className="grid gap-1.5">
+          <Label>Themabezeichnung</Label>
+          <Input value={name} onChange={e => setName(e.target.value)} autoFocus />
+        </div>
+        <div className="grid gap-1.5">
+          <Label>Fällig am <span className="font-normal text-muted-foreground">(opt.)</span></Label>
+          <Input type="date" lang="de" value={faelligAm} onChange={e => setFaelligAm(e.target.value)} />
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 function LernzieleTab({ klassId }: { klassId: string }) {
   const {
     getClass,
     faecher, themen, lernziele,
     assignThemaToKlasse, removeThemaFromKlasse,
-    updateThema,
     getStudentsForClass,
-    students: allStudents,
   } = useData()
 
   const klasse = getClass(klassId)!
@@ -351,7 +396,8 @@ function LernzieleTab({ klassId }: { klassId: string }) {
   const [popupLZ, setPopupLZ] = useState<LernzielType | null>(null)
   const [search, setSearch] = useState('')
   const [addFachId, setAddFachId] = useState<string | null>(null)
-  const [editDateThemaId, setEditDateThemaId] = useState<string | null>(null)
+  const [createNewFachId, setCreateNewFachId] = useState<string | null>(null)
+  const [editThema, setEditThema] = useState<{ id: string; allowRemove: boolean } | null>(null)
 
   function toggleThema(themaId: string) {
     setExpandedThemen(prev => { const n = new Set(prev); n.has(themaId) ? n.delete(themaId) : n.add(themaId); return n })
@@ -520,25 +566,9 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                     <div className="divide-y divide-border/40">
                       {fachThemen.map(({ thema, lz: themaLZ }) => {
                         const isExpanded = !!q || expandedThemen.has(thema.id)
-                        const isDateEditing = editDateThemaId === thema.id
-
-                        const today = new Date().toISOString().slice(0, 10)
-                        const isOverdue = thema.faelligAm ? thema.faelligAm < today : false
-                        const daysUntil = thema.faelligAm
-                          ? Math.ceil((new Date(thema.faelligAm).getTime() - Date.now()) / 86400000)
-                          : null
-                        const isNearDeadline = daysUntil !== null && daysUntil >= 0 && daysUntil <= 14
-
-                        const totalStudents = klassStudents.length
-                        const assessedStudents = totalStudents > 0
-                          ? klassStudents.filter(s =>
-                              themaLZ.every(lz => s.lernzielStatus[lz.id] != null)
-                            ).length
-                          : 0
-
                         return (
                           <div key={thema.id}>
-                            <div className="group/row relative flex items-center gap-2 pl-3 pr-8 py-2 hover:bg-accent/20 transition-colors">
+                            <div className="group/row flex items-center gap-2 pl-3 pr-2 py-2 hover:bg-accent/20 transition-colors">
                               <button
                                 className="flex items-center gap-2 flex-1 min-w-0 text-left"
                                 onClick={() => toggleThema(thema.id)}
@@ -550,83 +580,52 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                 <span className="text-sm font-medium truncate"><Highlight text={thema.name} query={q} /></span>
                               </button>
 
-                              {totalStudents > 0 && (
-                                <span className={cn(
-                                  'text-[10px] tabular-nums shrink-0 hidden sm:flex items-center justify-center rounded px-1.5 py-0.5 font-medium w-[52px]',
-                                  assessedStudents === totalStudents
-                                    ? 'bg-muted text-muted-foreground'
-                                    : assessedStudents === 0
-                                      ? 'bg-rose-100 text-rose-600'
-                                      : 'bg-amber-100 text-amber-600',
-                                )}>
-                                  {assessedStudents}/{totalStudents}
+                              {thema.faelligAm && (
+                                <span className="inline-flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5 bg-muted text-muted-foreground">
+                                  <Calendar className="size-3" />
+                                  {new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
                                 </span>
                               )}
-
-                              {isDateEditing ? (
-                                <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                                  <input
-                                    type="date" lang="de"
-                                    value={thema.faelligAm ?? ''}
-                                    onChange={e => updateThema(thema.id, { faelligAm: e.target.value || undefined })}
-                                    className="h-5 text-[10px] rounded border border-border bg-background px-1 focus:outline-none focus:ring-1 focus:ring-primary"
-                                    autoFocus
-                                  />
-                                  {thema.faelligAm && (
-                                    <button onClick={() => updateThema(thema.id, { faelligAm: undefined })} className="text-muted-foreground hover:text-destructive" aria-label="Datum entfernen">
-                                      <X className="size-3" />
-                                    </button>
-                                  )}
-                                  <button onClick={() => setEditDateThemaId(null)} className="text-muted-foreground hover:text-foreground" aria-label="Schliessen">
-                                    <Check className="size-3 text-primary" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={e => { e.stopPropagation(); setEditDateThemaId(thema.id) }}
-                                  className={cn(
-                                    'flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5 transition-colors',
-                                    thema.faelligAm
-                                      ? isOverdue
-                                        ? 'bg-rose-100 text-rose-600 font-medium hover:bg-rose-200'
-                                        : isNearDeadline
-                                          ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
-                                          : 'bg-muted text-muted-foreground hover:bg-accent'
-                                      : 'opacity-0 group-hover/row:opacity-60 text-muted-foreground hover:bg-accent',
-                                  )}
-                                  aria-label="Fälligkeitsdatum setzen"
-                                >
-                                  <Calendar className="size-3" />
-                                  {thema.faelligAm ? new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' }) : ''}
-                                </button>
-                              )}
                               <button
-                                onClick={e => { e.stopPropagation(); removeThemaFromKlasse(klassId, thema.id) }}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                                aria-label="Thema entfernen"
+                                onClick={e => { e.stopPropagation(); setEditThema({ id: thema.id, allowRemove: true }) }}
+                                className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                aria-label="Thema bearbeiten"
                               >
-                                <Trash2 className="size-3.5" />
+                                <PencilLine className="size-3.5" />
                               </button>
                             </div>
 
                             {isExpanded && (
                               <div className="border-t border-border/40 bg-muted/10">
-                                {themaLZ.map(lz => {
-                                  const hasKriterien = (lz.kriterien?.length ?? 0) > 0
+                                {(['grundlegend', 'anspruchsvoll'] as const).map(kat => {
+                                  const lzInKat = themaLZ.filter(lz => lz.kategorie === kat)
+                                  if (lzInKat.length === 0) return null
                                   return (
-                                    <div key={lz.id} className="flex items-center gap-2 pl-8 pr-3 py-1.5 border-t first:border-t-0 border-border/30 hover:bg-accent/20 transition-colors group">
-                                      <span className="flex-1 text-xs text-foreground">
-                                        <Highlight text={lz.label} query={q} />
-                                      </span>
-                                      {hasKriterien && (
-                                        <button
-                                          onClick={() => setPopupLZ(lz)}
-                                          className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                                          aria-label="Details anzeigen"
-                                        >
-                                          <Info className="size-3.5" />
-                                        </button>
-                                      )}
+                                    <div key={kat} className="border-b border-border/40 last:border-b-0">
+                                      <div className="pl-8 pr-3 py-1 bg-muted/20">
+                                        <span className={cn('text-[10px] font-semibold uppercase tracking-wide',
+                                          kat === 'grundlegend' ? 'text-slate-500' : 'text-violet-500')}>
+                                          {kat === 'grundlegend' ? 'Grundlegend' : 'Anspruchsvoll'}
+                                        </span>
+                                      </div>
+                                      <div className="divide-y divide-border/30">
+                                        {lzInKat.map(lz => (
+                                          <div key={lz.id} className="flex items-center gap-2 pl-8 pr-3 py-1.5 hover:bg-accent/20 transition-colors group">
+                                            <span className="flex-1 text-xs text-foreground">
+                                              <Highlight text={lz.label} query={q} />
+                                            </span>
+                                            {(lz.kriterien?.length ?? 0) > 0 && (
+                                              <button
+                                                onClick={() => setPopupLZ(lz)}
+                                                className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                                aria-label="Details anzeigen"
+                                              >
+                                                <Info className="size-3.5" />
+                                              </button>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
                                     </div>
                                   )
                                 })}
@@ -653,21 +652,28 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                   : <ChevronRight className="size-3 text-muted-foreground shrink-0" />
                                 }
                                 <span className="text-sm font-medium truncate">{thema.name}</span>
-                                <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700">
-                                  {isAdHoc ? 'RILZ ad-hoc' : 'RILZ'}
+                                <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700 shrink-0">
+                                  RILZ
                                 </span>
-                                <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground/60 shrink-0">
+                                <span className="inline-flex items-center gap-0.5 text-[10px] tabular-nums rounded px-1.5 py-0.5 bg-muted text-muted-foreground shrink-0">
                                   <UserRound className="size-3" />
                                   {studentCount}
                                 </span>
                               </button>
 
                               {thema.faelligAm && (
-                                <span className="flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5 bg-muted text-muted-foreground">
+                                <span className="inline-flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5 bg-muted text-muted-foreground">
                                   <Calendar className="size-3" />
                                   {new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
                                 </span>
                               )}
+                              <button
+                                onClick={e => { e.stopPropagation(); setEditThema({ id: thema.id, allowRemove: false }) }}
+                                className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                aria-label="Thema bearbeiten"
+                              >
+                                <PencilLine className="size-3.5" />
+                              </button>
                             </div>
 
                             {isExpanded && (
@@ -747,6 +753,25 @@ function LernzieleTab({ klassId }: { klassId: string }) {
             klasseGrade={klasseGrade}
             assignedThemaIds={klasse.assignedThemaIds}
             onAdd={(themaIds) => themaIds.forEach(id => assignThemaToKlasse(klassId, id))}
+            onCreateNew={() => { setCreateNewFachId(addFachId); setAddFachId(null) }}
+          />
+        )}
+
+        {createNewFachId && (
+          <CreateThemaModal
+            open
+            onOpenChange={(v) => { if (!v) setCreateNewFachId(null) }}
+            fachId={createNewFachId}
+            onCreated={(id) => assignThemaToKlasse(klassId, id)}
+          />
+        )}
+
+        {editThema && (
+          <KlassenThemaEditModal
+            themaId={editThema.id}
+            klassId={klassId}
+            allowRemove={editThema.allowRemove}
+            onClose={() => setEditThema(null)}
           />
         )}
 
