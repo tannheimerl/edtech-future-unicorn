@@ -8,6 +8,3 @@ export interface WithClassName {
   className?: string
 }
 
-export interface WithChildrenAndClassName extends WithChildren, WithClassName {}
-
-export type PropsWithClassName<T = unknown> = T & WithClassName

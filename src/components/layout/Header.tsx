@@ -2,14 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { GraduationCap, Library, Target } from "lucide-react"
+import { GraduationCap, Target } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { WithClassName } from "@/types"
 
 const NAV_ITEMS = [
   { label: "Meine Klassen", href: "/klassen", icon: GraduationCap },
   { label: "Meine Lernziele", href: "/lernziele", icon: Target },
-  { label: "Schulkatalog", href: "/schulkatalog", icon: Library },
 ]
 
 interface HeaderProps extends WithClassName {

@@ -132,8 +132,8 @@ function FilterBar({
             label={KAT_LABELS[k]}
             active={katFilter === k}
             activeClass={
-              k === 'grundlegend' ? 'bg-sky-600 text-white'
-              : k === 'anspruchsvoll' ? 'bg-amber-500 text-white'
+              k === 'grundlegend' ? 'bg-slate-500 text-white'
+              : k === 'anspruchsvoll' ? 'bg-violet-500 text-white'
               : undefined
             }
             onClick={() => onKatChange(k)}
@@ -338,7 +338,7 @@ function LZRow({
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span className={cn(
             'shrink-0 rounded px-1 py-0.5 text-[8px] font-bold leading-none',
-            kategorie === 'grundlegend' ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700',
+            kategorie === 'grundlegend' ? 'bg-slate-100 text-slate-700' : 'bg-violet-100 text-violet-700',
           )}>
             {kategorie === 'grundlegend' ? 'G' : 'A'}
           </span>
@@ -512,7 +512,7 @@ function HeatMap({ students, lernziele }: { students: Schueler[]; lernziele: Ler
               <th key={lz.id} className="px-2 py-1.5 font-normal text-muted-foreground text-center" style={{ maxWidth: 80 }}>
                 <span className={cn(
                   'inline-block rounded px-1 text-[8px] font-bold mb-0.5',
-                  lz.kategorie === 'grundlegend' ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700',
+                  lz.kategorie === 'grundlegend' ? 'bg-slate-100 text-slate-700' : 'bg-violet-100 text-violet-700',
                 )}>
                   {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                 </span>

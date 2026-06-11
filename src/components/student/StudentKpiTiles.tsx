@@ -28,15 +28,15 @@ export function StudentKpiTiles({ kpis }: Props) {
           label="Grundlegend"
           value={`${kpis.grundPct}%`}
           sub={`${kpis.grundReached} / ${kpis.grundTotal}`}
-          accent="bg-sky-50"
-          valueColor="text-sky-700"
+          accent="bg-slate-50"
+          valueColor="text-slate-700"
         />
         <Tile
           label="Anspruchsvoll"
           value={`${kpis.ansprPct}%`}
           sub={`${kpis.ansprReached} / ${kpis.ansprTotal}`}
-          accent="bg-amber-50"
-          valueColor="text-amber-700"
+          accent="bg-violet-50"
+          valueColor="text-violet-700"
         />
       </div>
     </div>

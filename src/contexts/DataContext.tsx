@@ -11,7 +11,7 @@
 import React, { createContext, useCallback, useContext, useState } from 'react'
 import type {
   Klasse, Kompetenz, Schueler, Status, Fach, Thema, Lernziel, LernzielKategorie,
-  AssessmentKommentar, ThemaKommentar, Versuch, Lehrperson,
+  AssessmentKommentar, ThemaKommentar, Versuch, Lehrperson, LezioExport, LezioExportLernziel,
 } from '@/types/domain'
 import {
   SEED_CLASSES,
@@ -20,7 +20,6 @@ import {
   SEED_FAECHER,
   SEED_THEMEN,
   SEED_LERNZIELE,
-  SEED_LERNZIELE_BIBLIOTHEK,
   SEED_LERNZIELE_RILZ,
   SEED_LEHRPERSONEN,
   SEED_KOMMENTARE,
@@ -80,9 +79,6 @@ interface DataContextValue {
   // Lernziel status
   updateLernzielStatus: (studentId: string, lernzielId: string, status: Status | undefined) => void
 
-  // Versuche (multiple attempts)
-  addVersuch: (studentId: string, lernzielId: string, status: Status, withHelp?: boolean) => void
-
   // Kommentare
   upsertKommentar: (studentId: string, lernzielId: string, text: string) => void
   deleteKommentar: (studentId: string, lernzielId: string) => void
@@ -107,7 +103,7 @@ interface DataContextValue {
 
   // Thema CRUD
   createThema: (fachId: string, name: string, typ?: 'standard' | 'rilz', standardThemaId?: string) => string
-  updateThema: (id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId' | 'stufe' | 'zyklus'>>) => void
+  updateThema: (id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId' | 'stufe'>>) => void
   deleteThema: (id: string) => void
 
   // RILZ-Thema assignment to students
@@ -118,9 +114,9 @@ interface DataContextValue {
   createLernziel: (themaId: string, label: string, kategorie: LernzielKategorie) => void
   updateLernziel: (id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie'>>) => void
   deleteLernziel: (id: string) => void
-  copyLernzielToEigene: (lzId: string) => string | undefined
-  copyThemaToEigene: (themaId: string, targetFachId?: string) => string | undefined
-  publishThemaToLibrary: (themaId: string) => void
+  exportThema: (themaId: string) => void
+  exportFach: (fachId: string) => void
+  importThema: (file: File, targetFachId?: string) => Promise<void>
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -132,7 +128,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [students, setStudents] = useState<Schueler[]>(SEED_STUDENTS)
   const [faecher, setFaecher] = useState<Fach[]>(SEED_FAECHER)
   const [themen, setThemen] = useState<Thema[]>(SEED_THEMEN)
-  const [lernziele, setLernziele] = useState<Lernziel[]>([...SEED_LERNZIELE, ...SEED_LERNZIELE_RILZ, ...SEED_LERNZIELE_BIBLIOTHEK])
+  const [lernziele, setLernziele] = useState<Lernziel[]>([...SEED_LERNZIELE, ...SEED_LERNZIELE_RILZ])
   const [kommentare, setKommentare] = useState<AssessmentKommentar[]>(SEED_KOMMENTARE)
   const [themaKommentare, setThemaKommentare] = useState<ThemaKommentar[]>([])
   const competencies = SEED_COMPETENCIES
@@ -329,26 +325,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     []
   )
 
-  // ── Versuche ─────────────────────────────────────────────────────────
-
-  const addVersuch = useCallback(
-    (studentId: string, lernzielId: string, status: Status, withHelp?: boolean) => {
-      const versuch: Versuch = { date: new Date().toISOString().slice(0, 10), status, withHelp }
-      setStudents((prev) =>
-        prev.map((s) => {
-          if (s.id !== studentId) return s
-          const prev_versuche = s.lernzielVersuche ?? {}
-          const existing = prev_versuche[lernzielId] ?? []
-          const lernzielVersuche = { ...prev_versuche, [lernzielId]: [...existing, versuch] }
-          // Keep lernzielStatus in sync with latest attempt
-          const lernzielStatus = { ...s.lernzielStatus, [lernzielId]: status }
-          return { ...s, lernzielVersuche, lernzielStatus }
-        })
-      )
-    },
-    []
-  )
-
   // ── Kommentare ────────────────────────────────────────────────────────
 
   const upsertKommentar = useCallback((studentId: string, lernzielId: string, text: string) => {
@@ -518,7 +494,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return id
   }, [])
 
-  const updateThema = useCallback((id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId' | 'stufe' | 'zyklus'>>) => {
+  const updateThema = useCallback((id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId' | 'stufe'>>) => {
     setThemen((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
   }, [])
 
@@ -570,51 +546,115 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setLernziele((prev) => prev.filter((l) => l.id !== id))
   }, [])
 
-  const copyLernzielToEigene = useCallback((lzId: string): string | undefined => {
-    const lz = lernziele.find((l) => l.id === lzId)
-    if (!lz) return undefined
-    const newId = crypto.randomUUID()
-    const { source, autor, beschreibung, stufe, ...rest } = lz
-    setLernziele((prev) => [...prev, { ...rest, id: newId, source: 'eigene' }])
-    return newId
-  }, [lernziele])
-
-  const copyThemaToEigene = useCallback((themaId: string, targetFachId?: string): string | undefined => {
-    const thema = themen.find((t) => t.id === themaId)
-    if (!thema) return undefined
-    const newThemaId = crypto.randomUUID()
-    const { autor, ...themaRest } = thema
-    setThemen((prev) => [...prev, { ...themaRest, id: newThemaId, fachId: targetFachId ?? thema.fachId }])
-    const sourceLZ = lernziele.filter((l) => l.themaId === themaId)
-    const clonedLZ = sourceLZ.map((lz) => {
-      const { source, autor: lzAutor, beschreibung, stufe, ...lzRest } = lz
-      return { ...lzRest, id: crypto.randomUUID(), themaId: newThemaId, source: 'eigene' as const }
-    })
-    setLernziele((prev) => [...prev, ...clonedLZ])
-    return newThemaId
-  }, [themen, lernziele])
-
   const CURRENT_LP_ID = 'lp1'
-  const CURRENT_LP_NAME = 'Lukas Meier'
 
-  const publishThemaToLibrary = useCallback((themaId: string): void => {
+  const exportThema = useCallback((themaId: string): void => {
     const thema = themen.find((t) => t.id === themaId)
-    if (!thema || thema.autor != null) return
-    const newThemaId = crypto.randomUUID()
-    setThemen((prev) => [
-      ...prev.map((t) => t.id === themaId ? { ...t, publishedToLibrary: true } : t),
-      { ...thema, id: newThemaId, autor: CURRENT_LP_NAME, publishedToLibrary: undefined },
-    ])
-    const sourceLZ = lernziele.filter((l) => l.themaId === themaId)
-    const libraryLZ = sourceLZ.map((lz) => ({
-      ...lz,
-      id: crypto.randomUUID(),
-      themaId: newThemaId,
-      source: 'bibliothek' as const,
-      autor: CURRENT_LP_NAME,
-    }))
-    setLernziele((prev) => [...prev, ...libraryLZ])
-  }, [themen, lernziele])
+    if (!thema) return
+    const fach = faecher.find((f) => f.id === thema.fachId)
+    if (!fach) return
+    const exportLZ: LezioExportLernziel[] = lernziele
+      .filter((l) => l.themaId === themaId)
+      .map(({ kategorie, label, kriterien, beschreibung }) => ({
+        kategorie,
+        label,
+        ...(kriterien ? { kriterien } : {}),
+        ...(beschreibung ? { beschreibung } : {}),
+      }))
+    const payload: LezioExport = {
+      version: '1',
+      exportedAt: new Date().toISOString(),
+      fachName: fach.name,
+      thema: {
+        name: thema.name,
+        ...(thema.typ ? { typ: thema.typ } : {}),
+        ...(thema.stufe ? { stufe: thema.stufe } : {}),
+      },
+      lernziele: exportLZ,
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${thema.name}.lezio`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [themen, faecher, lernziele])
+
+  const exportFach = useCallback(async (fachId: string): Promise<void> => {
+    const fach = faecher.find((f) => f.id === fachId)
+    if (!fach) return
+    const JSZip = (await import('jszip')).default
+    const zip = new JSZip()
+    const fachThemen = themen.filter((t) => t.fachId === fachId)
+    for (const thema of fachThemen) {
+      const exportLZ: LezioExportLernziel[] = lernziele
+        .filter((l) => l.themaId === thema.id)
+        .map(({ kategorie, label, kriterien, beschreibung }) => ({
+          kategorie,
+          label,
+          ...(kriterien ? { kriterien } : {}),
+          ...(beschreibung ? { beschreibung } : {}),
+        }))
+      const payload: LezioExport = {
+        version: '1',
+        exportedAt: new Date().toISOString(),
+        fachName: fach.name,
+        thema: {
+          name: thema.name,
+          ...(thema.typ ? { typ: thema.typ } : {}),
+          ...(thema.stufe ? { stufe: thema.stufe } : {}),
+        },
+        lernziele: exportLZ,
+      }
+      zip.file(`${thema.name}.lezio`, JSON.stringify(payload, null, 2))
+    }
+    const blob = await zip.generateAsync({ type: 'blob' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${fach.name}.zip`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [themen, faecher, lernziele])
+
+  const importThema = useCallback(async (file: File, targetFachId?: string): Promise<void> => {
+    const text = await file.text()
+    const data = JSON.parse(text) as LezioExport
+    if (data.version !== '1' || !data.fachName || !data.thema?.name) {
+      throw new Error('Ungültiges Dateiformat')
+    }
+
+    let fachId: string
+    if (targetFachId) {
+      fachId = targetFachId
+    } else {
+      const existingFach = faecher.find((f) => f.name.toLowerCase() === data.fachName.toLowerCase())
+      if (!existingFach) {
+        throw new Error('FACH_NOT_FOUND')
+      }
+      fachId = existingFach.id
+    }
+    const themaId = crypto.randomUUID()
+    setThemen((prev) => [...prev, {
+      id: themaId,
+      fachId,
+      name: data.thema.name,
+      typ: data.thema.typ ?? 'standard',
+      ...(data.thema.stufe ? { stufe: data.thema.stufe } : {}),
+    }])
+    if (Array.isArray(data.lernziele) && data.lernziele.length > 0) {
+      const newLZ: Lernziel[] = data.lernziele.map((lz) => ({
+        id: crypto.randomUUID(),
+        themaId,
+        kategorie: lz.kategorie,
+        label: lz.label,
+        ...(lz.kriterien ? { kriterien: lz.kriterien } : {}),
+        ...(lz.beschreibung ? { beschreibung: lz.beschreibung } : {}),
+      }))
+      setLernziele((prev) => [...prev, ...newLZ])
+    }
+  }, [faecher])
 
   return (
     <DataContext.Provider
@@ -652,7 +692,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         deleteRilzLernziel,
         updateCompetencyStatus,
         updateLernzielStatus,
-        addVersuch,
         upsertKommentar,
         deleteKommentar,
         upsertThemaKommentar,
@@ -673,9 +712,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         createLernziel,
         updateLernziel,
         deleteLernziel,
-        copyLernzielToEigene,
-        copyThemaToEigene,
-        publishThemaToLibrary,
+        exportThema,
+        exportFach,
+        importThema,
       }}
     >
       {children}

@@ -107,11 +107,11 @@ export default function BerichtPage() {
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Lernziele</p>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" checked={includeGrundlegend} onChange={e => setIncludeGrundlegend(e.target.checked)} className="accent-sky-500 h-3.5 w-3.5" />
+                <input type="checkbox" checked={includeGrundlegend} onChange={e => setIncludeGrundlegend(e.target.checked)} className="accent-slate-500 h-3.5 w-3.5" />
                 Grundlegend (G)
               </label>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" checked={includeAnspruchsvoll} onChange={e => setIncludeAnspruchsvoll(e.target.checked)} className="accent-amber-500 h-3.5 w-3.5" />
+                <input type="checkbox" checked={includeAnspruchsvoll} onChange={e => setIncludeAnspruchsvoll(e.target.checked)} className="accent-violet-500 h-3.5 w-3.5" />
                 Anspruchsvoll (A)
               </label>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
@@ -175,7 +175,7 @@ export default function BerichtPage() {
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className={cn(
                               'rounded px-1 text-[9px] font-semibold',
-                              lz.kategorie === 'grundlegend' ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700',
+                              lz.kategorie === 'grundlegend' ? 'bg-slate-100 text-slate-700' : 'bg-violet-100 text-violet-700',
                             )}>
                               {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                             </span>

@@ -285,8 +285,8 @@ export default function SchuelerDetailPage() {
                     className={cn(
                       'px-2.5 py-1 text-xs font-medium transition-colors',
                       lzKatFilter === k
-                        ? k === 'grundlegend' ? 'bg-sky-500 text-white'
-                          : k === 'anspruchsvoll' ? 'bg-amber-500 text-white'
+                        ? k === 'grundlegend' ? 'bg-slate-500 text-white'
+                          : k === 'anspruchsvoll' ? 'bg-violet-500 text-white'
                           : 'bg-primary text-primary-foreground'
                         : 'bg-card text-muted-foreground hover:bg-muted',
                     )}
@@ -377,8 +377,8 @@ export default function SchuelerDetailPage() {
                                       <span className={cn(
                                         'shrink-0 rounded px-1 text-[9px] font-semibold',
                                         lz.kategorie === 'grundlegend'
-                                          ? 'bg-sky-100 text-sky-700'
-                                          : 'bg-amber-100 text-amber-700',
+                                          ? 'bg-slate-100 text-slate-700'
+                                          : 'bg-violet-100 text-violet-700',
                                       )}>
                                         {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                                       </span>

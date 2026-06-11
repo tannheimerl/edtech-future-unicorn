@@ -337,7 +337,7 @@ export function RilzStudentCard({
                                 style={{ width: 72, minWidth: 72 }}
                               >
                                 <div className="flex flex-col gap-0.5">
-                                  <span className="rounded px-1 py-px text-[9px] font-semibold bg-sky-100 text-sky-700 self-start">G</span>
+                                  <span className="rounded px-1 py-px text-[9px] font-semibold bg-slate-100 text-slate-700 self-start">G</span>
                                   <span className="text-[11px] font-medium text-foreground leading-snug">{lz.label}</span>
                                 </div>
                               </th>

@@ -34,12 +34,3 @@ export function scoreColor(pct: number): string {
   return pct >= 75 ? 'text-status-reached' : pct >= 25 ? 'text-status-partial' : 'text-status-not-reached'
 }
 
-export function stufeToZyklus(stufe: number): number {
-  if (stufe <= 2) return 1
-  if (stufe <= 6) return 2
-  return 3
-}
-
-export function stufenToZyklen(stufen: number[]): number[] {
-  return Array.from(new Set(stufen.map(stufeToZyklus))).sort((a, b) => a - b)
-}

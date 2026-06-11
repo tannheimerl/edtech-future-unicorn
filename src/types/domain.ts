@@ -28,14 +28,12 @@ export interface Thema {
   typ?: 'standard' | 'rilz'  // default = 'standard'
   standardThemaId?: string    // für RILZ-Themen: welches Standard-Thema wird ersetzt
   stufe?: number[]            // e.g. [5, 6] — Schulstufen für die dieses Thema gedacht ist (1–9)
-  zyklus?: number[]           // Schweizer Schulzyklus: 1 | 2 | 3 (multi-select)
+  zyklus?: number[]           // e.g. [2, 3] — Lehrplanzyklus (1–3)
   autor?: string              // Anzeigename der Lehrperson, die dieses Thema erstellt hat
-  publishedToLibrary?: boolean // true once a personal Thema has been shared to the school library
+  autorLpId?: string          // ID der Lehrperson, die dieses Thema erstellt hat
 }
 
 export type LernzielKategorie = 'grundlegend' | 'anspruchsvoll'
-
-export type LernzielSource = 'eigene' | 'bibliothek'
 
 export interface Lernziel {
   id: string
@@ -43,11 +41,24 @@ export interface Lernziel {
   kategorie: LernzielKategorie
   label: string
   kriterien?: string[]
-  // Library / provenance fields
-  source?: LernzielSource   // undefined or 'eigene' = own; 'bibliothek' = published
   stufe?: number[]          // e.g. [5, 6] — school years this LZ targets
-  autor?: string            // display name of teacher who published it
-  beschreibung?: string     // optional short description shown in the library view
+  autor?: string            // display name of teacher who created it
+  beschreibung?: string     // optional short description
+}
+
+export interface LezioExportLernziel {
+  kategorie: LernzielKategorie
+  label: string
+  kriterien?: string[]
+  beschreibung?: string
+}
+
+export interface LezioExport {
+  version: '1'
+  exportedAt: string
+  fachName: string
+  thema: Pick<Thema, 'name' | 'typ' | 'stufe'>
+  lernziele: LezioExportLernziel[]
 }
 
 export type LpRolle = 'klassenlehrperson' | 'fachlehrperson' | 'heilpaedagogin'

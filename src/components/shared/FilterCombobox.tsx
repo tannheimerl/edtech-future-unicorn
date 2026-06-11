@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, X } from 'lucide-react'
+import { ChevronDown, Plus, X } from 'lucide-react'
 import {
   Popover,
   PopoverContent,
@@ -14,6 +14,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 
@@ -30,6 +31,7 @@ interface FilterComboboxProps {
   className?: string
   popoverClassName?: string
   showSearch?: boolean
+  footerAction?: { label: string; onSelect: () => void }
 }
 
 export function FilterCombobox({
@@ -39,6 +41,7 @@ export function FilterCombobox({
   className,
   popoverClassName,
   showSearch = false,
+  footerAction,
 }: FilterComboboxProps) {
   const [open, setOpen] = useState(false)
   const selected = options.find(o => o.value === value)
@@ -49,29 +52,47 @@ export function FilterCombobox({
       align="start"
       side="bottom"
       sideOffset={6}
-      className={cn('p-0 overflow-hidden w-auto min-w-[180px] max-w-[320px]', popoverClassName)}
+      className={cn('p-0 overflow-hidden w-auto min-w-[160px] max-w-[280px]', popoverClassName)}
     >
-      <Command>
+      <Command className="p-0.5 bg-background">
         {showSearch && <CommandInput placeholder="Suchen…" />}
         <CommandList>
           <CommandEmpty>Keine Resultate.</CommandEmpty>
-          <CommandGroup>
+          <CommandGroup className="p-0">
             {options.map(opt => (
               <CommandItem
                 key={opt.value === '' ? '__all__' : opt.value}
                 value={opt.label}
                 data-checked={opt.value === value ? 'true' : undefined}
                 onSelect={() => { onChange(opt.value); setOpen(false) }}
+                className="py-1 px-2.5 text-xs"
               >
-                <span className="flex items-center gap-2 flex-1">
+                <span className="flex items-center gap-1.5 flex-1">
                   {opt.dot && (
-                    <span className={cn('size-2 rounded-full shrink-0', opt.dot)} />
+                    <span className={cn('size-1.5 rounded-full shrink-0', opt.dot)} />
                   )}
                   <span>{opt.label}</span>
                 </span>
               </CommandItem>
             ))}
           </CommandGroup>
+          {footerAction && (
+            <>
+              <CommandSeparator />
+              <CommandGroup className="p-0">
+                <CommandItem
+                  value={footerAction.label}
+                  onSelect={() => { footerAction.onSelect(); setOpen(false) }}
+                  className="py-1 px-2.5 text-xs text-primary"
+                >
+                  <span className="flex items-center gap-1.5 flex-1">
+                    <Plus className="size-3 shrink-0" />
+                    <span>{footerAction.label}</span>
+                  </span>
+                </CommandItem>
+              </CommandGroup>
+            </>
+          )}
         </CommandList>
       </Command>
     </PopoverContent>
@@ -105,7 +126,7 @@ export function FilterCombobox({
     <Popover open={open} onOpenChange={(v) => setOpen(v)}>
       <PopoverTrigger
         className={cn(
-          'flex h-9 items-center gap-2 rounded-full border border-border/60 bg-transparent px-3.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-none',
+          'flex h-9 items-center gap-2 rounded-full border border-border/60 bg-background px-3.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-none',
           className,
         )}
       >

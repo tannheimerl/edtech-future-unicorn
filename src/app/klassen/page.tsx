@@ -38,7 +38,7 @@ function KlasseStats({ klassId }: { klassId: string }) {
   const classThemen = getThemenForKlasse(klassId).filter(t =>
     !t.faelligAm || t.faelligAm <= today
   )
-  const allLZ = classThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id && lz.source !== 'bibliothek'))
+  const allLZ = classThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
   const allLZIds = allLZ.map(lz => lz.id)
 
   const regularStudents = students.filter(s => !isSpecial(s))

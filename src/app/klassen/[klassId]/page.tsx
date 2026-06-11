@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Breadcrumb } from '@/components/shared/Breadcrumb'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { AddThemenModal } from '@/components/shared/AddThemenModal'
 import { Modal } from '@/components/shared/Modal'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { cn, getFachColor } from '@/lib/utils'
@@ -331,108 +332,6 @@ function LernzielPopup({ lz, onClose }: { lz: LernzielType; onClose: () => void 
   )
 }
 
-function AddLernzieleModal({
-  open, onOpenChange, fach, themen: allThemen, lernziele: allLZ, assignedThemaIds, klasseGrade, onAdd,
-}: {
-  open: boolean; onOpenChange: (v: boolean) => void
-  fach: Fach; themen: Thema[]; lernziele: LernzielType[]
-  assignedThemaIds: string[]; klasseGrade: number; onAdd: (themaIds: string[]) => void
-}) {
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  useEffect(() => { if (open) setSelected(new Set()) }, [open])
-
-  // Only personal (no autor) standard themen for this fach, filtered by grade level
-  const fachThemen = allThemen.filter(t =>
-    t.fachId === fach.id &&
-    (!t.typ || t.typ === 'standard') &&
-    t.autor == null &&
-    (!t.stufe || t.stufe.includes(klasseGrade))
-  )
-  const availableThemen = fachThemen.filter(t => !assignedThemaIds.includes(t.id))
-  const alreadyAssigned = fachThemen.filter(t => assignedThemaIds.includes(t.id))
-
-  function toggle(themaId: string) {
-    setSelected(prev => { const n = new Set(prev); n.has(themaId) ? n.delete(themaId) : n.add(themaId); return n })
-  }
-
-  return (
-    <Modal
-      open={open}
-      onOpenChange={onOpenChange}
-      title={`Themen hinzufügen — ${fach.name}`}
-      size="md"
-      footer={
-        <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
-          <Button onClick={() => { onAdd(Array.from(selected)); onOpenChange(false) }} disabled={selected.size === 0}>
-            {selected.size > 0 ? `${selected.size} Thema${selected.size > 1 ? 'n' : ''} hinzufügen` : 'Hinzufügen'}
-          </Button>
-        </>
-      }
-    >
-      {fachThemen.length === 0 ? (
-        <div className="text-center space-y-2">
-          <p className="text-sm text-muted-foreground">Keine Themen für diese Klassenstufe verfügbar.</p>
-          <a href="/lernziele" className="text-xs text-primary hover:underline">In «Meine Lernziele» Themen anlegen →</a>
-        </div>
-      ) : availableThemen.length === 0 ? (
-        <div className="text-center space-y-2">
-          <p className="text-sm text-muted-foreground">Alle Themen dieses Fachs sind bereits zugewiesen.</p>
-          <a href="/lernziele" className="text-xs text-primary hover:underline">Weitere Themen in «Meine Lernziele» anlegen →</a>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {availableThemen.map(thema => {
-            const lzCount = allLZ.filter(lz => lz.themaId === thema.id).length
-            const isSelected = selected.has(thema.id)
-            return (
-              <div
-                key={thema.id}
-                className={cn(
-                  'flex items-center gap-3 cursor-pointer rounded-xl border-2 p-3 transition-all',
-                  isSelected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-accent/30',
-                )}
-                onClick={() => toggle(thema.id)}
-              >
-                <div className={cn(
-                  'flex size-4 shrink-0 items-center justify-center rounded-sm border-2 transition-all',
-                  isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/30 bg-background',
-                )}>
-                  {isSelected && <Check className="size-2.5 text-white stroke-[3]" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{thema.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {thema.autor && <span>von {thema.autor} · </span>}
-                    <span>{lzCount} Lernziel{lzCount !== 1 ? 'e' : ''}</span>
-                  </p>
-                </div>
-              </div>
-            )
-          })}
-          {alreadyAssigned.length > 0 && (
-            <div className="pt-2 border-t border-border/60">
-              <p className="text-xs text-muted-foreground mb-1.5">Bereits zugewiesen</p>
-              {alreadyAssigned.map(thema => (
-                <div key={thema.id} className="flex items-center gap-3 rounded-xl border border-border/50 p-3 opacity-50">
-                  <div className="flex size-4 shrink-0 items-center justify-center rounded-sm border-2 border-primary bg-primary">
-                    <Check className="size-2.5 text-white stroke-[3]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{thema.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Bereits zugewiesen</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </Modal>
-  )
-}
-
-
 function LernzieleTab({ klassId }: { klassId: string }) {
   const {
     getClass,
@@ -615,15 +514,6 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                       </span>
                       <span className="text-xs text-muted-foreground tabular-nums">{fachLZCount} LZ</span>
                     </button>
-                    {hasUnassignedInFach && (
-                      <button
-                        onClick={() => setAddFachId(fach.id)}
-                        className="flex items-center justify-center size-5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                        aria-label={`Themen in ${fach.name} hinzufügen`}
-                      >
-                        <Plus className="size-3.5" />
-                      </button>
-                    )}
                   </div>
 
                   {!fachCollapsed && (
@@ -631,6 +521,13 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                       {fachThemen.map(({ thema, lz: themaLZ }) => {
                         const isExpanded = !!q || expandedThemen.has(thema.id)
                         const isDateEditing = editDateThemaId === thema.id
+
+                        const today = new Date().toISOString().slice(0, 10)
+                        const isOverdue = thema.faelligAm ? thema.faelligAm < today : false
+                        const daysUntil = thema.faelligAm
+                          ? Math.ceil((new Date(thema.faelligAm).getTime() - Date.now()) / 86400000)
+                          : null
+                        const isNearDeadline = daysUntil !== null && daysUntil >= 0 && daysUntil <= 14
 
                         const totalStudents = klassStudents.length
                         const assessedStudents = totalStudents > 0
@@ -654,7 +551,14 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                               </button>
 
                               {totalStudents > 0 && (
-                                <span className="text-[10px] tabular-nums text-muted-foreground shrink-0 hidden sm:block">
+                                <span className={cn(
+                                  'text-[10px] tabular-nums shrink-0 hidden sm:flex items-center justify-center rounded px-1.5 py-0.5 font-medium w-[52px]',
+                                  assessedStudents === totalStudents
+                                    ? 'bg-muted text-muted-foreground'
+                                    : assessedStudents === 0
+                                      ? 'bg-rose-100 text-rose-600'
+                                      : 'bg-amber-100 text-amber-600',
+                                )}>
                                   {assessedStudents}/{totalStudents}
                                 </span>
                               )}
@@ -683,7 +587,11 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                   className={cn(
                                     'flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5 transition-colors',
                                     thema.faelligAm
-                                      ? 'bg-muted text-muted-foreground hover:bg-accent'
+                                      ? isOverdue
+                                        ? 'bg-rose-100 text-rose-600 font-medium hover:bg-rose-200'
+                                        : isNearDeadline
+                                          ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                                          : 'bg-muted text-muted-foreground hover:bg-accent'
                                       : 'opacity-0 group-hover/row:opacity-60 text-muted-foreground hover:bg-accent',
                                   )}
                                   aria-label="Fälligkeitsdatum setzen"
@@ -781,6 +689,15 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                           </div>
                         )
                       })}
+
+                      {hasUnassignedInFach && (
+                        <button
+                          onClick={() => setAddFachId(fach.id)}
+                          className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-accent/20 transition-colors"
+                        >
+                          <Plus className="size-3" /> Themen hinzufügen
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -821,22 +738,17 @@ function LernzieleTab({ klassId }: { klassId: string }) {
         })()}
 
         {/* Add-Themen modal for a fach */}
-        {addFachId && (() => {
-          const fach = faecher.find(f => f.id === addFachId)
-          if (!fach) return null
-          return (
-            <AddLernzieleModal
-              open
-              onOpenChange={(v) => { if (!v) setAddFachId(null) }}
-              fach={fach}
-              themen={themen}
-              lernziele={lernziele}
-              assignedThemaIds={klasse.assignedThemaIds}
-              klasseGrade={klasseGrade}
-              onAdd={(themaIds) => themaIds.forEach(id => assignThemaToKlasse(klassId, id))}
-            />
-          )
-        })()}
+        {addFachId && (
+          <AddThemenModal
+            open
+            onOpenChange={(v) => { if (!v) setAddFachId(null) }}
+            fachId={addFachId}
+            klassId={klassId}
+            klasseGrade={klasseGrade}
+            assignedThemaIds={klasse.assignedThemaIds}
+            onAdd={(themaIds) => themaIds.forEach(id => assignThemaToKlasse(klassId, id))}
+          />
+        )}
 
       </div>
 
@@ -1273,7 +1185,7 @@ export default function KlasseDetailPage() {
             klassId={klassId}
             students={students}
             themen={assignedThemen}
-            lernziele={lernziele.filter(lz => lz.source !== 'bibliothek')}
+            lernziele={lernziele}
             faecher={faecher}
           />
         </div>
