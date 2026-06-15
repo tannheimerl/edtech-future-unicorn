@@ -106,8 +106,8 @@ export default function SchuelerDetailPage() {
 
   const kpis = useMemo(() => {
     if (!student) return null
-    return computeStudentKpis(student, assignedThemen, lernziele, faecher, getVersuche)
-  }, [student, assignedThemen, lernziele, faecher, getVersuche])
+    return computeStudentKpis(student, assignedThemen, lernziele, faecher)
+  }, [student, assignedThemen, lernziele, faecher])
 
   const handleNoteSave = () => {
     if (!student) return

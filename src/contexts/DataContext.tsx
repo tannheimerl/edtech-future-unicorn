@@ -1,35 +1,41 @@
 'use client'
 
 /*
-  ── Backend integration point ─────────────────────────────────────────────
-  Replace the useState calls and their mutation handlers with API calls
-  (fetch / SWR / React Query / server actions). The context interface stays
-  unchanged so no view component needs updating.
-  ─────────────────────────────────────────────────────────────────────────
+  ── Backend integration ────────────────────────────────────────────────────────
+  Write-through cache: local React state is the source of truth for the UI;
+  every mutation also fires a server action to persist the change in Supabase.
+  On mount, data is loaded from Supabase (fetchAllData). The context interface
+  is unchanged so no view component needs updating.
+  ─────────────────────────────────────────────────────────────────────────────
 */
 
-import React, { createContext, useCallback, useContext, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type {
   Klasse, Kompetenz, Schueler, Status, Fach, Thema, Lernziel, LernzielKategorie,
   AssessmentKommentar, ThemaKommentar, Versuch, Lehrperson, LezioExport, LezioExportLernziel,
 } from '@/types/domain'
+import { SEED_COMPETENCIES } from '@/lib/mock-data'
+import { fetchAllData } from '@/actions/db-read'
 import {
-  SEED_CLASSES,
-  SEED_COMPETENCIES,
-  SEED_STUDENTS,
-  SEED_FAECHER,
-  SEED_THEMEN,
-  SEED_LERNZIELE,
-  SEED_LERNZIELE_RILZ,
-  SEED_LEHRPERSONEN,
-  SEED_KOMMENTARE,
-} from '@/lib/mock-data'
+  dbSaveKlasse, dbDeleteKlasse,
+  dbSaveSchueler, dbDeleteSchueler,
+  dbSaveLernzielStatus, dbDeleteLernzielStatus,
+  dbSaveRilzLernziel, dbDeleteRilzLernziel,
+  dbSaveKommentar, dbDeleteKommentar,
+  dbSaveThemaKommentar, dbDeleteThemaKommentar,
+  dbSaveFach, dbDeleteFach,
+  dbSaveThema, dbDeleteThema,
+  dbSaveLernziel, dbDeleteLernziel,
+} from '@/actions/db-write'
 
-// ── Public interface ─────────────────────────────────────────────────────
+// ── Public interface ─────────────────────────────────────────────────────────
 
 interface DataContextValue {
   // Identity
   currentLpId: string
+
+  // Loading state
+  isLoading: boolean
 
   // State
   classes: Klasse[]
@@ -118,18 +124,36 @@ interface DataContextValue {
 
 const DataContext = createContext<DataContextValue | null>(null)
 
-// ── Provider ─────────────────────────────────────────────────────────────
+// ── Provider ─────────────────────────────────────────────────────────────────
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [classes, setClasses] = useState<Klasse[]>(SEED_CLASSES)
-  const [students, setStudents] = useState<Schueler[]>(SEED_STUDENTS)
-  const [faecher, setFaecher] = useState<Fach[]>(SEED_FAECHER)
-  const [themen, setThemen] = useState<Thema[]>(SEED_THEMEN)
-  const [lernziele, setLernziele] = useState<Lernziel[]>([...SEED_LERNZIELE, ...SEED_LERNZIELE_RILZ])
-  const [kommentare, setKommentare] = useState<AssessmentKommentar[]>(SEED_KOMMENTARE)
+  const [isLoading, setIsLoading] = useState(true)
+  const [classes, setClasses] = useState<Klasse[]>([])
+  const [students, setStudents] = useState<Schueler[]>([])
+  const [faecher, setFaecher] = useState<Fach[]>([])
+  const [themen, setThemen] = useState<Thema[]>([])
+  const [lernziele, setLernziele] = useState<Lernziel[]>([])
+  const [lehrpersonen, setLehrpersonen] = useState<Lehrperson[]>([])
+  const [kommentare, setKommentare] = useState<AssessmentKommentar[]>([])
   const [themaKommentare, setThemaKommentare] = useState<ThemaKommentar[]>([])
   const competencies = SEED_COMPETENCIES
-  const lehrpersonen = SEED_LEHRPERSONEN
+
+  // Load all data from Supabase on mount
+  useEffect(() => {
+    fetchAllData()
+      .then((data) => {
+        setFaecher(data.faecher)
+        setThemen(data.themen)
+        setLernziele(data.lernziele)
+        setLehrpersonen(data.lehrpersonen)
+        setClasses(data.classes)
+        setStudents(data.students)
+        setKommentare(data.kommentare)
+        setThemaKommentare(data.themaKommentare)
+      })
+      .catch((err) => console.error('fetchAllData failed:', err))
+      .finally(() => setIsLoading(false))
+  }, [])
 
   // ── Queries ──────────────────────────────────────────────────────────
 
@@ -194,17 +218,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const createClass = useCallback((name: string): string => {
     const id = crypto.randomUUID()
-    setClasses((prev) => [...prev, { id, name, assignedThemaIds: [], lpZuweisungen: [] }])
+    const newKlasse: Klasse = { id, name, assignedThemaIds: [], lpZuweisungen: [] }
+    setClasses((prev) => [...prev, newKlasse])
+    dbSaveKlasse(newKlasse)
     return id
   }, [])
 
   const updateClass = useCallback((id: string, name: string) => {
-    setClasses((prev) => prev.map((c) => (c.id === id ? { ...c, name } : c)))
+    setClasses((prev) => prev.map((c) => {
+      if (c.id !== id) return c
+      const updated = { ...c, name }
+      dbSaveKlasse(updated)
+      return updated
+    }))
   }, [])
 
   const deleteClass = useCallback((id: string) => {
     setClasses((prev) => prev.filter((c) => c.id !== id))
     setStudents((prev) => prev.filter((s) => s.klassId !== id))
+    dbDeleteKlasse(id)
   }, [])
 
   // ── Student mutations ─────────────────────────────────────────────────
@@ -213,16 +245,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const competencyStatus = Object.fromEntries(
       SEED_COMPETENCIES.map((c) => [c.id, 'not_reached' as Status])
     )
-    setStudents((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), klassId, vorname, nachname, note: '', competencyStatus, lernzielStatus: {}, rilzFachIds: [], lernzielVersuche: {} },
-    ])
+    const newStudent: Schueler = {
+      id: crypto.randomUUID(), klassId, vorname, nachname, note: '',
+      competencyStatus, lernzielStatus: {}, rilzFachIds: [], lernzielVersuche: {},
+    }
+    setStudents((prev) => [...prev, newStudent])
+    dbSaveSchueler(newStudent)
   }, [])
 
   const updateStudent = useCallback(
     (id: string, patch: Partial<Pick<Schueler, 'vorname' | 'nachname' | 'note'>>) => {
       setStudents((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, ...patch } : s))
+        prev.map((s) => {
+          if (s.id !== id) return s
+          const updated = { ...s, ...patch }
+          dbSaveSchueler(updated)
+          return updated
+        })
       )
     },
     []
@@ -231,6 +270,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const deleteStudent = useCallback((id: string) => {
     setStudents((prev) => prev.filter((s) => s.id !== id))
     setKommentare((prev) => prev.filter((k) => k.studentId !== id))
+    dbDeleteSchueler(id)
   }, [])
 
   // ── RILZ & BVSA ──────────────────────────────────────────────────────
@@ -243,14 +283,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const rilzFachIds = enabled
           ? current.includes(fachId) ? current : [...current, fachId]
           : current.filter((id) => id !== fachId)
-        return { ...s, rilzFachIds }
+        const updated = { ...s, rilzFachIds }
+        dbSaveSchueler(updated)
+        return updated
       })
     )
   }, [])
 
   const setBvsa = useCallback((studentId: string, enabled: boolean) => {
     setStudents((prev) =>
-      prev.map((s) => (s.id === studentId ? { ...s, bvsa: enabled } : s))
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        const updated = { ...s, bvsa: enabled }
+        dbSaveSchueler(updated)
+        return updated
+      })
     )
   }, [])
 
@@ -259,7 +306,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       prev.map((s) => {
         if (s.id !== studentId) return s
         const lz: import('@/types/domain').RilzLernziel = { id: crypto.randomUUID(), themaId, label, status: 'not_reached' }
-        return { ...s, rilzLernziele: [...(s.rilzLernziele ?? []), lz] }
+        const updated = { ...s, rilzLernziele: [...(s.rilzLernziele ?? []), lz] }
+        dbSaveRilzLernziel(studentId, lz)
+        return updated
       })
     )
   }, [])
@@ -268,7 +317,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setStudents((prev) =>
       prev.map((s) => {
         if (s.id !== studentId) return s
-        return { ...s, rilzLernziele: (s.rilzLernziele ?? []).map(lz => lz.id === lzId ? { ...lz, status } : lz) }
+        const rilzLernziele = (s.rilzLernziele ?? []).map((lz) => lz.id === lzId ? { ...lz, status } : lz)
+        const updated = { ...s, rilzLernziele }
+        const rlz = rilzLernziele.find((lz) => lz.id === lzId)
+        if (rlz) dbSaveRilzLernziel(studentId, rlz)
+        return updated
       })
     )
   }, [])
@@ -277,7 +330,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setStudents((prev) =>
       prev.map((s) => {
         if (s.id !== studentId) return s
-        return { ...s, rilzLernziele: (s.rilzLernziele ?? []).map(lz => lz.id === lzId ? { ...lz, label } : lz) }
+        const rilzLernziele = (s.rilzLernziele ?? []).map((lz) => lz.id === lzId ? { ...lz, label } : lz)
+        const updated = { ...s, rilzLernziele }
+        const rlz = rilzLernziele.find((lz) => lz.id === lzId)
+        if (rlz) dbSaveRilzLernziel(studentId, rlz)
+        return updated
       })
     )
   }, [])
@@ -286,9 +343,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setStudents((prev) =>
       prev.map((s) => {
         if (s.id !== studentId) return s
-        return { ...s, rilzLernziele: (s.rilzLernziele ?? []).filter(lz => lz.id !== lzId) }
+        return { ...s, rilzLernziele: (s.rilzLernziele ?? []).filter((lz) => lz.id !== lzId) }
       })
     )
+    dbDeleteRilzLernziel(lzId)
   }, [])
 
   // ── Status mutations ──────────────────────────────────────────────────
@@ -300,8 +358,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           if (s.id !== studentId) return s
           if (status === undefined) {
             const { [lernzielId]: _, ...rest } = s.lernzielStatus
+            dbDeleteLernzielStatus(studentId, lernzielId)
             return { ...s, lernzielStatus: rest }
           }
+          dbSaveLernzielStatus(studentId, lernzielId, status)
           return { ...s, lernzielStatus: { ...s.lernzielStatus, [lernzielId]: status } }
         })
       )
@@ -315,6 +375,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setKommentare((prev) => {
       const existing = prev.findIndex((k) => k.studentId === studentId && k.lernzielId === lernzielId)
       const updated: AssessmentKommentar = { studentId, lernzielId, text, createdAt: new Date().toISOString() }
+      dbSaveKommentar(updated)
       if (existing >= 0) {
         const next = [...prev]
         next[existing] = updated
@@ -328,12 +389,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setKommentare((prev) =>
       prev.filter((k) => !(k.studentId === studentId && k.lernzielId === lernzielId))
     )
+    dbDeleteKommentar(studentId, lernzielId)
   }, [])
 
   const upsertThemaKommentar = useCallback((studentId: string, themaId: string, text: string) => {
     setThemaKommentare((prev) => {
       const idx = prev.findIndex((k) => k.studentId === studentId && k.themaId === themaId)
       const updated: ThemaKommentar = { studentId, themaId, text, updatedAt: new Date().toISOString() }
+      dbSaveThemaKommentar(updated)
       if (idx >= 0) {
         const next = [...prev]
         next[idx] = updated
@@ -347,27 +410,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setThemaKommentare((prev) =>
       prev.filter((k) => !(k.studentId === studentId && k.themaId === themaId))
     )
+    dbDeleteThemaKommentar(studentId, themaId)
   }, [])
 
   // ── Thema assignment to Klasse ────────────────────────────────────────
 
   const assignThemaToKlasse = useCallback((klassId: string, themaId: string) => {
     setClasses((prev) =>
-      prev.map((c) =>
-        c.id === klassId && !c.assignedThemaIds.includes(themaId)
-          ? { ...c, assignedThemaIds: [...c.assignedThemaIds, themaId] }
-          : c
-      )
+      prev.map((c) => {
+        if (c.id !== klassId || c.assignedThemaIds.includes(themaId)) return c
+        const updated = { ...c, assignedThemaIds: [...c.assignedThemaIds, themaId] }
+        dbSaveKlasse(updated)
+        return updated
+      })
     )
   }, [])
 
   const removeThemaFromKlasse = useCallback((klassId: string, themaId: string) => {
     setClasses((prev) =>
-      prev.map((c) =>
-        c.id === klassId
-          ? { ...c, assignedThemaIds: c.assignedThemaIds.filter((id) => id !== themaId) }
-          : c
-      )
+      prev.map((c) => {
+        if (c.id !== klassId) return c
+        const updated = { ...c, assignedThemaIds: c.assignedThemaIds.filter((id) => id !== themaId) }
+        dbSaveKlasse(updated)
+        return updated
+      })
     )
   }, [])
 
@@ -381,18 +447,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const lpZuweisungen = fachIds.length > 0 || rolle != null
           ? [...existing, { lpId, fachIds, rolle }]
           : existing
-        return { ...c, lpZuweisungen }
+        const updated = { ...c, lpZuweisungen }
+        dbSaveKlasse(updated)
+        return updated
       })
     )
   }, [])
 
   const removeLpFromKlasse = useCallback((klassId: string, lpId: string) => {
     setClasses((prev) =>
-      prev.map((c) =>
-        c.id === klassId
-          ? { ...c, lpZuweisungen: (c.lpZuweisungen ?? []).filter((z) => z.lpId !== lpId) }
-          : c
-      )
+      prev.map((c) => {
+        if (c.id !== klassId) return c
+        const updated = { ...c, lpZuweisungen: (c.lpZuweisungen ?? []).filter((z) => z.lpId !== lpId) }
+        dbSaveKlasse(updated)
+        return updated
+      })
     )
   }, [])
 
@@ -403,28 +472,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const vorgaenger = classes.find((c) => c.id === vorgaengerKlasseId)
       if (!vorgaenger) return ''
       const newKlasseId = crypto.randomUUID()
-      setClasses((prev) => [
-        ...prev,
-        {
-          ...vorgaenger,
-          id: newKlasseId,
-          name: neuerName,
-          schuljahr: neuesSchuljahr,
-          vorgaengerKlasseId: vorgaengerKlasseId,
-        },
-      ])
-      // Clone all students into the new class
+      const newKlasse: Klasse = {
+        ...vorgaenger, id: newKlasseId, name: neuerName,
+        schuljahr: neuesSchuljahr, vorgaengerKlasseId: vorgaengerKlasseId,
+      }
+      setClasses((prev) => [...prev, newKlasse])
+      dbSaveKlasse(newKlasse)
+
       setStudents((prev) => {
-        const klassStudents = prev.filter((s) => s.klassId === vorgaengerKlasseId)
-        const cloned = klassStudents.map((s) => ({
-          ...s,
-          id: crypto.randomUUID(),
-          klassId: newKlasseId,
-          // Reset current status — history carries over
-          lernzielStatus: {},
-          lernzielVersuche: {},
-          progressHistory: undefined,
-        }))
+        const cloned = prev
+          .filter((s) => s.klassId === vorgaengerKlasseId)
+          .map((s) => {
+            const ns: Schueler = {
+              ...s, id: crypto.randomUUID(), klassId: newKlasseId,
+              lernzielStatus: {}, lernzielVersuche: {}, progressHistory: undefined,
+            }
+            dbSaveSchueler(ns)
+            return ns
+          })
         return [...prev, ...cloned]
       })
       return newKlasseId
@@ -436,12 +501,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const createFach = useCallback((name: string): string => {
     const id = crypto.randomUUID()
-    setFaecher((prev) => [...prev, { id, name }])
+    const newFach: Fach = { id, name }
+    setFaecher((prev) => [...prev, newFach])
+    dbSaveFach(newFach)
     return id
   }, [])
 
   const updateFach = useCallback((id: string, name: string) => {
-    setFaecher((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)))
+    setFaecher((prev) => prev.map((f) => {
+      if (f.id !== id) return f
+      const updated = { ...f, name }
+      dbSaveFach(updated)
+      return updated
+    }))
   }, [])
 
   const deleteFach = useCallback((id: string) => {
@@ -453,44 +525,42 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       })
       return remaining
     })
-    const lzToDelete = new Set<string>()
-    setLernziele((prev) => {
-      const remaining = prev.filter((l) => {
-        if (themenToDelete.has(l.themaId)) { lzToDelete.add(l.id); return false }
-        return true
-      })
-      return remaining
-    })
+    setLernziele((prev) => prev.filter((l) => !themenToDelete.has(l.themaId)))
     setClasses((prev) =>
       prev.map((c) => ({
-        ...c,
-        assignedThemaIds: c.assignedThemaIds.filter((id) => !themenToDelete.has(id)),
+        ...c, assignedThemaIds: c.assignedThemaIds.filter((tid) => !themenToDelete.has(tid)),
       }))
     )
     setFaecher((prev) => prev.filter((f) => f.id !== id))
+    dbDeleteFach(id) // cascade in DB handles themen + lernziele
   }, [])
 
   // ── Thema CRUD ────────────────────────────────────────────────────────
 
   const createThema = useCallback((fachId: string, name: string, typ?: 'standard' | 'rilz', standardThemaId?: string): string => {
     const id = crypto.randomUUID()
-    setThemen((prev) => [...prev, { id, fachId, name, typ: typ ?? 'standard', standardThemaId }])
+    const newThema: Thema = { id, fachId, name, typ: typ ?? 'standard', standardThemaId }
+    setThemen((prev) => [...prev, newThema])
+    dbSaveThema(newThema)
     return id
   }, [])
 
   const updateThema = useCallback((id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId' | 'stufe'>>) => {
-    setThemen((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
+    setThemen((prev) => prev.map((t) => {
+      if (t.id !== id) return t
+      const updated = { ...t, ...patch }
+      dbSaveThema(updated)
+      return updated
+    }))
   }, [])
 
   const deleteThema = useCallback((id: string) => {
     setLernziele((prev) => prev.filter((l) => l.themaId !== id))
     setClasses((prev) =>
-      prev.map((c) => ({
-        ...c,
-        assignedThemaIds: c.assignedThemaIds.filter((tid) => tid !== id),
-      }))
+      prev.map((c) => ({ ...c, assignedThemaIds: c.assignedThemaIds.filter((tid) => tid !== id) }))
     )
     setThemen((prev) => prev.filter((t) => t.id !== id))
+    dbDeleteThema(id)
   }, [])
 
   // ── RILZ-Thema assignment ─────────────────────────────────────────────
@@ -501,33 +571,44 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         if (s.id !== studentId) return s
         const current = s.rilzThemaIds ?? []
         if (current.includes(rilzThemaId)) return s
-        return { ...s, rilzThemaIds: [...current, rilzThemaId] }
+        const updated = { ...s, rilzThemaIds: [...current, rilzThemaId] }
+        dbSaveSchueler(updated)
+        return updated
       })
     )
   }, [])
 
   const removeRilzThemaFromStudent = useCallback((studentId: string, rilzThemaId: string) => {
     setStudents((prev) =>
-      prev.map((s) =>
-        s.id === studentId
-          ? { ...s, rilzThemaIds: (s.rilzThemaIds ?? []).filter((id) => id !== rilzThemaId) }
-          : s
-      )
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        const updated = { ...s, rilzThemaIds: (s.rilzThemaIds ?? []).filter((id) => id !== rilzThemaId) }
+        dbSaveSchueler(updated)
+        return updated
+      })
     )
   }, [])
 
   // ── Lernziel CRUD ─────────────────────────────────────────────────────
 
   const createLernziel = useCallback((themaId: string, label: string, kategorie: LernzielKategorie) => {
-    setLernziele((prev) => [...prev, { id: crypto.randomUUID(), themaId, kategorie, label }])
+    const newLZ: Lernziel = { id: crypto.randomUUID(), themaId, kategorie, label }
+    setLernziele((prev) => [...prev, newLZ])
+    dbSaveLernziel(newLZ)
   }, [])
 
   const updateLernziel = useCallback((id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie'>>) => {
-    setLernziele((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+    setLernziele((prev) => prev.map((l) => {
+      if (l.id !== id) return l
+      const updated = { ...l, ...patch }
+      dbSaveLernziel(updated)
+      return updated
+    }))
   }, [])
 
   const deleteLernziel = useCallback((id: string) => {
     setLernziele((prev) => prev.filter((l) => l.id !== id))
+    dbDeleteLernziel(id)
   }, [])
 
   const CURRENT_LP_ID = 'lp1'
@@ -540,20 +621,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const exportLZ: LezioExportLernziel[] = lernziele
       .filter((l) => l.themaId === themaId)
       .map(({ kategorie, label, kriterien, beschreibung }) => ({
-        kategorie,
-        label,
+        kategorie, label,
         ...(kriterien ? { kriterien } : {}),
         ...(beschreibung ? { beschreibung } : {}),
       }))
     const payload: LezioExport = {
-      version: '1',
-      exportedAt: new Date().toISOString(),
-      fachName: fach.name,
-      thema: {
-        name: thema.name,
-        ...(thema.typ ? { typ: thema.typ } : {}),
-        ...(thema.stufe ? { stufe: thema.stufe } : {}),
-      },
+      version: '1', exportedAt: new Date().toISOString(), fachName: fach.name,
+      thema: { name: thema.name, ...(thema.typ ? { typ: thema.typ } : {}), ...(thema.stufe ? { stufe: thema.stufe } : {}) },
       lernziele: exportLZ,
     }
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
@@ -575,20 +649,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const exportLZ: LezioExportLernziel[] = lernziele
         .filter((l) => l.themaId === thema.id)
         .map(({ kategorie, label, kriterien, beschreibung }) => ({
-          kategorie,
-          label,
+          kategorie, label,
           ...(kriterien ? { kriterien } : {}),
           ...(beschreibung ? { beschreibung } : {}),
         }))
       const payload: LezioExport = {
-        version: '1',
-        exportedAt: new Date().toISOString(),
-        fachName: fach.name,
-        thema: {
-          name: thema.name,
-          ...(thema.typ ? { typ: thema.typ } : {}),
-          ...(thema.stufe ? { stufe: thema.stufe } : {}),
-        },
+        version: '1', exportedAt: new Date().toISOString(), fachName: fach.name,
+        thema: { name: thema.name, ...(thema.typ ? { typ: thema.typ } : {}), ...(thema.stufe ? { stufe: thema.stufe } : {}) },
         lernziele: exportLZ,
       }
       zip.file(`${thema.name}.lezio`, JSON.stringify(payload, null, 2))
@@ -614,29 +681,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       fachId = targetFachId
     } else {
       const existingFach = faecher.find((f) => f.name.toLowerCase() === data.fachName.toLowerCase())
-      if (!existingFach) {
-        throw new Error('FACH_NOT_FOUND')
-      }
+      if (!existingFach) throw new Error('FACH_NOT_FOUND')
       fachId = existingFach.id
     }
     const themaId = crypto.randomUUID()
-    setThemen((prev) => [...prev, {
-      id: themaId,
-      fachId,
-      name: data.thema.name,
+    const newThema: Thema = {
+      id: themaId, fachId, name: data.thema.name,
       typ: data.thema.typ ?? 'standard',
       ...(data.thema.stufe ? { stufe: data.thema.stufe } : {}),
-    }])
+    }
+    setThemen((prev) => [...prev, newThema])
+    dbSaveThema(newThema)
+
     if (Array.isArray(data.lernziele) && data.lernziele.length > 0) {
       const newLZ: Lernziel[] = data.lernziele.map((lz) => ({
-        id: crypto.randomUUID(),
-        themaId,
-        kategorie: lz.kategorie,
-        label: lz.label,
+        id: crypto.randomUUID(), themaId, kategorie: lz.kategorie, label: lz.label,
         ...(lz.kriterien ? { kriterien: lz.kriterien } : {}),
         ...(lz.beschreibung ? { beschreibung: lz.beschreibung } : {}),
       }))
       setLernziele((prev) => [...prev, ...newLZ])
+      for (const lz of newLZ) dbSaveLernziel(lz)
     }
   }, [faecher])
 
@@ -644,6 +708,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     <DataContext.Provider
       value={{
         currentLpId: CURRENT_LP_ID,
+        isLoading,
         classes,
         students,
         competencies,

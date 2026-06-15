@@ -1,5 +1,4 @@
-import type { Schueler, Thema, Lernziel, Fach, Versuch } from '@/types/domain'
-import { sv } from '@/lib/utils'
+import type { Schueler, Thema, Lernziel, Fach } from '@/types/domain'
 
 export interface ThemaKpi {
   thema: Thema
@@ -53,7 +52,6 @@ export function computeStudentKpis(
   assignedThemen: Thema[],
   allLernziele: Lernziel[],
   faecher: Fach[],
-  getVersuche: (student: Schueler, lzId: string) => Versuch[],
 ): StudentKpis {
   const allLZ = assignedThemen.flatMap((t) =>
     allLernziele.filter((lz) => lz.themaId === t.id)
