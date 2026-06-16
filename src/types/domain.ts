@@ -75,6 +75,12 @@ export interface LpZuweisung {
   rolle?: LpRolle
 }
 
+export interface KlasseBeurteilungSettings {
+  punkteEnabled: boolean
+  noteEnabled: boolean
+  anhangEnabled: boolean
+}
+
 export interface Klasse {
   id: string
   name: string
@@ -82,6 +88,7 @@ export interface Klasse {
   lpZuweisungen?: LpZuweisung[]
   schuljahr?: string           // e.g. "2025/26"
   vorgaengerKlasseId?: string  // pointer to previous year's class
+  beurteilungSettings?: KlasseBeurteilungSettings
 }
 
 // A single assessment attempt for a Lernziel
@@ -126,6 +133,33 @@ export interface Schueler {
   lernzielStatus: Record<string, Status>
   lernzielVersuche?: Record<string, Versuch[]>  // attempt history per LZ (replaces lernzielStatus long-term)
   progressHistory?: StatusSnapshot[]
+}
+
+export interface Pruefung {
+  id: string
+  klasseId: string
+  fachId: string
+  name: string
+  datum: string           // ISO YYYY-MM-DD
+  lernzielIds: string[]
+  maxPunkte?: number
+  erstelltVonId?: string
+  tenantId: string
+  createdAt: string
+}
+
+export interface PruefungErgebnis {
+  id: string
+  pruefungId: string
+  schuelerId: string
+  punkte?: number
+  note?: string           // Schweizer Note, z.B. "5.5"
+  anzahlVersuche: number
+  kommentar?: string
+  anhangUrls: string[]
+  status?: Status
+  tenantId: string
+  createdAt: string
 }
 
 export interface Kompetenz {

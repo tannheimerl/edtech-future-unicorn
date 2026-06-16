@@ -17,11 +17,32 @@ export function BerichteTab({ klassId }: { klassId: string }) {
     getKommentar,
     getThemaKommentar,
     faecher,
+    getPruefungenForKlasse,
+    getPruefungErgebnisse,
+    lernziele: allLernziele,
+    themen: allThemen2,
   } = useData()
 
   const klasse = getClass(klassId)!
   const allThemen = getThemenForKlasse(klassId)
   const students = getStudentsForClass(klassId)
+  const pruefungen = getPruefungenForKlasse(klassId).sort((a, b) => b.datum.localeCompare(a.datum))
+
+  // Basis selection: 'lz' = Lernziel-Basis, 'pruefung' = Prüfungs-Basis
+  const [basis, setBasis] = useState<'lz' | 'pruefung'>('lz')
+
+  // Prüfungs-Basis state
+  const [pSelectedPruefungId, setPSelectedPruefungId] = useState<string | null>(
+    pruefungen.length > 0 ? pruefungen[0].id : null
+  )
+  const [pStudentMode, setPStudentMode] = useState<'all' | 'individual' | null>(null)
+  const [pSelectedStudentIds, setPSelectedStudentIds] = useState<Set<string>>(new Set())
+  const [pReportKommentare, setPReportKommentare] = useState<Record<string, string>>({})
+  const [pIsGenerating, setPIsGenerating] = useState(false)
+  const [pIncludePunkte, setPIncludePunkte] = useState(true)
+  const [pIncludeNote, setPIncludeNote] = useState(true)
+  const [pOpenStep, setPOpenStep] = useState<1 | 2 | 3 | null>(1)
+  const [pPreviewStudentId, setPPreviewStudentId] = useState<string | null>(null)
 
   // Which accordion step is currently open (1–4, or null)
   const [openStep, setOpenStep] = useState<1 | 2 | 3 | 4 | null>(1)
@@ -103,6 +124,71 @@ export function BerichteTab({ klassId }: { klassId: string }) {
     setOpenStep(prev => prev === step ? null : step)
   }
 
+  // ── Prüfungs-Basis helpers ──────────────────────────────────────────────
+
+  const pPruefung = pSelectedPruefungId ? pruefungen.find(p => p.id === pSelectedPruefungId) : null
+  const pFach = pPruefung ? faecher.find(f => f.id === pPruefung.fachId) : null
+  const pLernziele = pPruefung
+    ? (pPruefung.lernzielIds
+        .map(id => allLernziele.find(l => l.id === id))
+        .filter((l): l is NonNullable<typeof l> => l != null))
+    : []
+  const pThemaName = pPruefung
+    ? (() => {
+        const themaIds = [...new Set(pLernziele.map(l => l.themaId))]
+        return themaIds.map(id => allThemen2.find(t => t.id === id)?.name ?? '').filter(Boolean).join(', ')
+      })()
+    : ''
+  const pTargetStudents =
+    pStudentMode === 'all' ? students :
+    pStudentMode === 'individual' ? students.filter(s => pSelectedStudentIds.has(s.id)) :
+    []
+  const pCanDownload = !!pPruefung && pTargetStudents.length > 0 && !pIsGenerating
+
+  async function handlePruefungDownload() {
+    if (!pCanDownload || !pPruefung || !pFach) return
+    setPIsGenerating(true)
+    try {
+      const dateStr = new Date(pPruefung.datum).toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' })
+      const ergebnisse = getPruefungErgebnisse(pPruefung.id)
+      const entries = await Promise.all(
+        pTargetStudents.map(async (student) => {
+          const ergebnis = ergebnisse.find(e => e.schuelerId === student.id)
+          const props: SchuelerBerichtPDFProps = {
+            studentName: `${student.vorname} ${student.nachname}`,
+            klassenName: klasse.name,
+            fachName: pFach.name,
+            themaName: pPruefung.name,
+            date: dateStr,
+            lernziele: pLernziele.map(lz => ({
+              label: lz.label,
+              kategorie: lz.kategorie,
+              status: student.lernzielStatus[lz.id] ?? 'not_reached',
+            })),
+            kommentar: pReportKommentare[student.id] || undefined,
+            pruefungsErgebnis: ergebnis ? {
+              punkte: ergebnis.punkte,
+              maxPunkte: pPruefung.maxPunkte,
+              note: ergebnis.note,
+            } : undefined,
+            includeInBericht: { punkte: pIncludePunkte, note: pIncludeNote },
+          }
+          const blob = await generatePdfBlob(props)
+          const safeName = `${student.vorname}_${student.nachname}`
+          const safePruefung = pPruefung.name.replace(/\s+/g, '_')
+          return { filename: `Bericht_${safeName}_${safePruefung}.pdf`, blob }
+        })
+      )
+      if (entries.length === 1) {
+        triggerDownload(entries[0].blob, entries[0].filename)
+      } else {
+        await downloadZip(entries, `Berichte_${klasse.name.replace(/\s+/g, '_')}_${pPruefung.name.replace(/\s+/g, '_')}.zip`)
+      }
+    } finally {
+      setPIsGenerating(false)
+    }
+  }
+
   // ── PDF generation ──────────────────────────────────────────────────────
 
   async function handleDownload() {
@@ -166,8 +252,266 @@ export function BerichteTab({ klassId }: { klassId: string }) {
 
       {/* Subtitle */}
       <p className="text-sm text-muted-foreground pb-1">
-        Wähle Fach, Thema und Schüler:innen — dann kannst du individuelle Berichte herunterladen.
+        Wähle Berichtsbasis, Thema und Schüler:innen — dann kannst du individuelle Berichte herunterladen.
       </p>
+
+      {/* Basis selector */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <p className="text-sm font-semibold">Berichtsbasis</p>
+        <div className="flex gap-3">
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <div
+              className={cn(
+                'mt-0.5 size-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors',
+                basis === 'lz' ? 'border-primary bg-primary' : 'border-border group-hover:border-primary/50',
+              )}
+              onClick={() => setBasis('lz')}
+            >
+              {basis === 'lz' && <div className="size-1.5 rounded-full bg-primary-foreground" />}
+            </div>
+            <div>
+              <p className="text-sm font-medium">Lernziel-Basis</p>
+              <p className="text-xs text-muted-foreground">Bericht über ein Thema mit Lernzielen</p>
+            </div>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer group ml-6">
+            <div
+              className={cn(
+                'mt-0.5 size-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors',
+                basis === 'pruefung' ? 'border-primary bg-primary' : 'border-border group-hover:border-primary/50',
+              )}
+              onClick={() => setBasis('pruefung')}
+            >
+              {basis === 'pruefung' && <div className="size-1.5 rounded-full bg-primary-foreground" />}
+            </div>
+            <div>
+              <p className="text-sm font-medium">Prüfungs-Basis</p>
+              <p className="text-xs text-muted-foreground">Bericht zu einer Prüfung mit Ergebnis</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* ── PRÜFUNGS-BASIS FLOW ── */}
+      {basis === 'pruefung' && (
+        <>
+          {pruefungen.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+              <p className="text-sm text-muted-foreground">Noch keine Prüfungen vorhanden.</p>
+            </div>
+          ) : (
+            <>
+              {/* P-Step 1: Prüfung */}
+              <StepCard
+                step={1}
+                title="Prüfung"
+                summary={pPruefung ? `${pPruefung.name} (${new Date(pPruefung.datum).toLocaleDateString('de-CH')})` : undefined}
+                isOpen={pOpenStep === 1}
+                onToggle={() => setPOpenStep(prev => prev === 1 ? null : 1)}
+              >
+                <div className="flex flex-wrap gap-2">
+                  {pruefungen.map(p => {
+                    const fach = faecher.find(f => f.id === p.fachId)
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => { setPSelectedPruefungId(p.id); setPStudentMode(null); setPSelectedStudentIds(new Set()); setPOpenStep(2) }}
+                        className={cn(
+                          'rounded-md border px-4 py-1.5 text-sm transition-all text-left',
+                          pSelectedPruefungId === p.id
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+                        )}
+                      >
+                        <span className="font-medium">{p.name}</span>
+                        <span className="ml-2 text-xs opacity-70">{fach?.name} · {new Date(p.datum).toLocaleDateString('de-CH')}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </StepCard>
+
+              {/* P-Step 2: Schüler */}
+              {pSelectedPruefungId && (
+                <StepCard
+                  step={2}
+                  title="Schüler/innen"
+                  summary={
+                    pStudentMode === 'all' ? `Alle (${students.length})` :
+                    pStudentMode === 'individual' ? `${pTargetStudents.length} von ${students.length}` :
+                    undefined
+                  }
+                  isOpen={pOpenStep === 2}
+                  onToggle={() => setPOpenStep(prev => prev === 2 ? null : 2)}
+                >
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setPStudentMode('all'); setPOpenStep(3) }}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-md border px-4 py-1.5 text-sm font-medium transition-all',
+                          pStudentMode === 'all'
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+                        )}
+                      >
+                        <Users className="size-3.5" /> Alle ({students.length})
+                      </button>
+                      <button
+                        onClick={() => { setPStudentMode('individual'); setPSelectedStudentIds(new Set()) }}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-md border px-4 py-1.5 text-sm font-medium transition-all',
+                          pStudentMode === 'individual'
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+                        )}
+                      >
+                        <User className="size-3.5" /> Einzelne
+                      </button>
+                    </div>
+                    {pStudentMode === 'individual' && (
+                      <div className="flex flex-wrap gap-2">
+                        {students.map(s => (
+                          <button
+                            key={s.id}
+                            onClick={() => {
+                              setPSelectedStudentIds(prev => {
+                                const next = new Set(prev)
+                                next.has(s.id) ? next.delete(s.id) : next.add(s.id)
+                                return next
+                              })
+                            }}
+                            className={cn(
+                              'rounded-md border px-3 py-1.5 text-sm transition-all',
+                              pSelectedStudentIds.has(s.id)
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
+                            )}
+                          >
+                            {s.vorname} {s.nachname}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </StepCard>
+              )}
+
+              {/* P-Step 3: Felder + Kommentar */}
+              {pSelectedPruefungId && pStudentMode !== null && (
+                <StepCard
+                  step={3}
+                  title="Felder & Kommentar"
+                  summary="optional"
+                  isOpen={pOpenStep === 3}
+                  onToggle={() => setPOpenStep(prev => prev === 3 ? null : 3)}
+                >
+                  <div className="space-y-4">
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <div
+                          onClick={() => setPIncludePunkte(v => !v)}
+                          className={cn(
+                            'size-4 rounded border-2 flex items-center justify-center transition-colors cursor-pointer',
+                            pIncludePunkte ? 'bg-primary border-primary' : 'border-border',
+                          )}
+                        >
+                          {pIncludePunkte && <Check className="size-2.5 text-white stroke-[3]" />}
+                        </div>
+                        Punkte
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <div
+                          onClick={() => setPIncludeNote(v => !v)}
+                          className={cn(
+                            'size-4 rounded border-2 flex items-center justify-center transition-colors cursor-pointer',
+                            pIncludeNote ? 'bg-primary border-primary' : 'border-border',
+                          )}
+                        >
+                          {pIncludeNote && <Check className="size-2.5 text-white stroke-[3]" />}
+                        </div>
+                        Note
+                      </label>
+                    </div>
+                    <div className="space-y-4">
+                      {pTargetStudents.map(s => (
+                        <div key={s.id} className="space-y-1">
+                          {pTargetStudents.length > 1 && (
+                            <p className="text-xs font-medium">{s.vorname} {s.nachname}</p>
+                          )}
+                          <textarea
+                            value={pReportKommentare[s.id] ?? ''}
+                            onChange={e => setPReportKommentare(prev => ({ ...prev, [s.id]: e.target.value }))}
+                            onClick={() => setPPreviewStudentId(s.id)}
+                            placeholder="Klicken für Vorschau und Kommentar…"
+                            rows={2}
+                            readOnly
+                            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </StepCard>
+              )}
+
+              {/* P-Preview modal */}
+              {pPreviewStudentId && pPruefung && pFach && (() => {
+                const s = students.find(st => st.id === pPreviewStudentId)!
+                const fakeThema = { id: pPruefung.id, name: pPruefung.name, fachId: pFach.id }
+                return (
+                  <BerichtPreviewModal
+                    open={true}
+                    onClose={() => setPPreviewStudentId(null)}
+                    student={s}
+                    klasse={klasse}
+                    fach={pFach}
+                    thema={fakeThema as never}
+                    activeLz={pLernziele}
+                    kommentar={pReportKommentare[s.id] ?? ''}
+                    onKommentarChange={val => setPReportKommentare(prev => ({ ...prev, [s.id]: val }))}
+                  />
+                )
+              })()}
+
+              {/* P-Download button */}
+              {pSelectedPruefungId && pStudentMode !== null && (
+                <div className="pt-1">
+                  <button
+                    onClick={handlePruefungDownload}
+                    disabled={!pCanDownload}
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all',
+                      pCanDownload
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98]'
+                        : 'bg-muted text-muted-foreground cursor-not-allowed',
+                    )}
+                  >
+                    {pIsGenerating ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : pTargetStudents.length === 1 ? (
+                      <FileText className="size-4" />
+                    ) : (
+                      <Download className="size-4" />
+                    )}
+                    {pIsGenerating
+                      ? 'Wird erstellt…'
+                      : pTargetStudents.length === 1
+                        ? 'PDF herunterladen'
+                        : `ZIP herunterladen (${pTargetStudents.length} PDFs)`}
+                  </button>
+                  {pStudentMode === 'individual' && pTargetStudents.length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-2">Bitte mindestens eine/n Schüler/in wählen.</p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {/* ── LERNZIEL-BASIS FLOW ── */}
+      {basis === 'lz' && (<>
 
       {/* Step 1: Fach */}
       <StepCard
@@ -440,6 +784,8 @@ export function BerichteTab({ klassId }: { klassId: string }) {
           )}
         </div>
       )}
+
+      </>)}
 
     </div>
   )

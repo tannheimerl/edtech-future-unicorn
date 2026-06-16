@@ -11,8 +11,9 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type {
-  Klasse, Kompetenz, Schueler, Status, Fach, Thema, Lernziel, LernzielKategorie,
+  Klasse, KlasseBeurteilungSettings, Kompetenz, Schueler, Status, Fach, Thema, Lernziel, LernzielKategorie,
   AssessmentKommentar, ThemaKommentar, Versuch, Lehrperson, LezioExport, LezioExportLernziel,
+  Pruefung, PruefungErgebnis,
 } from '@/types/domain'
 import { SEED_COMPETENCIES } from '@/lib/mock-data'
 import { fetchAllData } from '@/actions/db-read'
@@ -26,6 +27,10 @@ import {
   dbSaveFach, dbDeleteFach,
   dbSaveThema, dbDeleteThema,
   dbSaveLernziel, dbDeleteLernziel,
+  dbSavePruefung, dbDeletePruefung,
+  dbSavePruefungErgebnis,
+  dbUploadPruefungAnhang, dbDeletePruefungAnhang,
+  dbSaveBeurteilungSettings,
 } from '@/actions/db-write'
 
 // ── Public interface ─────────────────────────────────────────────────────────
@@ -47,6 +52,8 @@ interface DataContextValue {
   lehrpersonen: Lehrperson[]
   kommentare: AssessmentKommentar[]
   themaKommentare: ThemaKommentar[]
+  pruefungen: Pruefung[]
+  pruefungErgebnisse: PruefungErgebnis[]
 
   // Queries
   getClass: (id: string) => Klasse | undefined
@@ -61,8 +68,9 @@ interface DataContextValue {
 
   // Class CRUD
   createClass: (name: string) => string
-  updateClass: (id: string, name: string) => void
+  updateClass: (id: string, name: string, schuljahr?: string) => void
   deleteClass: (id: string) => void
+  updateBeurteilungSettings: (klassId: string, settings: KlasseBeurteilungSettings) => void
 
   // Student CRUD
   createStudent: (klassId: string, vorname: string, nachname: string) => void
@@ -120,6 +128,16 @@ interface DataContextValue {
   exportThema: (themaId: string) => void
   exportFach: (fachId: string) => void
   importThema: (file: File, targetFachId?: string) => Promise<void>
+
+  // Prüfungen
+  getPruefungenForKlasse: (klassId: string) => Pruefung[]
+  getPruefungErgebnisse: (pruefungId: string) => PruefungErgebnis[]
+  createPruefung: (data: Omit<Pruefung, 'id' | 'tenantId' | 'createdAt'>) => string
+  updatePruefung: (id: string, patch: Partial<Pick<Pruefung, 'name' | 'datum' | 'lernzielIds' | 'maxPunkte'>>) => void
+  deletePruefung: (id: string) => void
+  upsertPruefungErgebnis: (ergebnis: Omit<PruefungErgebnis, 'tenantId' | 'createdAt'>) => void
+  uploadAnhang: (pruefungId: string, schuelerId: string, file: File) => Promise<string | null>
+  deleteAnhang: (ergebnisId: string, url: string) => Promise<void>
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -136,6 +154,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [lehrpersonen, setLehrpersonen] = useState<Lehrperson[]>([])
   const [kommentare, setKommentare] = useState<AssessmentKommentar[]>([])
   const [themaKommentare, setThemaKommentare] = useState<ThemaKommentar[]>([])
+  const [pruefungen, setPruefungen] = useState<Pruefung[]>([])
+  const [pruefungErgebnisse, setPruefungErgebnisse] = useState<PruefungErgebnis[]>([])
   const competencies = SEED_COMPETENCIES
 
   // Load all data from Supabase on mount
@@ -150,6 +170,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setStudents(data.students)
         setKommentare(data.kommentare)
         setThemaKommentare(data.themaKommentare)
+        setPruefungen(data.pruefungen)
+        setPruefungErgebnisse(data.pruefungErgebnisse)
       })
       .catch((err) => console.error('fetchAllData failed:', err))
       .finally(() => setIsLoading(false))
@@ -224,10 +246,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return id
   }, [])
 
-  const updateClass = useCallback((id: string, name: string) => {
+  const updateClass = useCallback((id: string, name: string, schuljahr?: string) => {
     setClasses((prev) => prev.map((c) => {
       if (c.id !== id) return c
-      const updated = { ...c, name }
+      const updated = { ...c, name, ...(schuljahr !== undefined && { schuljahr }) }
       dbSaveKlasse(updated)
       return updated
     }))
@@ -237,6 +259,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setClasses((prev) => prev.filter((c) => c.id !== id))
     setStudents((prev) => prev.filter((s) => s.klassId !== id))
     dbDeleteKlasse(id)
+  }, [])
+
+  const updateBeurteilungSettings = useCallback((klassId: string, settings: KlasseBeurteilungSettings) => {
+    setClasses((prev) => prev.map((c) =>
+      c.id === klassId ? { ...c, beurteilungSettings: settings } : c
+    ))
+    dbSaveBeurteilungSettings(klassId, settings)
   }, [])
 
   // ── Student mutations ─────────────────────────────────────────────────
@@ -611,6 +640,119 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     dbDeleteLernziel(id)
   }, [])
 
+  // ── Prüfungen ─────────────────────────────────────────────────────────
+
+  const getPruefungenForKlasse = useCallback(
+    (klassId: string) => pruefungen.filter((p) => p.klasseId === klassId),
+    [pruefungen]
+  )
+
+  const getPruefungErgebnisse = useCallback(
+    (pruefungId: string) => pruefungErgebnisse.filter((e) => e.pruefungId === pruefungId),
+    [pruefungErgebnisse]
+  )
+
+  const createPruefung = useCallback(
+    (data: Omit<Pruefung, 'id' | 'tenantId' | 'createdAt'>): string => {
+      const id = crypto.randomUUID()
+      const newP: Pruefung = { ...data, id, tenantId: '', createdAt: new Date().toISOString() }
+      setPruefungen((prev) => [...prev, newP])
+      dbSavePruefung(newP)
+      return id
+    },
+    []
+  )
+
+  const updatePruefung = useCallback(
+    (id: string, patch: Partial<Pick<Pruefung, 'name' | 'datum' | 'lernzielIds' | 'maxPunkte'>>) => {
+      setPruefungen((prev) =>
+        prev.map((p) => {
+          if (p.id !== id) return p
+          const updated = { ...p, ...patch }
+          dbSavePruefung(updated)
+          return updated
+        })
+      )
+    },
+    []
+  )
+
+  const deletePruefung = useCallback((id: string) => {
+    setPruefungen((prev) => prev.filter((p) => p.id !== id))
+    setPruefungErgebnisse((prev) => prev.filter((e) => e.pruefungId !== id))
+    dbDeletePruefung(id)
+  }, [])
+
+  const upsertPruefungErgebnis = useCallback(
+    (ergebnis: Omit<PruefungErgebnis, 'tenantId' | 'createdAt'>) => {
+      const full: PruefungErgebnis = { ...ergebnis, tenantId: '', createdAt: new Date().toISOString() }
+      setPruefungErgebnisse((prev) => {
+        const idx = prev.findIndex((e) => e.id === ergebnis.id)
+        if (idx >= 0) { const next = [...prev]; next[idx] = full; return next }
+        return [...prev, full]
+      })
+      // Also update the official lernziel status for every LZ in this Prüfung if status is set
+      if (ergebnis.status) {
+        const pruefung = pruefungen.find((p) => p.id === ergebnis.pruefungId)
+        if (pruefung) {
+          setStudents((prev) =>
+            prev.map((s) => {
+              if (s.id !== ergebnis.schuelerId) return s
+              const statusPatch = Object.fromEntries(
+                pruefung.lernzielIds.map((lzId) => [lzId, ergebnis.status!])
+              )
+              const updated = { ...s, lernzielStatus: { ...s.lernzielStatus, ...statusPatch } }
+              for (const lzId of pruefung.lernzielIds) {
+                dbSaveLernzielStatus(ergebnis.schuelerId, lzId, ergebnis.status!)
+              }
+              return updated
+            })
+          )
+        }
+      }
+      dbSavePruefungErgebnis(full)
+    },
+    [pruefungen]
+  )
+
+  const uploadAnhang = useCallback(
+    async (pruefungId: string, schuelerId: string, file: File): Promise<string | null> => {
+      const url = await dbUploadPruefungAnhang(pruefungId, schuelerId, file)
+      if (!url) return null
+      setPruefungErgebnisse((prev) => {
+        const existing = prev.find((e) => e.pruefungId === pruefungId && e.schuelerId === schuelerId)
+        if (existing) {
+          const updated = { ...existing, anhangUrls: [...existing.anhangUrls, url] }
+          dbSavePruefungErgebnis(updated)
+          return prev.map((e) => e.id === existing.id ? updated : e)
+        }
+        const newE: PruefungErgebnis = {
+          id: crypto.randomUUID(), pruefungId, schuelerId,
+          anzahlVersuche: 1, anhangUrls: [url], tenantId: '', createdAt: new Date().toISOString(),
+        }
+        dbSavePruefungErgebnis(newE)
+        return [...prev, newE]
+      })
+      return url
+    },
+    []
+  )
+
+  const deleteAnhang = useCallback(
+    async (ergebnisId: string, url: string): Promise<void> => {
+      await dbDeletePruefungAnhang(url)
+      setPruefungErgebnisse((prev) =>
+        prev.map((e) => {
+          if (e.id !== ergebnisId) return e
+          const updated = { ...e, anhangUrls: e.anhangUrls.filter((u) => u !== url) }
+          dbSavePruefungErgebnis(updated)
+          return updated
+        })
+      )
+    },
+    []
+  )
+
   const CURRENT_LP_ID = 'lp1'
 
   const exportThema = useCallback((themaId: string): void => {
@@ -718,6 +860,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         lehrpersonen,
         kommentare,
         themaKommentare,
+        pruefungen,
+        pruefungErgebnisse,
         getClass,
         getStudent,
         getStudentsForClass,
@@ -730,6 +874,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         createClass,
         updateClass,
         deleteClass,
+        updateBeurteilungSettings,
         createStudent,
         updateStudent,
         deleteStudent,
@@ -763,6 +908,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         exportThema,
         exportFach,
         importThema,
+        getPruefungenForKlasse,
+        getPruefungErgebnisse,
+        createPruefung,
+        updatePruefung,
+        deletePruefung,
+        upsertPruefungErgebnis,
+        uploadAnhang,
+        deleteAnhang,
       }}
     >
       {children}

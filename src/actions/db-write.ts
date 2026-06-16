@@ -2,7 +2,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { getCurrentTenantId } from './db-read'
-import type { Fach, Thema, Lernziel, Klasse, Schueler, AssessmentKommentar, ThemaKommentar, RilzLernziel, Status } from '@/types/domain'
+import type { Fach, Thema, Lernziel, Klasse, Schueler, AssessmentKommentar, ThemaKommentar, RilzLernziel, Status, Pruefung, PruefungErgebnis, KlasseBeurteilungSettings } from '@/types/domain'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -18,6 +18,7 @@ export async function dbSaveKlasse(klasse: Klasse) {
     id: klasse.id, name: klasse.name,
     schuljahr: klasse.schuljahr ?? null,
     vorgaenger_klasse_id: klasse.vorgaengerKlasseId ?? null,
+    settings: klasse.beurteilungSettings ?? null,
     tenant_id: tenantId,
   }, { onConflict: 'id' })
   log('dbSaveKlasse', error)
@@ -45,6 +46,13 @@ export async function dbSaveKlasse(klasse: Klasse) {
     )
     log('bridge_lp_zuweisungen insert', eLPZ)
   }
+}
+
+export async function dbSaveBeurteilungSettings(klassId: string, settings: KlasseBeurteilungSettings) {
+  const { error } = await supabaseAdmin.from('dim_klassen')
+    .update({ settings })
+    .eq('id', klassId)
+  log('dbSaveBeurteilungSettings', error)
 }
 
 export async function dbDeleteKlasse(id: string) {
@@ -195,4 +203,65 @@ export async function dbSaveLernziel(l: Lernziel) {
 export async function dbDeleteLernziel(id: string) {
   const { error } = await supabaseAdmin.from('dim_lernziele').delete().eq('id', id)
   log('dbDeleteLernziel', error)
+}
+
+// ── Prüfungen ─────────────────────────────────────────────────────────────────
+
+export async function dbSavePruefung(p: Pruefung) {
+  const tenantId = await getCurrentTenantId()
+  const { error } = await supabaseAdmin.from('fact_pruefungen').upsert({
+    id: p.id, klasse_id: p.klasseId, fach_id: p.fachId,
+    name: p.name, datum: p.datum,
+    lernziel_ids: p.lernzielIds,
+    max_punkte: p.maxPunkte ?? null,
+    erstellt_von_id: p.erstelltVonId ?? null,
+    tenant_id: tenantId,
+  }, { onConflict: 'id' })
+  log('dbSavePruefung', error)
+}
+
+export async function dbDeletePruefung(id: string) {
+  const { error } = await supabaseAdmin.from('fact_pruefungen').delete().eq('id', id)
+  log('dbDeletePruefung', error)
+}
+
+export async function dbSavePruefungErgebnis(e: PruefungErgebnis) {
+  const tenantId = await getCurrentTenantId()
+  const { error } = await supabaseAdmin.from('fact_pruefung_ergebnisse').upsert({
+    id: e.id, pruefung_id: e.pruefungId, schueler_id: e.schuelerId,
+    punkte: e.punkte ?? null,
+    note: e.note ?? null,
+    anzahl_versuche: e.anzahlVersuche,
+    kommentar: e.kommentar ?? null,
+    anhang_urls: e.anhangUrls,
+    status: e.status ?? null,
+    tenant_id: tenantId,
+  }, { onConflict: 'id' })
+  log('dbSavePruefungErgebnis', error)
+  return error
+}
+
+export async function dbUploadPruefungAnhang(
+  pruefungId: string,
+  schuelerId: string,
+  file: File,
+): Promise<string | null> {
+  const tenantId = await getCurrentTenantId()
+  const ext = file.name.split('.').pop() ?? 'bin'
+  const path = `${tenantId}/${pruefungId}/${schuelerId}/${crypto.randomUUID()}.${ext}`
+  const arrayBuffer = await file.arrayBuffer()
+  const { error } = await supabaseAdmin.storage
+    .from('lezio-anhaenge')
+    .upload(path, arrayBuffer, { contentType: file.type, upsert: false })
+  if (error) { log('dbUploadPruefungAnhang', error); return null }
+  const { data } = supabaseAdmin.storage.from('lezio-anhaenge').getPublicUrl(path)
+  return data.publicUrl
+}
+
+export async function dbDeletePruefungAnhang(url: string): Promise<void> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const prefix = `${supabaseUrl}/storage/v1/object/public/lezio-anhaenge/`
+  const path = url.startsWith(prefix) ? url.slice(prefix.length) : url
+  const { error } = await supabaseAdmin.storage.from('lezio-anhaenge').remove([path])
+  log('dbDeletePruefungAnhang', error)
 }

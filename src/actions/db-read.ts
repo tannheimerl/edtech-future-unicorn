@@ -5,7 +5,8 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 import { resolveTenantId, TENANT_COOKIE } from '@/lib/tenants'
 import type {
   Fach, Thema, Lernziel, LernzielKategorie, Lehrperson,
-  Klasse, Schueler, AssessmentKommentar, ThemaKommentar,
+  Klasse, KlasseBeurteilungSettings, Schueler, AssessmentKommentar, ThemaKommentar,
+  Pruefung, PruefungErgebnis, Status,
 } from '@/types/domain'
 
 export async function getCurrentTenantId(): Promise<string> {
@@ -30,6 +31,8 @@ export async function fetchAllData() {
     { data: dbRilzLernziele,    error: e10 },
     { data: dbKommentare,       error: e11 },
     { data: dbThemaKommentare,  error: e12 },
+    { data: dbPruefungen,       error: e13 },
+    { data: dbPruefungErg,      error: e14 },
   ] = await Promise.all([
     supabaseAdmin.from('dim_faecher').select('*').in('tenant_id', tenants),
     supabaseAdmin.from('dim_themen').select('*').in('tenant_id', tenants),
@@ -43,6 +46,8 @@ export async function fetchAllData() {
     supabaseAdmin.from('fact_rilz_lernziele').select('*').in('tenant_id', tenants),
     supabaseAdmin.from('fact_kommentare').select('*').in('tenant_id', tenants),
     supabaseAdmin.from('fact_thema_kommentare').select('*').in('tenant_id', tenants),
+    supabaseAdmin.from('fact_pruefungen').select('*').eq('tenant_id', tenantId),
+    supabaseAdmin.from('fact_pruefung_ergebnisse').select('*').eq('tenant_id', tenantId),
   ])
 
   for (const [label, err] of [
@@ -50,6 +55,7 @@ export async function fetchAllData() {
     ['dim_lehrpersonen', e4], ['dim_klassen', e5], ['bridge_klasse_themen', e6],
     ['bridge_lp_zuweisungen', e7], ['dim_schueler', e8], ['fact_lernziel_status', e9],
     ['fact_rilz_lernziele', e10], ['fact_kommentare', e11], ['fact_thema_kommentare', e12],
+    ['fact_pruefungen', e13], ['fact_pruefung_ergebnisse', e14],
   ] as const) {
     if (err) console.error(`fetchAllData ${label}:`, err.message)
   }
@@ -88,6 +94,7 @@ export async function fetchAllData() {
     lpZuweisungen: (dbLpZuweisungen ?? [])
       .filter((z) => z.klasse_id === k.id)
       .map((z) => ({ lpId: z.lp_id, fachIds: z.fach_ids ?? [], ...(z.rolle ? { rolle: z.rolle } : {}) })),
+    ...(k.settings ? { beurteilungSettings: k.settings as KlasseBeurteilungSettings } : {}),
   }))
 
   const students: Schueler[] = (dbSchueler ?? []).map((s) => ({
@@ -118,5 +125,25 @@ export async function fetchAllData() {
     studentId: k.schueler_id, themaId: k.thema_id, text: k.text, updatedAt: k.updated_at,
   }))
 
-  return { faecher, themen, lernziele, lehrpersonen, classes, students, kommentare, themaKommentare }
+  const pruefungen: Pruefung[] = (dbPruefungen ?? []).map((p) => ({
+    id: p.id, klasseId: p.klasse_id, fachId: p.fach_id,
+    name: p.name, datum: p.datum,
+    lernzielIds: p.lernziel_ids ?? [],
+    ...(p.max_punkte != null ? { maxPunkte: p.max_punkte } : {}),
+    ...(p.erstellt_von_id ? { erstelltVonId: p.erstellt_von_id } : {}),
+    tenantId: p.tenant_id, createdAt: p.created_at,
+  }))
+
+  const pruefungErgebnisse: PruefungErgebnis[] = (dbPruefungErg ?? []).map((e) => ({
+    id: e.id, pruefungId: e.pruefung_id, schuelerId: e.schueler_id,
+    ...(e.punkte != null ? { punkte: e.punkte } : {}),
+    ...(e.note ? { note: e.note } : {}),
+    anzahlVersuche: e.anzahl_versuche ?? 1,
+    ...(e.kommentar ? { kommentar: e.kommentar } : {}),
+    anhangUrls: e.anhang_urls ?? [],
+    ...(e.status ? { status: e.status as Status } : {}),
+    tenantId: e.tenant_id, createdAt: e.created_at,
+  }))
+
+  return { faecher, themen, lernziele, lehrpersonen, classes, students, kommentare, themaKommentare, pruefungen, pruefungErgebnisse }
 }

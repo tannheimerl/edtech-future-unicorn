@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { ClassAnalytics } from '@/components/analytics/ClassAnalytics'
-import { LernkontrolleTab } from '@/components/lernkontrolle/LernkontrolleTab'
+import { BeurteilungTab } from '@/components/beurteilung/BeurteilungTab'
 import { BerichteTab } from '@/components/berichte/BerichteTab'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -24,7 +24,6 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { cn, getFachColor } from '@/lib/utils'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 
-import { type LpRolle, LP_ROLLE_LABELS } from '@/types/domain'
 import type { Schueler, Lernziel as LernzielType, Fach, Thema, RilzLernziel } from '@/types/domain'
 
 
@@ -97,34 +96,55 @@ function SchuelerFormModal({
 
 // ── Tab switcher ──────────────────────────────────────────────────────────
 
-type Tab = 'schueler' | 'klassenübersicht' | 'lernziele' | 'beurteilung' | 'berichte' | 'lehrpersonen'
+type Tab = 'schueler' | 'klassenübersicht' | 'lernziele' | 'beurteilung' | 'berichte'
 
-function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
+function TabBar({
+  active, onChange,
+  title, editingTitle, onEditTitle, editNode,
+}: {
+  active: Tab; onChange: (t: Tab) => void
+  title: string; editingTitle: boolean; onEditTitle: () => void; editNode: React.ReactNode
+}) {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'schueler',         label: 'Schüler' },
     { key: 'beurteilung',      label: 'Beurteilung' },
     { key: 'klassenübersicht', label: 'Statistiken' },
     { key: 'lernziele',        label: 'Lernziele' },
     { key: 'berichte',         label: 'Berichte' },
-    { key: 'lehrpersonen',     label: 'Lehrpersonen' },
   ]
   return (
     <div className="overflow-x-auto scrollbar-hide mb-2">
-      <div className="flex gap-1 p-1 rounded-xl bg-muted w-fit min-w-full sm:min-w-0">
-      {tabs.map(({ key, label }) => (
-        <button
-          key={key}
-          onClick={() => onChange(key)}
-          className={cn(
-            'px-3 py-1 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0',
-            active === key
-              ? 'bg-card text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-        >
-          {label}
-        </button>
-      ))}
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-muted w-fit min-w-full sm:min-w-0">
+        {editingTitle ? (
+          <div className="flex items-center pr-2 mr-1 border-r border-border shrink-0">
+            {editNode}
+          </div>
+        ) : (
+          <span className="flex items-center gap-1 pl-1 pr-3 mr-1 border-r border-border shrink-0">
+            <span className="text-sm font-semibold whitespace-nowrap">{title}</span>
+            <button
+              onClick={onEditTitle}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Klassenname bearbeiten"
+            >
+              <SquarePen className="size-3.5" />
+            </button>
+          </span>
+        )}
+        {tabs.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => onChange(key)}
+            className={cn(
+              'px-3 py-1 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0',
+              active === key
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {label}
+          </button>
+        ))}
       </div>
     </div>
   )
@@ -783,125 +803,6 @@ function LernzieleTab({ klassId }: { klassId: string }) {
   )
 }
 
-// ── Lehrpersonen tab ──────────────────────────────────────────────────────
-
-function LehrpersonenTab({ klassId }: { klassId: string }) {
-  const router = useRouter()
-  const {
-    getClass, deleteClass,
-    lehrpersonen, setLpZuweisung, removeLpFromKlasse,
-    createFolgeklasse,
-  } = useData()
-
-  const klasse = getClass(klassId)!
-
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [addLpOpen, setAddLpOpen] = useState(false)
-
-  const assigned = lehrpersonen.filter(lp => (klasse.lpZuweisungen ?? []).some(z => z.lpId === lp.id))
-  const hasUnassigned = lehrpersonen.some(lp => !(klasse.lpZuweisungen ?? []).some(z => z.lpId === lp.id))
-
-  return (
-    <div className="max-w-md space-y-4">
-      <SettingsCard
-        title="Lehrpersonen"
-        action={
-          hasUnassigned ? (
-            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setAddLpOpen(true)}>
-              <Plus className="size-3" /> Hinzufügen
-            </Button>
-          ) : undefined
-        }
-      >
-        {assigned.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Noch keine Lehrpersonen zugewiesen.</p>
-        ) : (
-          <div className="space-y-3">
-            {assigned.map(lp => {
-              const zuweisung = (klasse.lpZuweisungen ?? []).find(z => z.lpId === lp.id)!
-              return (
-                <div key={lp.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium">{lp.name}</p>
-                    {zuweisung.rolle && (
-                      <p className="text-[10px] text-muted-foreground">{LP_ROLLE_LABELS[zuweisung.rolle]}</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => removeLpFromKlasse(klassId, lp.id)}
-                    className="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
-                  >entfernen</button>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </SettingsCard>
-
-      <Modal open={addLpOpen} onOpenChange={setAddLpOpen} title="Lehrperson hinzufügen" size="sm">
-        <div className="space-y-3">
-          {lehrpersonen
-            .filter(lp => !(klasse.lpZuweisungen ?? []).some(z => z.lpId === lp.id))
-            .map(lp => (
-              <div key={lp.id}>
-                <p className="text-xs font-medium mb-1.5">{lp.name}</p>
-                <div className="flex gap-1.5">
-                  {(Object.keys(LP_ROLLE_LABELS) as LpRolle[]).map(rolle => (
-                    <button
-                      key={rolle}
-                      onClick={() => { setLpZuweisung(klassId, lp.id, [], rolle); setAddLpOpen(false) }}
-                      className="rounded-full px-2.5 py-1 text-xs font-medium border border-border text-muted-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all"
-                    >{LP_ROLLE_LABELS[rolle]}</button>
-                  ))}
-                </div>
-              </div>
-            ))}
-        </div>
-      </Modal>
-
-      <SettingsCard title="Neues Schuljahr">
-        <p className="text-xs text-muted-foreground mb-2">
-          Erstellt eine Folgeklasse mit allen Schülern. Die bisherige Klasse bleibt als Vorjahr erhalten.
-        </p>
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full"
-          onClick={() => {
-            const newName = window.prompt('Name der neuen Klasse (z.B. 6a):', klasse.name)
-            if (!newName?.trim()) return
-            const schuljahr = window.prompt('Schuljahr (z.B. 2026/27):', '2026/27')
-            if (!schuljahr?.trim()) return
-            const newId = createFolgeklasse(klassId, newName.trim(), schuljahr.trim())
-            if (newId) router.push(`/klassen/${newId}`)
-          }}
-        >
-          Klassenübergabe starten
-        </Button>
-      </SettingsCard>
-
-      <div className="rounded-2xl border border-red-200 bg-red-50/40 p-4 space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-red-700">Gefahrenzone</h3>
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">Klasse und alle Schüler dauerhaft löschen.</p>
-          <Button variant="destructive" size="sm" className="shrink-0" onClick={() => setDeleteOpen(true)}>
-            <Trash2 className="size-3.5" /> Löschen
-          </Button>
-        </div>
-      </div>
-
-      <ConfirmDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        title="Klasse löschen"
-        description={`Soll die Klasse „${klasse.name}" wirklich gelöscht werden? Alle Schüler dieser Klasse werden ebenfalls entfernt.`}
-        confirmLabel="Dauerhaft löschen"
-        onConfirm={() => { deleteClass(klassId); router.push('/klassen') }}
-      />
-    </div>
-  )
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function KlasseDetailPage() {
@@ -919,7 +820,6 @@ export default function KlasseDetailPage() {
     lernziele,
     competencies,
     getThemenForKlasse,
-    lehrpersonen,
     setRilzFach,
     setBvsa,
   } = useData()
@@ -936,8 +836,6 @@ export default function KlasseDetailPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [editStudentId, setEditStudentId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
-  // LP filter: null = all, lpId = only that LP's fächer
-  const [activeLpId, setActiveLpId] = useState<string | null>(null)
   const todayStr = new Date().toISOString().slice(0, 10)
   const themaFaelligMap = new Map(themen.map(t => [t.id, t.faelligAm]))
   const assignedLZIds = klasse
@@ -982,10 +880,14 @@ export default function KlasseDetailPage() {
         />
       </div>
 
-      {/* Header */}
-      <div className="relative mb-2 flex items-center justify-between">
-        <div>
-          {editingName ? (
+      <div>
+        <TabBar
+          active={tab}
+          onChange={setTab}
+          title={klasse.name}
+          editingTitle={editingName}
+          onEditTitle={() => { setNameValue(klasse.name); setEditingName(true) }}
+          editNode={
             <form
               className="flex items-center gap-2"
               onSubmit={(e) => {
@@ -997,33 +899,15 @@ export default function KlasseDetailPage() {
               <Input
                 value={nameValue}
                 onChange={(e) => setNameValue(e.target.value)}
-                className="text-2xl font-bold h-9 w-36 px-2"
+                className="h-7 w-28 px-2 text-sm font-semibold"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Escape' && setEditingName(false)}
               />
               <Button size="sm" type="submit" disabled={!nameValue.trim()}>Speichern</Button>
               <Button size="sm" variant="outline" type="button" onClick={() => setEditingName(false)}>Abbrechen</Button>
             </form>
-          ) : (
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight">{klasse.name}</h1>
-              <button
-                onClick={() => { setNameValue(klasse.name); setEditingName(true) }}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Klassenname bearbeiten"
-              >
-                <SquarePen className="size-4" />
-              </button>
-            </div>
-          )}
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {students.length} Schüler
-          </p>
-        </div>
-      </div>
-
-      <div>
-        <TabBar active={tab} onChange={setTab} />
+          }
+        />
       </div>
 
       {/* Schüler tab */}
@@ -1193,14 +1077,7 @@ export default function KlasseDetailPage() {
 
       {/* Beurteilung tab */}
       {tab === 'beurteilung' && (
-        <LernkontrolleTab
-          klassId={klassId}
-          filterFachIds={
-            activeLpId
-              ? (klasse.lpZuweisungen ?? []).find(z => z.lpId === activeLpId)?.fachIds
-              : undefined
-          }
-        />
+        <BeurteilungTab klassId={klassId} />
       )}
 
       {/* Klassenübersicht tab */}
@@ -1224,11 +1101,6 @@ export default function KlasseDetailPage() {
       {/* Berichte tab */}
       {tab === 'berichte' && (
         <BerichteTab klassId={klassId} />
-      )}
-
-      {/* Lehrpersonen tab */}
-      {tab === 'lehrpersonen' && (
-        <LehrpersonenTab klassId={klassId} />
       )}
 
       {/* Modals */}
