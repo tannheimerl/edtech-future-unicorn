@@ -135,6 +135,74 @@ export interface Schueler {
   progressHistory?: StatusSnapshot[]
 }
 
+export type PruefungTyp =
+  | 'pruefung_schriftlich' | 'pruefung_muendlich'
+  | 'aufsatz_textproduktion' | 'bericht_dokumentation_dossier'
+  | 'praesentation_vortrag' | 'vorlesen_rezitation' | 'musikalische_darbietung' | 'sportliche_leistung' | 'szenische_darstellung_theater'
+  | 'plakat' | 'bild_zeichnung' | 'modell_objekt_werkstueck'
+  | 'video_film' | 'podcast_audiobeitrag' | 'programmierprodukt'
+  | 'projekt' | 'experiment_versuch' | 'praktische_arbeit' | 'portfolio' | 'lernjournal'
+  | 'sonstiges'
+
+export const PRUEFUNG_TYP_GRUPPEN: { gruppe: string; optionen: { value: PruefungTyp; label: string }[] }[] = [
+  {
+    gruppe: 'Prüfung',
+    optionen: [
+      { value: 'pruefung_schriftlich', label: 'Prüfung schriftlich' },
+      { value: 'pruefung_muendlich', label: 'Prüfung mündlich' },
+    ],
+  },
+  {
+    gruppe: 'Schriftliche Arbeiten',
+    optionen: [
+      { value: 'aufsatz_textproduktion', label: 'Aufsatz / Textproduktion' },
+      { value: 'bericht_dokumentation_dossier', label: 'Bericht / Dokumentation / Dossier' },
+    ],
+  },
+  {
+    gruppe: 'Vortrag & Darbietung',
+    optionen: [
+      { value: 'praesentation_vortrag', label: 'Präsentation / Vortrag' },
+      { value: 'vorlesen_rezitation', label: 'Vorlesen / Rezitation' },
+      { value: 'musikalische_darbietung', label: 'Musikalische Darbietung' },
+      { value: 'sportliche_leistung', label: 'Sportliche Leistung' },
+      { value: 'szenische_darstellung_theater', label: 'Szenische Darstellung / Theater' },
+    ],
+  },
+  {
+    gruppe: 'Gestalten & Produkt',
+    optionen: [
+      { value: 'plakat', label: 'Plakat' },
+      { value: 'bild_zeichnung', label: 'Bild / Zeichnung' },
+      { value: 'modell_objekt_werkstueck', label: 'Modell / Objekt / Werkstück' },
+    ],
+  },
+  {
+    gruppe: 'Medial & digital',
+    optionen: [
+      { value: 'video_film', label: 'Video / Film' },
+      { value: 'podcast_audiobeitrag', label: 'Podcast / Audiobeitrag' },
+      { value: 'programmierprodukt', label: 'Programmierprodukt' },
+    ],
+  },
+  {
+    gruppe: 'Angewandt & Prozess',
+    optionen: [
+      { value: 'projekt', label: 'Projekt' },
+      { value: 'experiment_versuch', label: 'Experiment / Versuch' },
+      { value: 'praktische_arbeit', label: 'Praktische Arbeit' },
+      { value: 'portfolio', label: 'Portfolio' },
+      { value: 'lernjournal', label: 'Lernjournal' },
+    ],
+  },
+  {
+    gruppe: 'Sonstiges / Andere',
+    optionen: [
+      { value: 'sonstiges', label: 'Sonstiges / Andere' },
+    ],
+  },
+]
+
 export interface Pruefung {
   id: string
   klasseId: string
@@ -142,10 +210,27 @@ export interface Pruefung {
   name: string
   datum: string           // ISO YYYY-MM-DD
   lernzielIds: string[]
+  typ: PruefungTyp
+  beschreibung?: string
+  status: 'laufend' | 'abgeschlossen'
+  punkteEnabled: boolean
+  noteEnabled: boolean
+  anhangEnabled: boolean
   maxPunkte?: number
   erstelltVonId?: string
+  nurRilz: boolean
+  rilzSchuelerIds: string[]
   tenantId: string
   createdAt: string
+}
+
+export interface VersuchSnapshot {
+  nr: number
+  date: string           // 'YYYY-MM-DD'
+  punkte?: number
+  note?: string
+  kommentar?: string
+  status?: Status
 }
 
 export interface PruefungErgebnis {
@@ -155,6 +240,9 @@ export interface PruefungErgebnis {
   punkte?: number
   note?: string           // Schweizer Note, z.B. "5.5"
   anzahlVersuche: number
+  zweiterVersuchAusstehend: boolean
+  abgeschlossen: boolean
+  versuchSnapshots: VersuchSnapshot[]
   kommentar?: string
   anhangUrls: string[]
   status?: Status

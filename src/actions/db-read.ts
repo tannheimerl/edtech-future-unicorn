@@ -6,7 +6,7 @@ import { resolveTenantId, TENANT_COOKIE } from '@/lib/tenants'
 import type {
   Fach, Thema, Lernziel, LernzielKategorie, Lehrperson,
   Klasse, KlasseBeurteilungSettings, Schueler, AssessmentKommentar, ThemaKommentar,
-  Pruefung, PruefungErgebnis, Status,
+  Pruefung, PruefungErgebnis, VersuchSnapshot, Status,
 } from '@/types/domain'
 
 export async function getCurrentTenantId(): Promise<string> {
@@ -129,8 +129,16 @@ export async function fetchAllData() {
     id: p.id, klasseId: p.klasse_id, fachId: p.fach_id,
     name: p.name, datum: p.datum,
     lernzielIds: p.lernziel_ids ?? [],
+    typ: (p.typ ?? 'pruefung_schriftlich') as Pruefung['typ'],
+    ...(p.beschreibung ? { beschreibung: p.beschreibung } : {}),
+    status: (p.status ?? 'laufend') as Pruefung['status'],
+    punkteEnabled: p.punkte_enabled ?? false,
+    noteEnabled: p.note_enabled ?? false,
+    anhangEnabled: p.anhang_enabled ?? false,
     ...(p.max_punkte != null ? { maxPunkte: p.max_punkte } : {}),
     ...(p.erstellt_von_id ? { erstelltVonId: p.erstellt_von_id } : {}),
+    nurRilz: p.nur_rilz ?? false,
+    rilzSchuelerIds: p.rilz_schueler_ids ?? [],
     tenantId: p.tenant_id, createdAt: p.created_at,
   }))
 
@@ -139,6 +147,9 @@ export async function fetchAllData() {
     ...(e.punkte != null ? { punkte: e.punkte } : {}),
     ...(e.note ? { note: e.note } : {}),
     anzahlVersuche: e.anzahl_versuche ?? 1,
+    zweiterVersuchAusstehend: e.zweiter_versuch_ausstehend ?? false,
+    abgeschlossen: e.abgeschlossen ?? false,
+    versuchSnapshots: (e.versuch_snapshots as VersuchSnapshot[]) ?? [],
     ...(e.kommentar ? { kommentar: e.kommentar } : {}),
     anhangUrls: e.anhang_urls ?? [],
     ...(e.status ? { status: e.status as Status } : {}),

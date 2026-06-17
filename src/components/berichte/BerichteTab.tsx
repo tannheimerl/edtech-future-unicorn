@@ -43,6 +43,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
   const [pIncludeNote, setPIncludeNote] = useState(true)
   const [pOpenStep, setPOpenStep] = useState<1 | 2 | 3 | null>(1)
   const [pPreviewStudentId, setPPreviewStudentId] = useState<string | null>(null)
+  const [pSelectedVersuchNr, setPSelectedVersuchNr] = useState<Record<string, number>>({})
 
   // Which accordion step is currently open (1–4, or null)
   const [openStep, setOpenStep] = useState<1 | 2 | 3 | 4 | null>(1)
@@ -154,6 +155,9 @@ export function BerichteTab({ klassId }: { klassId: string }) {
       const entries = await Promise.all(
         pTargetStudents.map(async (student) => {
           const ergebnis = ergebnisse.find(e => e.schuelerId === student.id)
+          const chosenNr = pSelectedVersuchNr[student.id] ?? ergebnis?.anzahlVersuche ?? 1
+          const isLatest = chosenNr === (ergebnis?.anzahlVersuche ?? 1)
+          const snap = ergebnis?.versuchSnapshots?.find(s => s.nr === chosenNr)
           const props: SchuelerBerichtPDFProps = {
             studentName: `${student.vorname} ${student.nachname}`,
             klassenName: klasse.name,
@@ -167,9 +171,9 @@ export function BerichteTab({ klassId }: { klassId: string }) {
             })),
             kommentar: pReportKommentare[student.id] || undefined,
             pruefungsErgebnis: ergebnis ? {
-              punkte: ergebnis.punkte,
+              punkte: isLatest ? ergebnis.punkte : snap?.punkte,
               maxPunkte: pPruefung.maxPunkte,
-              note: ergebnis.note,
+              note: isLatest ? ergebnis.note : snap?.note,
             } : undefined,
             includeInBericht: { punkte: pIncludePunkte, note: pIncludeNote },
           }
@@ -434,22 +438,63 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                       </label>
                     </div>
                     <div className="space-y-4">
-                      {pTargetStudents.map(s => (
-                        <div key={s.id} className="space-y-1">
-                          {pTargetStudents.length > 1 && (
-                            <p className="text-xs font-medium">{s.vorname} {s.nachname}</p>
-                          )}
-                          <textarea
-                            value={pReportKommentare[s.id] ?? ''}
-                            onChange={e => setPReportKommentare(prev => ({ ...prev, [s.id]: e.target.value }))}
-                            onClick={() => setPPreviewStudentId(s.id)}
-                            placeholder="Klicken für Vorschau und Kommentar…"
-                            rows={2}
-                            readOnly
-                            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-                          />
-                        </div>
-                      ))}
+                      {pTargetStudents.map(s => {
+                        const ergebnis = getPruefungErgebnisse(pSelectedPruefungId!).find(e => e.schuelerId === s.id)
+                        const snapshots = ergebnis?.versuchSnapshots ?? []
+                        const latestNr = ergebnis?.anzahlVersuche ?? 1
+                        const chosenNr = pSelectedVersuchNr[s.id] ?? latestNr
+                        return (
+                          <div key={s.id} className="space-y-1">
+                            {(pTargetStudents.length > 1 || snapshots.length > 0) && (
+                              <div className="flex flex-wrap items-center gap-2">
+                                {pTargetStudents.length > 1 && (
+                                  <span className="text-xs font-medium">{s.vorname} {s.nachname}</span>
+                                )}
+                                {snapshots.length > 0 && (
+                                  <>
+                                    {snapshots.map(snap => (
+                                      <button
+                                        key={snap.nr}
+                                        type="button"
+                                        onClick={() => setPSelectedVersuchNr(prev => ({ ...prev, [s.id]: snap.nr }))}
+                                        className={cn(
+                                          'rounded border px-2 py-0.5 text-xs transition-colors',
+                                          chosenNr === snap.nr
+                                            ? 'border-primary bg-primary text-primary-foreground'
+                                            : 'border-border bg-background text-foreground hover:bg-accent',
+                                        )}
+                                      >
+                                        {snap.nr}. Versuch
+                                      </button>
+                                    ))}
+                                    <button
+                                      type="button"
+                                      onClick={() => setPSelectedVersuchNr(prev => ({ ...prev, [s.id]: latestNr }))}
+                                      className={cn(
+                                        'rounded border px-2 py-0.5 text-xs transition-colors',
+                                        chosenNr === latestNr
+                                          ? 'border-primary bg-primary text-primary-foreground'
+                                          : 'border-border bg-background text-foreground hover:bg-accent',
+                                      )}
+                                    >
+                                      {latestNr}. Versuch (aktuell)
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                            <textarea
+                              value={pReportKommentare[s.id] ?? ''}
+                              onChange={e => setPReportKommentare(prev => ({ ...prev, [s.id]: e.target.value }))}
+                              onClick={() => setPPreviewStudentId(s.id)}
+                              placeholder="Klicken für Vorschau und Kommentar…"
+                              rows={2}
+                              readOnly
+                              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                            />
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 </StepCard>

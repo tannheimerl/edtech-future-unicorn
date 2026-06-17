@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Users, TrendingUp, AlertTriangle, MoreHorizontal, Trash2, Pencil } from 'lucide-react'
+import { Plus, Users, TrendingUp, AlertTriangle, MoreHorizontal, Trash2, Pencil, RotateCcw } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -192,7 +192,7 @@ function KlasseFormModal({ open, onOpenChange, initialName = '', initialSchuljah
 
 export default function KlassenPage() {
   const router = useRouter()
-  const { classes, currentLpId, getStudentsForClass, createClass, updateClass, deleteClass } = useData()
+  const { classes, currentLpId, getStudentsForClass, getPruefungenForKlasse, getPruefungErgebnisse, createClass, updateClass, deleteClass } = useData()
   const myClasses = classes.filter(k => (k.lpZuweisungen ?? []).some(z => z.lpId === currentLpId))
   const [createOpen, setCreateOpen] = useState(false)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -220,6 +220,8 @@ export default function KlassenPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {myClasses.map((klasse) => {
           const students = getStudentsForClass(klasse.id)
+          const offeneNachpruefungen = getPruefungenForKlasse(klasse.id)
+            .flatMap(p => getPruefungErgebnisse(p.id).filter(e => e.zweiterVersuchAusstehend))
           return (
             <div
               key={klasse.id}
@@ -281,6 +283,12 @@ export default function KlassenPage() {
               <div className="border-t border-border/60 -mx-4 mb-3" />
               {/* Stats */}
               <KlasseStats klassId={klasse.id} />
+              {offeneNachpruefungen.length > 0 && (
+                <div className="mt-3 flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-800">
+                  <RotateCcw className="size-3 shrink-0" />
+                  <span>{offeneNachpruefungen.length} offene{offeneNachpruefungen.length === 1 ? 'r' : ''} 2. Versuch</span>
+                </div>
+              )}
             </div>
           )
         })}

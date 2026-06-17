@@ -133,7 +133,7 @@ interface DataContextValue {
   getPruefungenForKlasse: (klassId: string) => Pruefung[]
   getPruefungErgebnisse: (pruefungId: string) => PruefungErgebnis[]
   createPruefung: (data: Omit<Pruefung, 'id' | 'tenantId' | 'createdAt'>) => string
-  updatePruefung: (id: string, patch: Partial<Pick<Pruefung, 'name' | 'datum' | 'lernzielIds' | 'maxPunkte'>>) => void
+  updatePruefung: (id: string, patch: Partial<Pick<Pruefung, 'name' | 'datum' | 'lernzielIds' | 'maxPunkte' | 'typ' | 'beschreibung' | 'status' | 'punkteEnabled' | 'noteEnabled' | 'anhangEnabled'>>) => void
   deletePruefung: (id: string) => void
   upsertPruefungErgebnis: (ergebnis: Omit<PruefungErgebnis, 'tenantId' | 'createdAt'>) => void
   uploadAnhang: (pruefungId: string, schuelerId: string, file: File) => Promise<string | null>
@@ -664,7 +664,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   )
 
   const updatePruefung = useCallback(
-    (id: string, patch: Partial<Pick<Pruefung, 'name' | 'datum' | 'lernzielIds' | 'maxPunkte'>>) => {
+    (id: string, patch: Partial<Pick<Pruefung, 'name' | 'datum' | 'lernzielIds' | 'maxPunkte' | 'typ' | 'beschreibung' | 'status' | 'punkteEnabled' | 'noteEnabled' | 'anhangEnabled'>>) => {
       setPruefungen((prev) =>
         prev.map((p) => {
           if (p.id !== id) return p
@@ -728,7 +728,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
         const newE: PruefungErgebnis = {
           id: crypto.randomUUID(), pruefungId, schuelerId,
-          anzahlVersuche: 1, anhangUrls: [url], tenantId: '', createdAt: new Date().toISOString(),
+          anzahlVersuche: 1, zweiterVersuchAusstehend: false, abgeschlossen: false, versuchSnapshots: [], anhangUrls: [url], tenantId: '', createdAt: new Date().toISOString(),
         }
         dbSavePruefungErgebnis(newE)
         return [...prev, newE]
