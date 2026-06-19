@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -151,6 +150,7 @@
   }
   html {
     @apply font-sans;
+    scrollbar-gutter: stable;
   }
 }
 
@@ -159,4 +159,30 @@
   [data-slot="card"] {
     box-shadow: 0 1px 3px 0 oklch(0.47 0.15 265 / 0.07), 0 1px 2px -1px oklch(0.47 0.15 265 / 0.05);
   }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  20%       { transform: rotate(-15deg) scale(1.1); }
+  40%       { transform: rotate(15deg) scale(1.15); }
+  60%       { transform: rotate(-10deg) scale(1.1); }
+  80%       { transform: rotate(8deg) scale(1.05); }
+}
+
+.animate-wiggle {
+  animation: wiggle 0.6s ease-in-out;
+}
+
+
+/* ── Print styles (Bericht / parent reports) ─────────────────────────────── */
+@media print {
+  header, nav, footer { display: none !important; }
+  body { background: white; color: black; }
+  .print\:hidden { display: none !important; }
+  .print\:border-none { border: none !important; }
+  .print\:shadow-none { box-shadow: none !important; }
+  .print\:p-0 { padding: 0 !important; }
+  .print\:rounded-none { border-radius: 0 !important; }
+  .print\:break-inside-avoid { break-inside: avoid; }
+  a[href]:after { content: none; }
 }

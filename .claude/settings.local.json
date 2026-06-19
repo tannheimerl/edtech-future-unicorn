@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx playwright *)"
+      "Bash(npx playwright *)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s http://localhost:3001/)"
     ]
   }
 }

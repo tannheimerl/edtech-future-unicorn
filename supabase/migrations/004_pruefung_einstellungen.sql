@@ -1,0 +1,5 @@
+ALTER TABLE fact_pruefungen ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'laufend'
+  CHECK (status IN ('laufend', 'abgeschlossen'));
+ALTER TABLE fact_pruefungen ADD COLUMN IF NOT EXISTS punkte_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE fact_pruefungen ADD COLUMN IF NOT EXISTS note_enabled   BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE fact_pruefungen ADD COLUMN IF NOT EXISTS anhang_enabled BOOLEAN NOT NULL DEFAULT FALSE;
