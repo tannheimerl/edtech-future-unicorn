@@ -6,7 +6,7 @@ import { resolveTenantId, TENANT_COOKIE } from '@/lib/tenants'
 import type {
   Fach, Thema, Lernziel, LernzielKategorie, Lehrperson,
   Klasse, KlasseBeurteilungSettings, Schueler, AssessmentKommentar, ThemaKommentar,
-  Pruefung, PruefungErgebnis, VersuchSnapshot, Status,
+  Pruefung, PruefungErgebnis, VersuchSnapshot, Status, TagKategorie,
 } from '@/types/domain'
 
 export async function getCurrentTenantId(): Promise<string> {
@@ -33,6 +33,7 @@ export async function fetchAllData() {
     { data: dbThemaKommentare,  error: e12 },
     { data: dbPruefungen,       error: e13 },
     { data: dbPruefungErg,      error: e14 },
+    { data: dbTagKategorien,    error: e15 },
   ] = await Promise.all([
     supabaseAdmin.from('dim_faecher').select('*').in('tenant_id', tenants),
     supabaseAdmin.from('dim_themen').select('*').in('tenant_id', tenants),
@@ -48,6 +49,7 @@ export async function fetchAllData() {
     supabaseAdmin.from('fact_thema_kommentare').select('*').in('tenant_id', tenants),
     supabaseAdmin.from('fact_pruefungen').select('*').eq('tenant_id', tenantId),
     supabaseAdmin.from('fact_pruefung_ergebnisse').select('*').eq('tenant_id', tenantId),
+    supabaseAdmin.from('dim_tag_kategorien').select('*').eq('tenant_id', tenantId).order('position'),
   ])
 
   for (const [label, err] of [
@@ -55,7 +57,7 @@ export async function fetchAllData() {
     ['dim_lehrpersonen', e4], ['dim_klassen', e5], ['bridge_klasse_themen', e6],
     ['bridge_lp_zuweisungen', e7], ['dim_schueler', e8], ['fact_lernziel_status', e9],
     ['fact_rilz_lernziele', e10], ['fact_kommentare', e11], ['fact_thema_kommentare', e12],
-    ['fact_pruefungen', e13], ['fact_pruefung_ergebnisse', e14],
+    ['fact_pruefungen', e13], ['fact_pruefung_ergebnisse', e14], ['dim_tag_kategorien', e15],
   ] as const) {
     if (err) console.error(`fetchAllData ${label}:`, err.message)
   }
@@ -71,6 +73,7 @@ export async function fetchAllData() {
     ...(t.zyklus ? { zyklus: t.zyklus } : {}),
     ...(t.autor ? { autor: t.autor } : {}),
     ...(t.autor_lp_id ? { autorLpId: t.autor_lp_id } : {}),
+    ...(t.tags && Object.keys(t.tags).length > 0 ? { tags: t.tags as Record<string, string[]> } : {}),
   }))
 
   const lernziele: Lernziel[] = (dbLernziele ?? []).map((l) => ({
@@ -156,5 +159,10 @@ export async function fetchAllData() {
     tenantId: e.tenant_id, createdAt: e.created_at,
   }))
 
-  return { faecher, themen, lernziele, lehrpersonen, classes, students, kommentare, themaKommentare, pruefungen, pruefungErgebnisse }
+  const tagKategorien: TagKategorie[] = (dbTagKategorien ?? []).map((k) => ({
+    id: k.id, name: k.name, tenantId: k.tenant_id,
+    ...(k.lp_id ? { lpId: k.lp_id } : {}),
+  }))
+
+  return { faecher, themen, lernziele, lehrpersonen, classes, students, kommentare, themaKommentare, pruefungen, pruefungErgebnisse, tagKategorien }
 }

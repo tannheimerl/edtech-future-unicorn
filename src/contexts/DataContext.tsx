@@ -13,9 +13,9 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import type {
   Klasse, KlasseBeurteilungSettings, Kompetenz, Schueler, Status, Fach, Thema, Lernziel, LernzielKategorie,
   AssessmentKommentar, ThemaKommentar, Versuch, Lehrperson, LezioExport, LezioExportLernziel,
-  Pruefung, PruefungErgebnis,
+  Pruefung, PruefungErgebnis, TagKategorie,
 } from '@/types/domain'
-import { SEED_COMPETENCIES } from '@/lib/mock-data'
+import { SEED_COMPETENCIES } from '@/types/domain'
 import { fetchAllData } from '@/actions/db-read'
 import {
   dbSaveKlasse, dbDeleteKlasse,
@@ -31,6 +31,7 @@ import {
   dbSavePruefungErgebnis,
   dbUploadPruefungAnhang, dbDeletePruefungAnhang,
   dbSaveBeurteilungSettings,
+  dbSaveTagKategorie, dbDeleteTagKategorie,
 } from '@/actions/db-write'
 
 // ── Public interface ─────────────────────────────────────────────────────────
@@ -54,6 +55,7 @@ interface DataContextValue {
   themaKommentare: ThemaKommentar[]
   pruefungen: Pruefung[]
   pruefungErgebnisse: PruefungErgebnis[]
+  tagKategorien: TagKategorie[]
 
   // Queries
   getClass: (id: string) => Klasse | undefined
@@ -114,8 +116,14 @@ interface DataContextValue {
 
   // Thema CRUD
   createThema: (fachId: string, name: string, typ?: 'standard' | 'rilz', standardThemaId?: string) => string
-  updateThema: (id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId' | 'stufe'>>) => void
+  updateThema: (id: string, patch: Partial<Pick<Thema, 'name' | 'fachId' | 'faelligAm' | 'typ' | 'standardThemaId' | 'stufe' | 'tags'>>) => void
   deleteThema: (id: string) => void
+
+  // Tag-Kategorien
+  createTagKategorie: (name: string) => void
+  updateTagKategorie: (id: string, name: string) => void
+  deleteTagKategorie: (id: string) => void
+  getTagWerte: (kategorieId: string) => string[]
 
   // RILZ-Thema assignment to students
   assignRilzThemaToStudent: (studentId: string, rilzThemaId: string) => void
@@ -156,6 +164,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [themaKommentare, setThemaKommentare] = useState<ThemaKommentar[]>([])
   const [pruefungen, setPruefungen] = useState<Pruefung[]>([])
   const [pruefungErgebnisse, setPruefungErgebnisse] = useState<PruefungErgebnis[]>([])
+  const [tagKategorien, setTagKategorien] = useState<TagKategorie[]>([])
   const competencies = SEED_COMPETENCIES
 
   // Load all data from Supabase on mount
@@ -172,6 +181,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setThemaKommentare(data.themaKommentare)
         setPruefungen(data.pruefungen)
         setPruefungErgebnisse(data.pruefungErgebnisse)
+        setTagKategorien(data.tagKategorien)
       })
       .catch((err) => console.error('fetchAllData failed:', err))
       .finally(() => setIsLoading(false))
@@ -445,14 +455,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // ── Thema assignment to Klasse ────────────────────────────────────────
 
   const assignThemaToKlasse = useCallback((klassId: string, themaId: string) => {
-    setClasses((prev) =>
-      prev.map((c) => {
+    setClasses((prev) => {
+      const alreadyElsewhere = prev.some(
+        (c) => c.id !== klassId && c.assignedThemaIds.includes(themaId)
+      )
+      if (alreadyElsewhere) return prev
+      return prev.map((c) => {
         if (c.id !== klassId || c.assignedThemaIds.includes(themaId)) return c
         const updated = { ...c, assignedThemaIds: [...c.assignedThemaIds, themaId] }
         dbSaveKlasse(updated)
         return updated
       })
-    )
+    })
   }, [])
 
   const removeThemaFromKlasse = useCallback((klassId: string, themaId: string) => {
@@ -574,7 +588,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return id
   }, [])
 
-  const updateThema = useCallback((id: string, patch: Partial<Pick<Thema, 'name' | 'faelligAm' | 'typ' | 'standardThemaId' | 'stufe'>>) => {
+  const updateThema = useCallback((id: string, patch: Partial<Pick<Thema, 'name' | 'fachId' | 'faelligAm' | 'typ' | 'standardThemaId' | 'stufe' | 'tags'>>) => {
     setThemen((prev) => prev.map((t) => {
       if (t.id !== id) return t
       const updated = { ...t, ...patch }
@@ -591,6 +605,35 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setThemen((prev) => prev.filter((t) => t.id !== id))
     dbDeleteThema(id)
   }, [])
+
+  // ── Tag-Kategorien ────────────────────────────────────────────────────
+
+  const createTagKategorie = useCallback((name: string) => {
+    const id = crypto.randomUUID()
+    const kat: TagKategorie = { id, name, tenantId: '' }
+    setTagKategorien((prev) => [...prev, kat])
+    dbSaveTagKategorie(kat)
+  }, [])
+
+  const updateTagKategorie = useCallback((id: string, name: string) => {
+    setTagKategorien((prev) => prev.map((k) => {
+      if (k.id !== id) return k
+      const updated = { ...k, name }
+      dbSaveTagKategorie(updated)
+      return updated
+    }))
+  }, [])
+
+  const deleteTagKategorie = useCallback((id: string) => {
+    setTagKategorien((prev) => prev.filter((k) => k.id !== id))
+    dbDeleteTagKategorie(id)
+  }, [])
+
+  const getTagWerte = useCallback((kategorieId: string): string[] => {
+    const values = new Set<string>()
+    themen.forEach((t) => { (t.tags?.[kategorieId] ?? []).forEach((v) => values.add(v)) })
+    return Array.from(values).sort()
+  }, [themen])
 
   // ── RILZ-Thema assignment ─────────────────────────────────────────────
 
@@ -701,13 +744,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
               const statusPatch = Object.fromEntries(
                 pruefung.lernzielIds.map((lzId) => [lzId, ergebnis.status!])
               )
-              const updated = { ...s, lernzielStatus: { ...s.lernzielStatus, ...statusPatch } }
-              for (const lzId of pruefung.lernzielIds) {
-                dbSaveLernzielStatus(ergebnis.schuelerId, lzId, ergebnis.status!)
-              }
-              return updated
+              return { ...s, lernzielStatus: { ...s.lernzielStatus, ...statusPatch } }
             })
           )
+          for (const lzId of pruefung.lernzielIds) {
+            dbSaveLernzielStatus(ergebnis.schuelerId, lzId, ergebnis.status!)
+          }
         }
       }
       dbSavePruefungErgebnis(full)
@@ -862,6 +904,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         themaKommentare,
         pruefungen,
         pruefungErgebnisse,
+        tagKategorien,
         getClass,
         getStudent,
         getStudentsForClass,
@@ -908,6 +951,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         exportThema,
         exportFach,
         importThema,
+        createTagKategorie,
+        updateTagKategorie,
+        deleteTagKategorie,
+        getTagWerte,
         getPruefungenForKlasse,
         getPruefungErgebnisse,
         createPruefung,

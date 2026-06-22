@@ -1,11 +1,10 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ChevronDown, ChevronRight, Camera, Trash2 } from 'lucide-react'
 import { cn, getFachColor, sv, scoreColor } from '@/lib/utils'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
-import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach, Status } from '@/types/domain'
-import { STATUS_LABELS } from '@/types/domain'
+import { useData } from '@/contexts/DataContext'
+import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach } from '@/types/domain'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -31,45 +30,17 @@ function studentLZScoreAdjusted(student: Schueler, lzList: Lernziel[], themen: T
   return (applicable.reduce((sum, lz) => sum + sv(student.lernzielStatus[lz.id] ?? 'not_reached'), 0) / applicable.length) * 100
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(iso + 'T00:00:00Z')
-  return d.toLocaleDateString('de-DE', { month: 'short', year: '2-digit' })
-}
-
 function sName(s: Schueler): string {
   return `${s.vorname} ${s.nachname}`
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Tier = 'all' | 'excellent' | 'progressing' | 'struggling'
 type KatFilter = 'all' | 'grundlegend' | 'anspruchsvoll'
 type StudentSort = 'score' | 'name'
-
-interface ClassSnap {
-  date: string
-  avgScore: number
-  atRisk: number
-  excellent: number
-  studentCount: number
-  fachScores: Record<string, number>
-}
+type StatView = 'gesamt' | 'fach' | 'thema' | 'pruefungen'
 
 type ScoredStudent = Schueler & { score: number; allScore: number }
-
-const TIER_FULL: Record<Tier, string> = {
-  all: 'Alle Schüler',
-  excellent: 'Sehr gut ≥75%',
-  progressing: 'Im Aufbau 25–74%',
-  struggling: 'Förderbedarf <25%',
-}
-
-const TIER_LABELS: Record<Tier, string> = {
-  all: 'Alle',
-  excellent: '≥75%',
-  progressing: '25–74%',
-  struggling: '<25%',
-}
 
 const KAT_LABELS: Record<KatFilter, string> = {
   all: 'G + A',
@@ -80,77 +51,62 @@ const KAT_LABELS: Record<KatFilter, string> = {
 // ── Chip ───────────────────────────────────────────────────────────────────
 
 function Chip({
-  label, active, activeClass, onClick, dotClass,
+  label, active, activeClass, onClick,
 }: {
   label: string
   active: boolean
   activeClass?: string
   onClick: () => void
-  dotClass?: string
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        'h-7 px-2.5 rounded-md text-xs font-medium transition-all whitespace-nowrap',
-        dotClass && 'flex items-center gap-1.5',
+        'h-7 px-2.5 rounded text-xs font-medium transition-all whitespace-nowrap',
         active
-          ? cn('shadow-sm', activeClass ?? 'bg-primary text-primary-foreground')
+          ? cn('shadow-sm', activeClass ?? 'bg-blue-600 text-white')
           : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground',
       )}
     >
-      {dotClass && <span className={cn('size-2 rounded-full shrink-0', dotClass)} />}
       {label}
     </button>
   )
 }
 
-// ── Filter bar (Tier + Kat only) ───────────────────────────────────────────
+// ── Filter bar ─────────────────────────────────────────────────────────────
 
 function FilterBar({
-  tier, onTierChange, katFilter, onKatChange,
+  katFilter, onKatChange,
 }: {
-  tier: Tier
-  onTierChange: (t: Tier) => void
   katFilter: KatFilter
   onKatChange: (k: KatFilter) => void
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="flex items-center gap-1.5">
-        <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 shrink-0">Gruppe</span>
-        {(['all', 'excellent', 'progressing', 'struggling'] as Tier[]).map(t => (
-          <Chip key={t} label={TIER_LABELS[t]} active={tier === t} onClick={() => onTierChange(t)} />
-        ))}
-      </div>
-      <span className="h-4 w-px bg-border/60 mx-0.5 shrink-0" />
-      <div className="flex items-center gap-1.5">
-        <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 shrink-0">Kat.</span>
-        {(['all', 'grundlegend', 'anspruchsvoll'] as KatFilter[]).map(k => (
-          <Chip
-            key={k}
-            label={KAT_LABELS[k]}
-            active={katFilter === k}
-            activeClass={
-              k === 'grundlegend' ? 'bg-slate-500 text-white'
-              : k === 'anspruchsvoll' ? 'bg-violet-500 text-white'
-              : undefined
-            }
-            onClick={() => onKatChange(k)}
-          />
-        ))}
-      </div>
+    <div className="flex items-center gap-1.5">
+      <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 shrink-0">Lernziel-Kategorie</span>
+      {(['all', 'grundlegend', 'anspruchsvoll'] as KatFilter[]).map(k => (
+        <Chip
+          key={k}
+          label={KAT_LABELS[k]}
+          active={katFilter === k}
+          activeClass={
+            k === 'grundlegend' ? 'bg-slate-500 text-white'
+            : k === 'anspruchsvoll' ? 'bg-violet-500 text-white'
+            : undefined
+          }
+          onClick={() => onKatChange(k)}
+        />
+      ))}
     </div>
   )
 }
 
 // ── Section label ──────────────────────────────────────────────────────────
 
-function SectionLabel({ label, action }: { label: string; action?: React.ReactNode }) {
+function SectionLabel({ label }: { label: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 pb-1 border-b border-border/30">
-      <span className="text-xs font-semibold text-muted-foreground">{label}</span>
-      {action}
+    <div className="pb-1 border-b border-border/40">
+      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">{label}</span>
     </div>
   )
 }
@@ -158,20 +114,57 @@ function SectionLabel({ label, action }: { label: string; action?: React.ReactNo
 // ── KPI tile ───────────────────────────────────────────────────────────────
 
 function KpiTile({
-  label, value, sub, borderColor,
+  label, value, sub, valueClass,
 }: {
   label: string
   value: string | number
   sub?: string
-  borderColor?: string
+  valueClass?: string
 }) {
   return (
-    <div className={cn('bg-card rounded-xl px-5 py-4 border border-border border-l-4', borderColor ?? 'border-l-border')}>
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">{label}</p>
-      <p className="text-3xl font-bold tabular-nums tracking-tight leading-none text-foreground">
+    <div className="bg-white border border-gray-200 rounded-sm px-4 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">{label}</p>
+      <p className={cn('text-2xl font-bold tabular-nums tracking-tight leading-none', valueClass ?? 'text-foreground')}>
         {value}
       </p>
-      {sub && <p className="text-[10px] text-muted-foreground/70 mt-2 leading-tight">{sub}</p>}
+      {sub && <p className="text-[10px] text-muted-foreground/70 mt-1.5 leading-tight">{sub}</p>}
+    </div>
+  )
+}
+
+// ── LZ aggregate status bar ────────────────────────────────────────────────
+
+function LZStatusBar({
+  reached, partial, notReached,
+}: {
+  reached: number; partial: number; notReached: number
+}) {
+  const total = reached + partial + notReached
+  if (total === 0) return null
+  const rp = (reached / total) * 100
+  const pp = (partial / total) * 100
+  const np = (notReached / total) * 100
+  return (
+    <div className="space-y-1.5">
+      <div className="flex h-2 w-full overflow-hidden bg-gray-100">
+        {rp > 0 && <div style={{ width: `${rp}%` }} className="h-full bg-green-500 transition-all" />}
+        {pp > 0 && <div style={{ width: `${pp}%` }} className="h-full bg-amber-400 transition-all" />}
+        {np > 0 && <div style={{ width: `${np}%` }} className="h-full bg-gray-200 transition-all" />}
+      </div>
+      <div className="flex gap-4 text-[10px] text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <span className="inline-block size-1.5 bg-green-500 shrink-0" />
+          {reached} erreicht
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block size-1.5 bg-amber-400 shrink-0" />
+          {partial} teilweise
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block size-1.5 bg-gray-300 shrink-0" />
+          {notReached} nicht erreicht
+        </span>
+      </div>
     </div>
   )
 }
@@ -188,35 +181,35 @@ function DistributionBar({
   const pp = (progressing / total) * 100
   const sp = (struggling / total) * 100
   return (
-    <div className="space-y-2">
-      <div className="flex h-8 rounded-xl overflow-hidden gap-px">
+    <div className="space-y-1.5">
+      <div className="flex h-3 w-full overflow-hidden bg-gray-100">
         {ep > 0 && (
-          <div style={{ width: `${ep}%` }} className="h-full bg-status-reached flex items-center justify-center shrink-0 transition-all">
-            {ep > 8 && <span className="text-white text-xs font-bold tabular-nums">{excellent}</span>}
+          <div style={{ width: `${ep}%` }} className="h-full bg-green-500 flex items-center justify-center transition-all">
+            {ep > 10 && <span className="text-white text-[9px] font-bold tabular-nums">{excellent}</span>}
           </div>
         )}
         {pp > 0 && (
-          <div style={{ width: `${pp}%` }} className="h-full bg-status-partial flex items-center justify-center shrink-0 transition-all">
-            {pp > 8 && <span className="text-white text-xs font-bold tabular-nums">{progressing}</span>}
+          <div style={{ width: `${pp}%` }} className="h-full bg-amber-400 flex items-center justify-center transition-all">
+            {pp > 10 && <span className="text-white text-[9px] font-bold tabular-nums">{progressing}</span>}
           </div>
         )}
         {sp > 0 && (
-          <div style={{ width: `${sp}%` }} className="h-full bg-red-400 flex items-center justify-center shrink-0 transition-all">
-            {sp > 8 && <span className="text-white text-xs font-bold tabular-nums">{struggling}</span>}
+          <div style={{ width: `${sp}%` }} className="h-full bg-red-400 flex items-center justify-center transition-all">
+            {sp > 10 && <span className="text-white text-[9px] font-bold tabular-nums">{struggling}</span>}
           </div>
         )}
       </div>
       <div className="flex gap-5 text-[10px] text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-sm bg-status-reached inline-block shrink-0" />
+        <span className="flex items-center gap-1">
+          <span className="size-1.5 bg-green-500 inline-block shrink-0" />
           {excellent} sehr gut (≥75%)
         </span>
-        <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-sm bg-status-partial inline-block shrink-0" />
+        <span className="flex items-center gap-1">
+          <span className="size-1.5 bg-amber-400 inline-block shrink-0" />
           {progressing} im Aufbau (25–74%)
         </span>
-        <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-sm bg-red-400 inline-block shrink-0" />
+        <span className="flex items-center gap-1">
+          <span className="size-1.5 bg-red-400 inline-block shrink-0" />
           {struggling} Förderbedarf (&lt;25%)
         </span>
       </div>
@@ -224,18 +217,12 @@ function DistributionBar({
   )
 }
 
-// ── Stacked bar ────────────────────────────────────────────────────────────
+// ── Blue progress bar ──────────────────────────────────────────────────────
 
-function StackedBar({ reached, partial, total, h = 'h-2' }: {
-  reached: number; partial: number; total: number; h?: string
-}) {
-  if (total === 0) return <div className={cn('rounded-full bg-muted w-full', h)} />
-  const rp = (reached / total) * 100
-  const pp = (partial / total) * 100
+function ProgressBar({ pct, h = 'h-1.5' }: { pct: number; h?: string }) {
   return (
-    <div className={cn('flex w-full overflow-hidden rounded-full bg-muted', h)}>
-      {rp > 0 && <div style={{ width: `${rp}%` }} className="h-full bg-status-reached transition-all" />}
-      {pp > 0 && <div style={{ width: `${pp}%` }} className="h-full bg-status-partial transition-all" />}
+    <div className={cn('w-full bg-gray-100 overflow-hidden', h)}>
+      <div className="h-full bg-blue-600 transition-all" style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }} />
     </div>
   )
 }
@@ -272,35 +259,28 @@ function StudentRankingTable({
   return (
     <div className="overflow-y-auto max-h-[380px]">
       <table className="w-full text-sm border-collapse">
-        <thead className="sticky top-0 bg-card z-10 border-b border-border">
+        <thead className="sticky top-0 bg-white z-10 border-b border-gray-200">
           <tr>
             <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-8">#</th>
             <th className="py-2 px-2 text-left"><ColHeader field="name">Name</ColHeader></th>
             <th className="py-2 px-2 text-right"><ColHeader field="score">Score</ColHeader></th>
-            <th className="py-2 px-2 w-14"></th>
+            <th className="py-2 px-2 w-20"></th>
             <th className="py-2 px-3 w-14"></th>
           </tr>
         </thead>
         <tbody>
           {sorted.map((s, i) => {
             const pct = Math.round(s.score)
-            const tier = pct >= 75 ? 'excellent' : pct >= 25 ? 'progressing' : 'struggling'
-            const barColor = tier === 'excellent' ? 'bg-status-reached' : tier === 'progressing' ? 'bg-status-partial' : 'bg-red-400'
-            const rankBg = tier === 'excellent' ? 'bg-emerald-100 text-emerald-700' : tier === 'progressing' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600'
             return (
-              <tr key={s.id} className="border-b border-border/40 odd:bg-muted/10 hover:bg-muted/25 transition-colors">
+              <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                 <td className="py-2 px-3">
-                  <span className={cn('inline-flex items-center justify-center size-5 rounded-md text-[10px] font-bold tabular-nums', rankBg)}>
+                  <span className="inline-flex items-center justify-center size-5 rounded text-[10px] font-bold tabular-nums bg-gray-100 text-gray-600">
                     {i + 1}
                   </span>
                 </td>
                 <td className="py-2 px-2 text-sm font-medium">{sName(s)}</td>
                 <td className={cn('py-2 px-2 text-right tabular-nums text-sm font-bold', scoreColor(pct))}>{pct}%</td>
-                <td className="py-2 px-2">
-                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                    <div className={cn('h-full transition-all', barColor)} style={{ width: `${pct}%` }} />
-                  </div>
-                </td>
+                <td className="py-2 px-2"><ProgressBar pct={pct} h="h-1.5" /></td>
                 <td className="py-2 px-3 text-right">
                   <div className="flex items-center justify-end gap-1">
                     {s.rilzFachIds?.length
@@ -333,7 +313,7 @@ function LZRow({
 }) {
   const pct = total === 0 ? 0 : Math.round(((reached + partial * 0.5) / total) * 100)
   return (
-    <div className="py-2 px-2 rounded-md hover:bg-muted/25 transition-colors">
+    <div className="py-1.5 px-2 hover:bg-gray-50 transition-colors">
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span className={cn(
@@ -344,201 +324,44 @@ function LZRow({
           </span>
           <span className="text-xs truncate">{label}</span>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0 text-xs">
-          <span className="text-emerald-600 font-medium tabular-nums">{reached}✓</span>
-          {partial > 0 && <span className="text-amber-600 tabular-nums">{partial}~</span>}
+        <div className="flex items-center gap-2 shrink-0 text-xs">
+          <span className="text-[10px] tabular-nums text-muted-foreground">
+            <span className="text-green-600 font-medium">{reached}</span>/{total}
+          </span>
           <span className={cn('font-bold tabular-nums w-8 text-right', scoreColor(pct))}>{pct}%</span>
         </div>
       </div>
-      <StackedBar reached={reached} partial={partial} total={total} h="h-1.5" />
+      <ProgressBar pct={pct} h="h-1" />
     </div>
   )
 }
 
-// ── Trend chart ────────────────────────────────────────────────────────────
+// ── View switcher ──────────────────────────────────────────────────────────
 
-const CP = { t: 22, r: 20, b: 32, l: 44 }
-const CW = 520, CH = 180
+const VIEW_OPTIONS: { key: StatView; label: string }[] = [
+  { key: 'gesamt', label: 'Gesamt' },
+  { key: 'fach', label: 'Fach' },
+  { key: 'thema', label: 'Thema' },
+  { key: 'pruefungen', label: 'Lernzielkontrollen' },
+]
 
-function TrendChart({ points }: { points: { label: string; pct: number }[] }) {
-  if (points.length < 2) return null
-  const n = points.length
-  const xp = (i: number) => CP.l + (i / (n - 1)) * (CW - CP.l - CP.r)
-  const yp = (v: number) => CP.t + (1 - v / 100) * (CH - CP.t - CP.b)
-  const d = points.map(({ pct }, i) => `${i === 0 ? 'M' : 'L'}${xp(i).toFixed(1)},${yp(pct).toFixed(1)}`).join(' ')
-  const isUp = points[points.length - 1].pct >= points[0].pct
-  const color = isUp ? '#10b981' : '#f59e0b'
-
+function ViewSwitcher({ view, onChange }: { view: StatView; onChange: (v: StatView) => void }) {
   return (
-    <svg viewBox={`0 0 ${CW} ${CH}`} className="w-full" aria-hidden>
-      {[0, 25, 50, 75, 100].map(v => (
-        <g key={v}>
-          <line
-            x1={CP.l} y1={yp(v)} x2={CW - CP.r} y2={yp(v)}
-            stroke="currentColor" strokeOpacity={0.08} strokeDasharray="4 3"
-          />
-          <text x={CP.l - 6} y={yp(v)} textAnchor="end" dominantBaseline="middle"
-            fontSize={9} fill="currentColor" fillOpacity={0.4}>
-            {v}%
-          </text>
-        </g>
+    <div className="flex border-b border-gray-200 -mx-1">
+      {VIEW_OPTIONS.map(o => (
+        <button
+          key={o.key}
+          onClick={() => onChange(o.key)}
+          className={cn(
+            'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap',
+            view === o.key
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {o.label}
+        </button>
       ))}
-      {points.map(({ label }, i) => (
-        <text key={i} x={xp(i)} y={CH - 4} textAnchor="middle"
-          fontSize={8.5} fill="currentColor" fillOpacity={0.5}>
-          {label}
-        </text>
-      ))}
-      <path
-        d={`${d} L${xp(n - 1).toFixed(1)},${yp(0).toFixed(1)} L${xp(0).toFixed(1)},${yp(0).toFixed(1)} Z`}
-        fill={color} fillOpacity={0.07}
-      />
-      <path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      {points.map(({ pct }, i) => (
-        <g key={i}>
-          <circle cx={xp(i)} cy={yp(pct)} r={3.5} fill={color} stroke="white" strokeWidth={1.5} />
-          <text x={xp(i)} y={yp(pct) - 9} textAnchor="middle"
-            fontSize={8} fill={color} fontWeight="700">
-            {Math.round(pct)}%
-          </text>
-        </g>
-      ))}
-    </svg>
-  )
-}
-
-// ── Snapshot history table ─────────────────────────────────────────────────
-
-function SnapshotHistoryTable({
-  snaps, faecher, onDelete,
-}: {
-  snaps: ClassSnap[]
-  faecher: Fach[]
-  onDelete: (date: string) => void
-}) {
-  if (snaps.length === 0) {
-    return (
-      <p className="text-xs text-muted-foreground px-4 py-3">
-        Noch kein Snapshot erstellt. Klicke &ldquo;Snapshot&rdquo; um den aktuellen Stand aufzuzeichnen.
-      </p>
-    )
-  }
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs border-collapse">
-        <thead>
-          <tr className="border-b border-border">
-            <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground whitespace-nowrap">Datum</th>
-            <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground whitespace-nowrap">Ø Score</th>
-            <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground whitespace-nowrap">Δ</th>
-            <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground whitespace-nowrap">Sehr gut</th>
-            <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground whitespace-nowrap">Förderbedarf</th>
-            {faecher.map(f => (
-              <th key={f.id} className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground whitespace-nowrap">
-                {f.name}
-              </th>
-            ))}
-            <th className="py-2 px-3 w-8"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {snaps.map((snap, i) => {
-            const prev = i > 0 ? snaps[i - 1] : null
-            const delta = prev !== null ? snap.avgScore - prev.avgScore : null
-            return (
-              <tr key={snap.date} className="border-b border-border/40 odd:bg-muted/10 hover:bg-muted/20 transition-colors">
-                <td className="py-2 px-3 font-medium text-foreground">{formatDate(snap.date)}</td>
-                <td className={cn('py-2 px-3 text-right tabular-nums font-bold', scoreColor(snap.avgScore))}>
-                  {snap.avgScore}%
-                </td>
-                <td className={cn('py-2 px-3 text-right tabular-nums font-semibold',
-                  delta === null ? 'text-muted-foreground'
-                    : delta > 0 ? 'text-emerald-600'
-                    : delta < 0 ? 'text-red-500'
-                    : 'text-muted-foreground',
-                )}>
-                  {delta === null ? '—' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)}%`}
-                </td>
-                <td className="py-2 px-3 text-right tabular-nums text-emerald-600 font-medium">
-                  {snap.excellent}
-                </td>
-                <td className={cn('py-2 px-3 text-right tabular-nums font-medium',
-                  snap.atRisk > 0 ? 'text-red-500' : 'text-muted-foreground',
-                )}>
-                  {snap.atRisk}
-                </td>
-                {faecher.map(f => (
-                  <td key={f.id} className={cn('py-2 px-3 text-right tabular-nums',
-                    snap.fachScores?.[f.id] != null ? scoreColor(Math.round(snap.fachScores[f.id])) : 'text-muted-foreground',
-                  )}>
-                    {snap.fachScores?.[f.id] != null ? `${Math.round(snap.fachScores[f.id])}%` : '—'}
-                  </td>
-                ))}
-                <td className="py-2 px-3 text-right">
-                  <button
-                    onClick={() => onDelete(snap.date)}
-                    className="text-muted-foreground hover:text-red-500 transition-colors"
-                    aria-label="Snapshot löschen"
-                  >
-                    <Trash2 className="size-3" />
-                  </button>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-// ── Heatmap ────────────────────────────────────────────────────────────────
-
-const CELL_CLS: Record<Status, string> = {
-  reached: 'bg-emerald-400',
-  partially_reached: 'bg-amber-400',
-  not_reached: 'bg-muted border border-border',
-}
-
-function HeatMap({ students, lernziele }: { students: Schueler[]; lernziele: Lernziel[] }) {
-  if (!students.length || !lernziele.length) return null
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs border-collapse">
-        <thead>
-          <tr>
-            <th className="px-3 py-1.5 text-left font-medium text-muted-foreground whitespace-nowrap">Schüler</th>
-            {lernziele.map(lz => (
-              <th key={lz.id} className="px-2 py-1.5 font-normal text-muted-foreground text-center" style={{ maxWidth: 80 }}>
-                <span className={cn(
-                  'inline-block rounded px-1 text-[8px] font-bold mb-0.5',
-                  lz.kategorie === 'grundlegend' ? 'bg-slate-100 text-slate-700' : 'bg-violet-100 text-violet-700',
-                )}>
-                  {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
-                </span>
-                <span className="block truncate" style={{ maxWidth: 80 }} title={lz.label}>
-                  {lz.label.length > 16 ? lz.label.slice(0, 16) + '…' : lz.label}
-                </span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {students.map(s => (
-            <tr key={s.id} className="border-t border-border hover:bg-accent/30 transition-colors">
-              <td className="px-3 py-2 text-sm whitespace-nowrap font-medium">{sName(s)}</td>
-              {lernziele.map(lz => (
-                <td key={lz.id} className="px-2 py-2 text-center">
-                  <span
-                    className={cn('inline-block size-3 rounded-sm', CELL_CLS[s.lernzielStatus[lz.id] ?? 'not_reached'])}
-                    title={STATUS_LABELS[s.lernzielStatus[lz.id] ?? 'not_reached']}
-                  />
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   )
 }
@@ -556,21 +379,14 @@ interface ClassAnalyticsProps {
 export function ClassAnalytics({
   klassId, students, themen, lernziele, faecher,
 }: ClassAnalyticsProps) {
+  const { pruefungen, pruefungErgebnisse } = useData()
+
+  const [view, setView] = useState<StatView>('gesamt')
   const [selectedFachIds, setSelectedFachIds] = useState<string[]>([])
-  const [tier, setTier] = useState<Tier>('all')
   const [katFilter, setKatFilter] = useState<KatFilter>('all')
   const [studentSort, setStudentSort] = useState<StudentSort>('score')
-  const [heatmapOpen, setHeatmapOpen] = useState(false)
-  const [snapHistoryOpen, setSnapHistoryOpen] = useState(false)
-  const [expandedThemaIds, setExpandedThemaIds] = useState<Set<string>>(new Set())
-  const snapKey = `class-snaps-${klassId}`
-  const [snaps, setSnaps] = useState<ClassSnap[]>(() => {
-    try {
-      const raw = localStorage.getItem(snapKey)
-      if (raw) return JSON.parse(raw)
-    } catch { /* ignore */ }
-    return []
-  })
+  const [selectedThemaId, setSelectedThemaId] = useState<string>('')
+  const [selectedPruefungId, setSelectedPruefungId] = useState<string>('')
 
   if (students.length === 0) {
     return <p className="text-sm text-muted-foreground">Noch keine Schüler in dieser Klasse.</p>
@@ -581,7 +397,6 @@ export function ClassAnalytics({
 
   const today = new Date().toISOString().slice(0, 10)
   const activeThemen = themen.filter(t => !t.faelligAm || t.faelligAm <= today)
-  const futureThemen = themen.filter(t => !!t.faelligAm && t.faelligAm > today)
 
   const assignedFachIds = [...new Set(themen.map(t => t.fachId))]
   const assignedFaecher = faecher.filter(f => assignedFachIds.includes(f.id))
@@ -599,24 +414,18 @@ export function ClassAnalytics({
   const scopedLZ = katFilter === 'all' ? allScopedLZ : allScopedLZ.filter(lz => lz.kategorie === katFilter)
 
   const allLZ = activeThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
-  const allLZIds = allLZ.map(lz => lz.id)
 
   const allScored = students.map(s => ({
     ...s,
     allScore: studentLZScoreAdjusted(s, allLZ, activeThemen),
   }))
 
-  const tierStudents = tier === 'all' ? allScored
-    : tier === 'excellent' ? allScored.filter(s => s.allScore >= 75)
-    : tier === 'progressing' ? allScored.filter(s => s.allScore >= 25 && s.allScore < 75)
-    : allScored.filter(s => s.allScore < 25)
-
-  const scopeScored: ScoredStudent[] = tierStudents.map(s => ({
+  const scopeScored: ScoredStudent[] = allScored.map(s => ({
     ...s,
     score: studentLZScoreAdjusted(s, scopedLZ, activeThemen),
   }))
 
-  const regularTierStudents = tierStudents.filter(s => !isSpecial(s))
+  const regularStudents = allScored.filter(s => !isSpecial(s))
   const regularScoped = scopeScored.filter(s => !isSpecial(s))
 
   const avgScore = regularScoped.length
@@ -627,414 +436,464 @@ export function ClassAnalytics({
   const progressing = allScored.filter(s => s.allScore >= 25 && s.allScore < 75).length
   const struggling = allScored.filter(s => s.allScore < 25).length
 
-  const lzStats = scopedLZ.map(lz => {
-    const eligible = regularTierStudents.filter(s => !isLZSkipped(lz, s, activeThemen))
+
+  // ── Thema selector data ────────────────────────────────────────────────
+
+  const themaOptions = activeThemen.map(t => ({
+    thema: t,
+    fach: faecher.find(f => f.id === t.fachId),
+  }))
+
+  const selectedThema = themaOptions.find(o => o.thema.id === selectedThemaId)
+  const themaLZ = selectedThemaId ? lernziele.filter(lz => lz.themaId === selectedThemaId) : []
+  const themaKatFilteredLZ = katFilter === 'all' ? themaLZ : themaLZ.filter(lz => lz.kategorie === katFilter)
+
+  const themaLZStats = themaKatFilteredLZ.map(lz => {
+    const eligible = regularStudents.filter(s => !isLZSkipped(lz, s, activeThemen))
     const reached = eligible.filter(s => s.lernzielStatus[lz.id] === 'reached').length
     const partial = eligible.filter(s => s.lernzielStatus[lz.id] === 'partially_reached').length
-    const pct = eligible.length === 0 ? 0 : ((reached + partial * 0.5) / eligible.length) * 100
-    return { lz, reached, partial, pct, eligibleCount: eligible.length }
+    return { lz, reached, partial, eligibleCount: eligible.length }
   })
 
-  // Per-thema class aggregate (difficulty list)
-  const themaStats = scopedThemen.map(thema => {
-    const tzLZ = lernziele.filter(lz => lz.themaId === thema.id)
-    const r = tzLZ.reduce((s, lz) => {
-      const elig = regularTierStudents.filter(sc => !isLZSkipped(lz, sc, activeThemen))
-      return s + elig.filter(sc => sc.lernzielStatus[lz.id] === 'reached').length
-    }, 0)
-    const p = tzLZ.reduce((s, lz) => {
-      const elig = regularTierStudents.filter(sc => !isLZSkipped(lz, sc, activeThemen))
-      return s + elig.filter(sc => sc.lernzielStatus[lz.id] === 'partially_reached').length
-    }, 0)
-    const t = tzLZ.reduce((s, lz) =>
-      s + regularTierStudents.filter(sc => !isLZSkipped(lz, sc, activeThemen)).length, 0)
-    const avg = t === 0 ? 0 : Math.round(((r + p * 0.5) / t) * 100)
-    const fach = faecher.find(f => f.id === thema.fachId)
-    return { thema, fach, r, p, t, avg, lzCount: tzLZ.length }
-  }).sort((a, b) => a.avg - b.avg)
+  const themaAvgPct = themaKatFilteredLZ.length === 0 ? 0 : (() => {
+    if (regularStudents.length === 0) return 0
+    const scores = regularStudents.map(s => studentLZScoreAdjusted(s, themaKatFilteredLZ, activeThemen))
+    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+  })()
 
-  // Trend from student history
-  const regularStudents = students.filter(s => !isSpecial(s))
-  const histDates = [...new Set(
-    regularStudents.flatMap(s => s.progressHistory?.map(p => p.date) ?? [])
-  )].sort()
-  const histPoints = histDates.map(date => {
-    const withData = regularStudents.filter(s => s.progressHistory?.some(p => p.date === date))
-    const avg = withData.length === 0 ? 0 : withData.reduce((sum, s) => {
-      const snap = s.progressHistory!.find(p => p.date === date)!
-      return sum + (allLZIds.length === 0 ? 0
-        : (allLZIds.reduce((sc, id) => sc + sv(snap.lernzielStatus[id] ?? 'not_reached'), 0) / allLZIds.length) * 100)
-    }, 0) / withData.length
-    return { label: formatDate(date), pct: avg }
-  })
+  const themaStudents = [...scopeScored]
+    .map(s => ({ ...s, themaScore: studentLZScoreAdjusted(s, themaKatFilteredLZ, activeThemen) }))
+    .sort((a, b) => b.themaScore - a.themaScore)
 
-  const snapPoints = snaps.map(s => ({ label: formatDate(s.date), pct: s.avgScore }))
-  const regularAllScored = allScored.filter(s => !isSpecial(s))
-  const todayPct = Math.round(
-    regularAllScored.reduce((s, x) => s + x.allScore, 0) / (regularAllScored.length || 1),
-  )
-  const trendPoints = snaps.length >= 1
-    ? [...snapPoints, { label: 'Heute', pct: todayPct }]
-    : histPoints.length >= 1
-    ? [...histPoints, { label: 'Heute', pct: todayPct }]
-    : []
+  // ── Prüfungsstatistiken data ───────────────────────────────────────────
 
-  const lastSnap = snaps.length > 0 ? snaps[snaps.length - 1] : null
-  const deltaVsLast = lastSnap !== null ? todayPct - lastSnap.avgScore : null
+  const klassePruefungen = pruefungen
+    .filter(p => p.klasseId === klassId)
+    .sort((a, b) => b.datum.localeCompare(a.datum))
 
-  const trendIsUp = trendPoints.length >= 2
-    ? trendPoints[trendPoints.length - 1].pct >= trendPoints[0].pct
-    : null
+  const selectedPruefung = klassePruefungen.find(p => p.id === selectedPruefungId)
+  const pruefungErgebn = pruefungErgebnisse.filter(e => e.pruefungId === selectedPruefungId)
 
-  function saveSnap() {
-    const fachScores: Record<string, number> = {}
-    for (const fach of assignedFaecher) {
-      const fachThemen = activeThemen.filter(t => t.fachId === fach.id)
-      const fachLZ = fachThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
-      if (fachLZ.length > 0 && regularStudents.length > 0) {
-        fachScores[fach.id] = regularStudents.reduce(
-          (sum, s) => sum + studentLZScoreAdjusted(s, fachLZ, activeThemen), 0,
-        ) / regularStudents.length
+  const pruefungStudentRows = students
+    .filter(s => !selectedPruefung?.nurRilz || (selectedPruefung.rilzSchuelerIds ?? []).includes(s.id))
+    .map(s => ({ student: s, ergebnis: pruefungErgebn.find(e => e.schuelerId === s.id) }))
+    .sort((a, b) => {
+      if (selectedPruefung?.punkteEnabled) {
+        return (b.ergebnis?.punkte ?? -1) - (a.ergebnis?.punkte ?? -1)
       }
-    }
-    const snap: ClassSnap = {
-      date: new Date().toISOString().slice(0, 10),
-      avgScore: todayPct,
-      atRisk: struggling,
-      excellent,
-      studentCount: students.length,
-      fachScores,
-    }
-    const updated = [...snaps.filter(s => s.date !== snap.date), snap]
-      .sort((a, b) => a.date.localeCompare(b.date))
-    setSnaps(updated)
-    try { localStorage.setItem(snapKey, JSON.stringify(updated)) } catch { /* ignore */ }
-  }
-
-  function deleteSnap(date: string) {
-    const updated = snaps.filter(s => s.date !== date)
-    setSnaps(updated)
-    try { localStorage.setItem(snapKey, JSON.stringify(updated)) } catch { /* ignore */ }
-  }
-
-  function toggleThema(id: string) {
-    setExpandedThemaIds(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
+      if (selectedPruefung?.noteEnabled) {
+        return parseFloat(b.ergebnis?.note ?? '0') - parseFloat(a.ergebnis?.note ?? '0')
+      }
+      const ord = { reached: 0, partially_reached: 1, not_reached: 2 }
+      return ord[a.ergebnis?.status ?? 'not_reached'] - ord[b.ergebnis?.status ?? 'not_reached']
     })
-  }
 
-  const showFachContext = selectedFachIds.length !== 1
+  const gradeDistribution = (() => {
+    if (!selectedPruefung?.noteEnabled) return []
+    const counts = new Map<string, number>()
+    for (const row of pruefungStudentRows) {
+      const note = row.ergebnis?.note
+      if (note) counts.set(note, (counts.get(note) ?? 0) + 1)
+    }
+    return [...counts.entries()]
+      .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))
+      .map(([note, count]) => ({ note, count }))
+  })()
+
+  const pointsStats = (() => {
+    if (!selectedPruefung?.punkteEnabled) return null
+    const values = pruefungStudentRows
+      .map(r => r.ergebnis?.punkte)
+      .filter((v): v is number => v !== undefined && v !== null)
+    if (values.length === 0) return null
+    return {
+      avg: values.reduce((a, b) => a + b, 0) / values.length,
+      min: Math.min(...values),
+      max: Math.max(...values),
+      count: values.length,
+    }
+  })()
+
+  const statusDistrib = (() => {
+    if (selectedPruefung?.punkteEnabled || selectedPruefung?.noteEnabled || !selectedPruefung) return null
+    const r = pruefungStudentRows.filter(x => x.ergebnis?.status === 'reached').length
+    const p = pruefungStudentRows.filter(x => x.ergebnis?.status === 'partially_reached').length
+    const n = pruefungStudentRows.filter(x => !x.ergebnis || x.ergebnis.status === 'not_reached').length
+    return { reached: r, partial: p, notReached: n }
+  })()
+
+  // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
 
-      {/* Fach chip filter */}
-      <FachChipFilter
-        faecher={assignedFaecher}
-        allFachIds={allFachIds}
-        selectedIds={selectedFachIds}
-        onChange={setSelectedFachIds}
-      />
+      {/* Tabs */}
+      <ViewSwitcher view={view} onChange={setView} />
 
-      {/* Tier + Kat filter */}
-      <FilterBar tier={tier} onTierChange={setTier} katFilter={katFilter} onKatChange={setKatFilter} />
-
-      {/* Future themen notice */}
-      {futureThemen.length > 0 && (
-        <div className="rounded-lg border border-sky-200 bg-sky-50/60 px-4 py-2.5 text-xs text-sky-700 flex items-center gap-2">
-          <span className="shrink-0">📅</span>
-          <span>
-            <strong>{futureThemen.length} {futureThemen.length === 1 ? 'Thema' : 'Themen'}</strong> noch nicht fällig und daher ausgeschlossen:{' '}
-            {futureThemen.map(t => t.name).join(', ')}
-          </span>
-        </div>
-      )}
-
-      {/* ── Zone 1: KPI row ─────────────────────────────────────────────── */}
-      <div className="space-y-3">
-        <div className="grid grid-cols-4 gap-3">
-          <KpiTile
-            label={tier !== 'all' ? TIER_FULL[tier] : 'Ø Score'}
-            value={`${Math.round(avgScore)}%`}
-            borderColor={Math.round(avgScore) >= 75 ? 'border-l-emerald-400' : Math.round(avgScore) >= 25 ? 'border-l-amber-400' : 'border-l-red-400'}
-            sub={
-              deltaVsLast !== null
-                ? `${deltaVsLast > 0 ? '▲' : deltaVsLast < 0 ? '▼' : '='} ${Math.abs(deltaVsLast).toFixed(1)}% vs. letztem Snap`
-                : trendIsUp !== null
-                ? trendIsUp ? '▲ steigender Trend' : '▼ fallender Trend'
-                : `${students.length} Schüler`
-            }
+      {/* ── Unified filter zone ─────────────────────────────────────── */}
+      <div className="space-y-2 pb-3 border-b border-gray-100">
+        {view === 'fach' && (
+          <FachChipFilter
+            faecher={assignedFaecher}
+            allFachIds={allFachIds}
+            selectedIds={selectedFachIds}
+            onChange={setSelectedFachIds}
           />
-          <KpiTile
-            label="Sehr gut"
-            value={excellent}
-            borderColor="border-l-emerald-400"
-            sub={`≥75% · ${tier === 'all' ? students.length : tierStudents.length} gesamt`}
-          />
-          <KpiTile
-            label="Im Aufbau"
-            value={progressing}
-            borderColor="border-l-amber-400"
-            sub="25–74%"
-          />
-          <KpiTile
-            label="Förderbedarf"
-            value={struggling}
-            borderColor={struggling > 0 ? 'border-l-red-400' : 'border-l-border'}
-            sub="unter 25%"
-          />
-        </div>
-
-        {tier === 'all' && (
-          <DistributionBar
-            excellent={excellent}
-            progressing={progressing}
-            struggling={struggling}
-            total={students.length}
-          />
+        )}
+        {view === 'thema' && (
+          <div className="flex items-center gap-2">
+            <label htmlFor="thema-select" className="text-xs text-muted-foreground shrink-0">Thema:</label>
+            <select
+              id="thema-select"
+              value={selectedThemaId}
+              onChange={e => setSelectedThemaId(e.target.value)}
+              className="flex-1 text-sm border border-gray-200 rounded-sm px-2 py-1.5 bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
+            >
+              <option value="">— Thema wählen —</option>
+              {assignedFaecher.map(fach => {
+                const fachThemen = themaOptions.filter(o => o.thema.fachId === fach.id)
+                if (fachThemen.length === 0) return null
+                return (
+                  <optgroup key={fach.id} label={fach.name}>
+                    {fachThemen.map(o => (
+                      <option key={o.thema.id} value={o.thema.id}>{o.thema.name}</option>
+                    ))}
+                  </optgroup>
+                )
+              })}
+            </select>
+          </div>
+        )}
+        {view === 'pruefungen' && (
+          <div className="flex items-center gap-2">
+            <label htmlFor="pruefung-select" className="text-xs text-muted-foreground shrink-0">Lernzielkontrolle:</label>
+            <select
+              id="pruefung-select"
+              value={selectedPruefungId}
+              onChange={e => setSelectedPruefungId(e.target.value)}
+              className="flex-1 text-sm border border-gray-200 rounded-sm px-2 py-1.5 bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
+            >
+              <option value="">— Lernzielkontrolle wählen —</option>
+              {klassePruefungen.map(p => {
+                const fach = faecher.find(f => f.id === p.fachId)
+                const modeTag = p.punkteEnabled ? ' [Punkte]' : p.noteEnabled ? ' [Note]' : ' [Status]'
+                return (
+                  <option key={p.id} value={p.id}>
+                    {p.datum} — {p.name}{fach ? ` (${fach.name})` : ''}{modeTag}
+                  </option>
+                )
+              })}
+            </select>
+          </div>
+        )}
+        {view !== 'pruefungen' && (
+          <FilterBar katFilter={katFilter} onKatChange={setKatFilter} />
         )}
       </div>
 
-      {/* ── Zone 2: Trend chart (full width) ────────────────────────────── */}
-      <div className="space-y-2">
-        <SectionLabel
-          label="Klassentrend"
-          action={
-            <button
-              onClick={saveSnap}
-              className="flex items-center gap-1.5 text-xs bg-foreground text-background hover:bg-foreground/85 px-3 py-1.5 rounded-md font-medium transition-colors"
-            >
-              <Camera className="size-3" />
-              Snapshot
-            </button>
-          }
-        />
-        <div className="rounded-xl border border-border bg-card p-5">
-          {trendPoints.length >= 2
-            ? (
-              <div className="space-y-1">
-                {trendIsUp !== null && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={cn('text-xs font-semibold', trendIsUp ? 'text-emerald-600' : 'text-amber-600')}>
-                      {trendIsUp ? '▲ Steigender Trend' : '▼ Fallender Trend'}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {trendPoints[0].pct.toFixed(0)}% → {trendPoints[trendPoints.length - 1].pct.toFixed(0)}%
-                    </span>
-                  </div>
-                )}
-                <TrendChart points={trendPoints} />
-              </div>
-            )
-            : (
-              <div className="flex items-center justify-center py-12 text-xs text-center text-muted-foreground">
-                <div className="space-y-1">
-                  <p className="font-medium">Noch kein Verlauf</p>
-                  <p className="text-muted-foreground/70">Klicke &ldquo;Snapshot&rdquo; um den aktuellen Stand aufzuzeichnen,<br />oder erfasse Beurteilungen um den automatischen Verlauf zu sehen.</p>
-                </div>
-              </div>
-            )
-          }
-        </div>
-      </div>
+      {/* ── GESAMT ──────────────────────────────────────────────────────── */}
+      {view === 'gesamt' && (
+        <div className="space-y-5">
 
-      {/* ── Zone 3: Per-Fach KPI cards | Schüler-Ranking ────────────────── */}
-      <div className="grid grid-cols-2 gap-5 items-start">
+          {/* KPI tiles */}
+          <div className="space-y-3">
+            <div className="grid grid-cols-4 gap-2">
+              <KpiTile
+                label="Ø Score"
+                value={`${Math.round(avgScore)}%`}
+                valueClass={scoreColor(Math.round(avgScore))}
+                sub={`${students.length} Schüler`}
+              />
+              <KpiTile label="Sehr gut" value={excellent} valueClass="text-green-600" sub={`≥75% · ${students.length} gesamt`} />
+              <KpiTile label="Im Aufbau" value={progressing} valueClass="text-amber-600" sub="25–74%" />
+              <KpiTile label="Förderbedarf" value={struggling} valueClass={struggling > 0 ? 'text-red-500' : 'text-muted-foreground'} sub="unter 25%" />
+            </div>
 
-        <div className="space-y-2">
-          <SectionLabel label={`Fächer — ${filteredFaecher.length} ${filteredFaecher.length === 1 ? 'Fach' : 'Fächer'}`} />
-          <div className="grid grid-cols-2 gap-3">
-            {filteredFaecher.map(fach => {
-              const fachThemen = activeThemen.filter(t => t.fachId === fach.id)
-              const fachLZ = fachThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
-              if (fachLZ.length === 0) return null
-              const grundIds = fachLZ.filter(lz => lz.kategorie === 'grundlegend').map(lz => lz.id)
-              const ansprIds = fachLZ.filter(lz => lz.kategorie === 'anspruchsvoll').map(lz => lz.id)
-              const nReg = regularTierStudents.length
-              const avgG = nReg && grundIds.length
-                ? Math.round(regularTierStudents.reduce((s, x) => s + studentLZScore(x, grundIds), 0) / nReg)
-                : null
-              const avgA = nReg && ansprIds.length
-                ? Math.round(regularTierStudents.reduce((s, x) => s + studentLZScore(x, ansprIds), 0) / nReg)
-                : null
-              const reached = fachLZ.reduce((sum, lz) => {
-                const elig = regularTierStudents.filter(s => !isLZSkipped(lz, s, activeThemen))
-                return sum + elig.filter(s => s.lernzielStatus[lz.id] === 'reached').length
-              }, 0)
-              const partial = fachLZ.reduce((sum, lz) => {
-                const elig = regularTierStudents.filter(s => !isLZSkipped(lz, s, activeThemen))
-                return sum + elig.filter(s => s.lernzielStatus[lz.id] === 'partially_reached').length
-              }, 0)
-              const total = fachLZ.reduce((sum, lz) =>
-                sum + regularTierStudents.filter(s => !isLZSkipped(lz, s, activeThemen)).length, 0)
-              const avgPct = total === 0 ? 0 : Math.round(((reached + partial * 0.5) / total) * 100)
-              const fc = getFachColor(fach.id, allFachIds)
+            <DistributionBar excellent={excellent} progressing={progressing} struggling={struggling} total={students.length} />
 
-              return (
-                <div key={fach.id} className={cn('rounded-xl border border-border bg-card px-4 py-3 border-l-4', fc.border)}>
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
-                    <span className="text-xs font-semibold">{fach.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <span className={cn('text-xl font-bold tabular-nums', scoreColor(avgPct))}>{avgPct}%</span>
-                    {avgG !== null && (
-                      <span className="text-[10px] text-muted-foreground">
-                        G <span className="font-semibold text-foreground">{avgG}%</span>
-                      </span>
-                    )}
-                    {avgA !== null && (
-                      <span className="text-[10px] text-muted-foreground">
-                        A <span className="font-semibold text-foreground">{avgA}%</span>
-                      </span>
-                    )}
-                  </div>
-                  <StackedBar reached={reached} partial={partial} total={total} h="h-2" />
-                  <p className="text-[10px] text-muted-foreground mt-1.5">{fachLZ.length} LZ</p>
-                </div>
-              )
-            })}
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <SectionLabel label={`Schüler-Ranking — ${scopeScored.length} Schüler`} />
-          <div className="rounded-xl border border-border overflow-hidden bg-card">
-            <StudentRankingTable
-              students={scopeScored}
-              sort={studentSort}
-              onSortChange={setStudentSort}
-            />
+          {/* Schüler-Ranking */}
+          <div className="space-y-2">
+            <SectionLabel label={`Lernstand — ${scopeScored.length} Schüler`} />
+            <div className="border border-gray-200 rounded-sm overflow-hidden bg-white">
+              <StudentRankingTable students={scopeScored} sort={studentSort} onSortChange={setStudentSort} />
+            </div>
           </div>
-        </div>
 
-      </div>
-
-      {/* ── Zone 4: Thema difficulty list (full width) ───────────────────── */}
-      {themaStats.length > 0 && (
-        <div className="space-y-2">
-          <SectionLabel label={`Themen — ${themaStats.length} ${themaStats.length === 1 ? 'Thema' : 'Themen'}, nach Schwierigkeit`} />
-          <div className="space-y-1.5">
-            {themaStats.map(({ thema, fach, r, p, t, avg, lzCount }) => {
-              const isExpanded = expandedThemaIds.has(thema.id)
-              const fc = fach ? getFachColor(fach.id, allFachIds) : null
-              const themaLzStats = lzStats.filter(({ lz }) => lz.themaId === thema.id)
-              const diffBadge = avg < 40
-                ? <span className="rounded px-1.5 py-0.5 text-[9px] font-bold bg-red-100 text-red-600">↓ schwierig</span>
-                : avg >= 75
-                ? <span className="rounded px-1.5 py-0.5 text-[9px] font-bold bg-emerald-100 text-emerald-600">↑ gut</span>
-                : null
-
-              return (
-                <div key={thema.id} className="rounded-xl border border-border overflow-hidden">
-                  <button
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-muted/30 transition-colors text-left"
-                    onClick={() => toggleThema(thema.id)}
-                  >
-                    <ChevronRight className={cn(
-                      'size-3 text-muted-foreground shrink-0 transition-transform',
-                      isExpanded && 'rotate-90',
-                    )} />
-                    {showFachContext && fc && (
-                      <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
-                    )}
-                    <span className="text-xs font-medium flex-1 truncate">{thema.name}</span>
-                    {diffBadge}
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[10px] text-muted-foreground">{lzCount} LZ</span>
-                      <div className="w-16 shrink-0">
-                        <StackedBar reached={r} partial={p} total={t} h="h-1.5" />
-                      </div>
-                      <span className={cn('text-xs font-bold tabular-nums w-8 text-right shrink-0', scoreColor(avg))}>
-                        {avg}%
-                      </span>
-                    </div>
-                  </button>
-
-                  {isExpanded && themaLzStats.length > 0 && (
-                    <div className="border-t border-border bg-muted/10 p-1">
-                      {themaLzStats.map(({ lz, reached, partial, eligibleCount }) => (
-                        <LZRow
-                          key={lz.id}
-                          label={lz.label}
-                          kategorie={lz.kategorie}
-                          reached={reached}
-                          partial={partial}
-                          total={eligibleCount}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
         </div>
       )}
 
-      {/* ── Zone 5: Heatmap (collapsible) ───────────────────────────────── */}
-      {scopedLZ.length > 0 && (
-        <div className="space-y-2">
-          <SectionLabel
-            label="Heatmap — Schüler × Lernziele"
-            action={
-              <button
-                onClick={() => setHeatmapOpen(v => !v)}
-                className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {heatmapOpen
-                  ? <ChevronDown className="size-3" />
-                  : <ChevronRight className="size-3" />
-                }
-                {heatmapOpen ? 'Ausblenden' : 'Anzeigen'}
-              </button>
-            }
-          />
-          {heatmapOpen && (
-            <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-              <HeatMap students={scopeScored} lernziele={scopedLZ} />
-              <div className="flex items-center gap-4 pt-2 border-t border-border">
-                {[
-                  { cls: 'bg-emerald-400', label: 'Erreicht' },
-                  { cls: 'bg-amber-400', label: 'Teilweise' },
-                  { cls: 'bg-muted border border-border', label: 'Nicht erreicht' },
-                ].map(({ cls, label }) => (
-                  <div key={label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className={cn('inline-block size-3 rounded-sm', cls)} />
-                    {label}
-                  </div>
-                ))}
+      {/* ── FACH ────────────────────────────────────────────────────────── */}
+      {view === 'fach' && (
+        <div className="space-y-4">
+          {filteredFaecher.length > 0 ? (
+            <div className="border border-gray-200 rounded-sm overflow-hidden">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Fach</th>
+                    <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">Ø</th>
+                    <th className="py-2 px-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-40">Verlauf</th>
+                    <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">G</th>
+                    <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">A</th>
+                    <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-12">LZ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredFaecher.map(fach => {
+                    const fachThemen = activeThemen.filter(t => t.fachId === fach.id)
+                    const fachAllLZ = fachThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
+                    const fachLZ = katFilter === 'all' ? fachAllLZ : fachAllLZ.filter(lz => lz.kategorie === katFilter)
+                    if (fachLZ.length === 0) return null
+
+                    const grundLZ = fachAllLZ.filter(lz => lz.kategorie === 'grundlegend')
+                    const ansprLZ = fachAllLZ.filter(lz => lz.kategorie === 'anspruchsvoll')
+                    const nReg = regularStudents.length
+
+                    const avgG = nReg && grundLZ.length
+                      ? Math.round(regularStudents.reduce((s, x) => s + studentLZScore(x, grundLZ.map(l => l.id)), 0) / nReg)
+                      : null
+                    const avgA = nReg && ansprLZ.length
+                      ? Math.round(regularStudents.reduce((s, x) => s + studentLZScore(x, ansprLZ.map(l => l.id)), 0) / nReg)
+                      : null
+
+                    const reached = fachLZ.reduce((sum, lz) => {
+                      const elig = regularStudents.filter(s => !isLZSkipped(lz, s, activeThemen))
+                      return sum + elig.filter(s => s.lernzielStatus[lz.id] === 'reached').length
+                    }, 0)
+                    const partial = fachLZ.reduce((sum, lz) => {
+                      const elig = regularStudents.filter(s => !isLZSkipped(lz, s, activeThemen))
+                      return sum + elig.filter(s => s.lernzielStatus[lz.id] === 'partially_reached').length
+                    }, 0)
+                    const total = fachLZ.reduce((sum, lz) =>
+                      sum + regularStudents.filter(s => !isLZSkipped(lz, s, activeThemen)).length, 0)
+                    const avgPct = total === 0 ? 0 : Math.round(((reached + partial * 0.5) / total) * 100)
+                    const fc = getFachColor(fach.id, allFachIds)
+
+                    return (
+                      <tr key={fach.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors">
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
+                            <span className="text-sm font-medium">{fach.name}</span>
+                          </div>
+                        </td>
+                        <td className={cn('py-2.5 px-3 text-right tabular-nums font-bold text-sm', scoreColor(avgPct))}>{avgPct}%</td>
+                        <td className="py-2.5 px-3"><ProgressBar pct={avgPct} h="h-1.5" /></td>
+                        <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{avgG !== null ? `${avgG}%` : '—'}</td>
+                        <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{avgA !== null ? `${avgA}%` : '—'}</td>
+                        <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{fachAllLZ.length}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Keine Fächer für diese Auswahl.</p>
+          )}
+        </div>
+      )}
+
+      {/* ── THEMA ───────────────────────────────────────────────────────── */}
+      {view === 'thema' && (
+        <div className="space-y-4">
+          {!selectedThema ? (
+            <p className="text-sm text-muted-foreground">Wähle ein Thema um die Statistiken zu sehen.</p>
+          ) : (
+            <div className="border border-gray-200 rounded-sm overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <div className="flex items-center gap-2">
+                  {selectedThema.fach && (
+                    <span className={cn('size-2 rounded-full shrink-0', getFachColor(selectedThema.fach.id, allFachIds).dot)} />
+                  )}
+                  <span className="text-sm font-semibold">{selectedThema.thema.name}</span>
+                  {selectedThema.fach && (
+                    <span className="text-xs text-muted-foreground">{selectedThema.fach.name}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">{themaLZ.length} LZ</span>
+                  <span className={cn('text-sm font-bold tabular-nums', scoreColor(themaAvgPct))}>
+                    Ø {themaAvgPct}%
+                  </span>
+                </div>
               </div>
+
+              {/* LZ breakdown */}
+              {themaLZStats.length > 0 && (
+                <div className="divide-y divide-gray-100 px-2 py-1">
+                  {themaLZStats.map(({ lz, reached, partial, eligibleCount }) => (
+                    <LZRow key={lz.id} label={lz.label} kategorie={lz.kategorie} reached={reached} partial={partial} total={eligibleCount} />
+                  ))}
+                </div>
+              )}
+
+              {/* Student list */}
+              {themaStudents.length > 0 && (
+                <div className="border-t border-gray-200">
+                  <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Schüler</span>
+                  </div>
+                  <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+                    {themaStudents.map((s, i) => {
+                      const pct = Math.round(s.themaScore)
+                      return (
+                        <div key={s.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition-colors">
+                          <span className="text-[10px] tabular-nums text-muted-foreground w-4 text-right">{i + 1}</span>
+                          <span className="text-xs font-medium flex-1 truncate">{sName(s)}</span>
+                          <span className={cn('text-xs font-bold tabular-nums w-10 text-right', scoreColor(pct))}>{pct}%</span>
+                          <div className="w-24 shrink-0"><ProgressBar pct={pct} h="h-1.5" /></div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
 
-      {/* ── Zone 6: Snapshot history (collapsible) ──────────────────────── */}
-      <div className="space-y-2">
-        <SectionLabel
-          label={`Snapshot-Verlauf — ${snaps.length} gespeichert`}
-          action={
-            <button
-              onClick={() => setSnapHistoryOpen(v => !v)}
-              className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {snapHistoryOpen
-                ? <ChevronDown className="size-3" />
-                : <ChevronRight className="size-3" />
-              }
-              {snapHistoryOpen ? 'Ausblenden' : 'Anzeigen'}
-            </button>
-          }
-        />
-        {snapHistoryOpen && (
-          <div className="rounded-xl border border-border bg-card overflow-hidden">
-            <SnapshotHistoryTable snaps={snaps} faecher={assignedFaecher} onDelete={deleteSnap} />
-          </div>
-        )}
-      </div>
+      {/* ── PRÜFUNGEN ───────────────────────────────────────────────────── */}
+      {view === 'pruefungen' && (
+        <div className="space-y-4">
+          {klassePruefungen.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Noch keine Lernzielkontrollen für diese Klasse erfasst.</p>
+          ) : !selectedPruefung ? (
+            <p className="text-sm text-muted-foreground">Wähle eine Lernzielkontrolle um die Statistiken zu sehen.</p>
+          ) : (
+            <div className="border border-gray-200 rounded-sm overflow-hidden">
+              {/* Exam header */}
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">{selectedPruefung.name}</span>
+                    <span className="text-[10px] bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 font-medium">
+                      {selectedPruefung.punkteEnabled ? 'Punkte' : selectedPruefung.noteEnabled ? 'Note' : 'Status'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                    <span>{selectedPruefung.datum}</span>
+                    {faecher.find(f => f.id === selectedPruefung.fachId) && (
+                      <span>· {faecher.find(f => f.id === selectedPruefung.fachId)!.name}</span>
+                    )}
+                    <span>· {pruefungStudentRows.length} Schüler</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Points mode */}
+              {selectedPruefung.punkteEnabled && pointsStats && (
+                <div className="px-4 py-3 border-b border-gray-100 space-y-2">
+                  <div className="flex items-center gap-6 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Ø Punkte </span>
+                      <span className="font-bold tabular-nums">{pointsStats.avg.toFixed(1)}</span>
+                      {selectedPruefung.maxPunkte && <span className="text-muted-foreground"> / {selectedPruefung.maxPunkte}</span>}
+                    </div>
+                    <div><span className="text-muted-foreground">Min </span><span className="font-bold tabular-nums text-red-500">{pointsStats.min}</span></div>
+                    <div><span className="text-muted-foreground">Max </span><span className="font-bold tabular-nums text-green-600">{pointsStats.max}</span></div>
+                    <div><span className="text-muted-foreground">Bewertet </span><span className="font-bold tabular-nums">{pointsStats.count}</span></div>
+                  </div>
+                  {selectedPruefung.maxPunkte && (
+                    <ProgressBar pct={(pointsStats.avg / selectedPruefung.maxPunkte) * 100} h="h-2" />
+                  )}
+                </div>
+              )}
+
+              {/* Grade mode */}
+              {selectedPruefung.noteEnabled && gradeDistribution.length > 0 && (
+                <div className="px-4 py-3 border-b border-gray-100 space-y-1.5">
+                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Notenverteilung</p>
+                  {gradeDistribution.map(({ note, count }) => {
+                    const maxCount = Math.max(...gradeDistribution.map(g => g.count))
+                    const pct = (count / maxCount) * 100
+                    return (
+                      <div key={note} className="flex items-center gap-2">
+                        <span className="text-xs font-bold tabular-nums w-8 text-right">{note}</span>
+                        <div className="flex-1 bg-gray-100 h-4 overflow-hidden flex items-center">
+                          <div
+                            className="h-full bg-blue-600 flex items-center justify-end pr-1 transition-all"
+                            style={{ width: `${pct}%`, minWidth: count > 0 ? 20 : 0 }}
+                          >
+                            {pct > 15 && <span className="text-[9px] text-white font-bold tabular-nums">{count}</span>}
+                          </div>
+                          {pct <= 15 && <span className="text-[9px] text-muted-foreground font-bold tabular-nums ml-1">{count}</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Status mode */}
+              {statusDistrib && (
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <LZStatusBar reached={statusDistrib.reached} partial={statusDistrib.partial} notReached={statusDistrib.notReached} />
+                </div>
+              )}
+
+              {/* Student results */}
+              <div className="max-h-72 overflow-y-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead className="sticky top-0 bg-white border-b border-gray-200">
+                    <tr>
+                      <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Schüler</th>
+                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground">
+                        {selectedPruefung.punkteEnabled ? 'Punkte' : selectedPruefung.noteEnabled ? 'Note' : 'Status'}
+                      </th>
+                      {selectedPruefung.punkteEnabled && selectedPruefung.maxPunkte && <th className="py-2 px-3 w-32"></th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pruefungStudentRows.map(({ student, ergebnis }) => (
+                      <tr key={student.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors">
+                        <td className="py-2 px-3 font-medium">{sName(student)}</td>
+                        <td className="py-2 px-3 text-right font-bold tabular-nums">
+                          {selectedPruefung.punkteEnabled
+                            ? (ergebnis?.punkte !== undefined
+                              ? ergebnis.punkte
+                              : <span className="text-muted-foreground font-normal">—</span>)
+                            : selectedPruefung.noteEnabled
+                            ? (ergebnis?.note ?? <span className="text-muted-foreground font-normal">—</span>)
+                            : (
+                              <span className={cn('inline-flex items-center gap-1',
+                                ergebnis?.status === 'reached' ? 'text-green-600'
+                                  : ergebnis?.status === 'partially_reached' ? 'text-amber-600'
+                                  : 'text-muted-foreground',
+                              )}>
+                                <span className={cn('inline-block size-2 rounded-full',
+                                  ergebnis?.status === 'reached' ? 'bg-green-500'
+                                    : ergebnis?.status === 'partially_reached' ? 'bg-amber-400'
+                                    : 'bg-gray-300',
+                                )} />
+                                {ergebnis?.status === 'reached' ? 'Erreicht'
+                                  : ergebnis?.status === 'partially_reached' ? 'Teilweise'
+                                  : 'Nicht erreicht'}
+                              </span>
+                            )
+                          }
+                        </td>
+                        {selectedPruefung.punkteEnabled && selectedPruefung.maxPunkte && (
+                          <td className="py-2 px-3">
+                            <ProgressBar
+                              pct={ergebnis?.punkte !== undefined ? (ergebnis.punkte / selectedPruefung.maxPunkte!) * 100 : 0}
+                              h="h-1.5"
+                            />
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
     </div>
   )

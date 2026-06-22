@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils"
 import type { WithClassName } from "@/types"
 
 const NAV_ITEMS = [
-  { label: "Meine Klassen", href: "/klassen", icon: GraduationCap },
-  { label: "Lernzielsammlung", href: "/lernziele", icon: Target },
+  { label: "Deine Klassen", href: "/klassen", icon: GraduationCap },
+  { label: "Deine Lernzielsammlung", href: "/lernziele", icon: Target },
 ]
 
 interface HeaderProps extends WithClassName {

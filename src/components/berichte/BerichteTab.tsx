@@ -289,8 +289,8 @@ export function BerichteTab({ klassId }: { klassId: string }) {
               {basis === 'pruefung' && <div className="size-1.5 rounded-full bg-primary-foreground" />}
             </div>
             <div>
-              <p className="text-sm font-medium">Prüfungs-Basis</p>
-              <p className="text-xs text-muted-foreground">Bericht zu einer Prüfung mit Ergebnis</p>
+              <p className="text-sm font-medium">Lernzielkontrolle-Basis</p>
+              <p className="text-xs text-muted-foreground">Bericht zu einer Lernzielkontrolle mit Ergebnis</p>
             </div>
           </label>
         </div>
@@ -301,14 +301,14 @@ export function BerichteTab({ klassId }: { klassId: string }) {
         <>
           {pruefungen.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
-              <p className="text-sm text-muted-foreground">Noch keine Prüfungen vorhanden.</p>
+              <p className="text-sm text-muted-foreground">Noch keine Lernzielkontrollen vorhanden.</p>
             </div>
           ) : (
             <>
               {/* P-Step 1: Prüfung */}
               <StepCard
                 step={1}
-                title="Prüfung"
+                title="Lernzielkontrolle"
                 summary={pPruefung ? `${pPruefung.name} (${new Date(pPruefung.datum).toLocaleDateString('de-CH')})` : undefined}
                 isOpen={pOpenStep === 1}
                 onToggle={() => setPOpenStep(prev => prev === 1 ? null : 1)}

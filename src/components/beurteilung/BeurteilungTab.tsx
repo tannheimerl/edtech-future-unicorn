@@ -73,7 +73,7 @@ export function BeurteilungTab({ klassId }: Props) {
                 mode === 'pruefung' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              Prüfungs-Modus
+              Lernzielkontrollen
             </button>
             <button
               onClick={() => setMode('frei')}
@@ -90,7 +90,7 @@ export function BeurteilungTab({ klassId }: Props) {
       <div className="flex items-center gap-2">
         {mode === 'pruefung' && !activePruefungId && (
           <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
-            <Plus className="size-4" /> Neue Prüfung
+            <Plus className="size-4" /> Neue Lernzielkontrolle
           </Button>
         )}
       </div>
@@ -116,8 +116,8 @@ export function BeurteilungTab({ klassId }: Props) {
         <ConfirmDialog
           open={confirmDeleteId !== null}
           onOpenChange={v => { if (!v) setConfirmDeleteId(null) }}
-          title="Prüfung löschen?"
-          description="Alle Ergebnisse dieser Prüfung werden unwiderruflich gelöscht."
+          title="Lernzielkontrolle löschen?"
+          description="Alle Ergebnisse dieser Lernzielkontrolle werden unwiderruflich gelöscht."
           confirmLabel="Löschen"
           onConfirm={() => {
             if (confirmDeleteId) { deletePruefung(confirmDeleteId); setConfirmDeleteId(null); setActivePruefungId(null) }
@@ -184,16 +184,16 @@ export function BeurteilungTab({ klassId }: Props) {
       {pruefungen.length === 0 ? (
         <EmptyState
           icon={<ClipboardList className="size-6 text-muted-foreground" />}
-          title="Noch keine Prüfungen"
-          description="Erstelle eine Prüfung aus den Lernzielen dieser Klasse."
+          title="Noch keine Lernzielkontrollen"
+          description="Erstelle eine Lernzielkontrolle aus den Lernzielen dieser Klasse."
           action={
             <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
-              <Plus className="size-4" /> Neue Prüfung
+              <Plus className="size-4" /> Neue Lernzielkontrolle
             </Button>
           }
         />
       ) : filteredPruefungen.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-8">Keine Prüfungen für die gewählten Filter.</p>
+        <p className="text-sm text-muted-foreground text-center py-8">Keine Lernzielkontrollen für die gewählten Filter.</p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filteredPruefungen.map(p => {
@@ -229,7 +229,7 @@ export function BeurteilungTab({ klassId }: Props) {
                   type="button"
                   onClick={e => { e.stopPropagation(); setConfirmDeleteId(p.id) }}
                   className="absolute right-3 top-3 hidden size-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover:flex transition-colors"
-                  title="Prüfung löschen"
+                  title="Lernzielkontrolle löschen"
                 >
                   <Trash2 className="size-3.5" />
                 </button>
@@ -321,8 +321,8 @@ export function BeurteilungTab({ klassId }: Props) {
       <ConfirmDialog
         open={confirmDeleteId !== null}
         onOpenChange={v => { if (!v) setConfirmDeleteId(null) }}
-        title="Prüfung löschen?"
-        description="Alle Ergebnisse dieser Prüfung werden unwiderruflich gelöscht."
+        title="Lernzielkontrolle löschen?"
+        description="Alle Ergebnisse dieser Lernzielkontrolle werden unwiderruflich gelöscht."
         confirmLabel="Löschen"
         onConfirm={() => {
           if (confirmDeleteId) { deletePruefung(confirmDeleteId); setConfirmDeleteId(null) }

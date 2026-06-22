@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   SquarePen, Plus, UserRound,
   ChevronDown, ChevronRight, Trash2,
-  Search, Info, Pencil, PencilLine, Calendar, BookMarked,
+  Search, Info, Pencil, PencilLine, Calendar, BookMarked, BarChart2,
 } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { ClassAnalytics } from '@/components/analytics/ClassAnalytics'
@@ -21,7 +21,7 @@ import { AddThemenModal } from '@/components/shared/AddThemenModal'
 import { CreateThemaModal } from '@/components/shared/CreateThemaModal'
 import { Modal } from '@/components/shared/Modal'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { cn, getFachColor } from '@/lib/utils'
+import { cn, getFachColor, scoreColor } from '@/lib/utils'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 
 import type { Schueler, Lernziel as LernzielType, Fach, Thema, RilzLernziel } from '@/types/domain'
@@ -392,7 +392,15 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
         </div>
         <div className="grid gap-1.5">
           <Label>Fällig am <span className="font-normal text-muted-foreground">(opt.)</span></Label>
-          <Input type="date" lang="de" value={faelligAm} onChange={e => setFaelligAm(e.target.value)} />
+          <div className="relative">
+            <Input
+              type="date"
+              value={faelligAm}
+              onChange={e => setFaelligAm(e.target.value)}
+              className="pr-8 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+            />
+            <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+          </div>
         </div>
       </div>
     </Modal>
@@ -418,6 +426,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
   const [addFachId, setAddFachId] = useState<string | null>(null)
   const [createNewFachId, setCreateNewFachId] = useState<string | null>(null)
   const [editThema, setEditThema] = useState<{ id: string; allowRemove: boolean } | null>(null)
+  const [statsThemaId, setStatsThemaId] = useState<string | null>(null)
 
   function toggleThema(themaId: string) {
     setExpandedThemen(prev => { const n = new Set(prev); n.has(themaId) ? n.delete(themaId) : n.add(themaId); return n })
@@ -607,6 +616,18 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                 </span>
                               )}
                               <button
+                                onClick={e => { e.stopPropagation(); setStatsThemaId(id => id === thema.id ? null : thema.id) }}
+                                className={cn(
+                                  'shrink-0 transition-opacity',
+                                  statsThemaId === thema.id
+                                    ? 'opacity-100 text-blue-600'
+                                    : 'opacity-0 group-hover/row:opacity-100 text-muted-foreground hover:text-blue-600',
+                                )}
+                                aria-label="Statistiken anzeigen"
+                              >
+                                <BarChart2 className="size-3.5" />
+                              </button>
+                              <button
                                 onClick={e => { e.stopPropagation(); setEditThema({ id: thema.id, allowRemove: true }) }}
                                 className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                                 aria-label="Thema bearbeiten"
@@ -614,6 +635,43 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                 <PencilLine className="size-3.5" />
                               </button>
                             </div>
+
+                            {statsThemaId === thema.id && (() => {
+                              const statsLZ = lernziele.filter(lz => lz.themaId === thema.id)
+                              const n = klassStudents.length
+                              return (
+                                <div className="border-t border-blue-100 bg-blue-50/20 px-3 py-2.5 space-y-1.5">
+                                  <p className="text-[9px] font-semibold uppercase tracking-widest text-blue-600 mb-2">
+                                    Statistik — {n} Schüler
+                                  </p>
+                                  {statsLZ.map(lz => {
+                                    const reached = klassStudents.filter(s => s.lernzielStatus[lz.id] === 'reached').length
+                                    const partial = klassStudents.filter(s => s.lernzielStatus[lz.id] === 'partially_reached').length
+                                    const pct = n === 0 ? 0 : Math.round(((reached + partial * 0.5) / n) * 100)
+                                    return (
+                                      <div key={lz.id} className="flex items-center gap-2">
+                                        <span className={cn(
+                                          'shrink-0 rounded px-1 py-0.5 text-[8px] font-bold leading-none',
+                                          lz.kategorie === 'grundlegend' ? 'bg-slate-100 text-slate-700' : 'bg-violet-100 text-violet-700',
+                                        )}>
+                                          {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
+                                        </span>
+                                        <span className="flex-1 text-xs truncate text-foreground">{lz.label}</span>
+                                        <span className="text-[10px] tabular-nums text-muted-foreground whitespace-nowrap">
+                                          <span className="text-green-600 font-medium">{reached}</span>/{n}
+                                        </span>
+                                        <div className="w-20 bg-gray-100 h-1.5 shrink-0">
+                                          <div className="h-full bg-blue-600 transition-all" style={{ width: `${pct}%` }} />
+                                        </div>
+                                        <span className={cn('text-[10px] font-bold tabular-nums w-7 text-right shrink-0', scoreColor(pct))}>
+                                          {pct}%
+                                        </span>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )
+                            })()}
 
                             {isExpanded && (
                               <div className="border-t border-border/40 bg-muted/10">

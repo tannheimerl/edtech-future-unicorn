@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Calendar } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -115,7 +115,15 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
           </div>
           <div className="grid gap-1.5">
             <Label>Fällig am <span className="font-normal text-muted-foreground">(opt.)</span></Label>
-            <Input type="date" lang="de" value={faelligAm} onChange={e => setFaelligAm(e.target.value)} />
+            <div className="relative">
+              <Input
+                type="date"
+                value={faelligAm}
+                onChange={e => setFaelligAm(e.target.value)}
+                className="pr-8 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              />
+              <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+            </div>
           </div>
         </div>
 

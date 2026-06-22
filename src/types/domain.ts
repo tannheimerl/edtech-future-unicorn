@@ -20,6 +20,13 @@ export interface Fach {
   name: string
 }
 
+export interface TagKategorie {
+  id: string
+  name: string
+  lpId?: string
+  tenantId: string
+}
+
 export interface Thema {
   id: string
   fachId: string
@@ -31,6 +38,7 @@ export interface Thema {
   zyklus?: number[]           // e.g. [2, 3] — Lehrplanzyklus (1–3)
   autor?: string              // Anzeigename der Lehrperson, die dieses Thema erstellt hat
   autorLpId?: string          // ID der Lehrperson, die dieses Thema erstellt hat
+  tags?: Record<string, string[]>  // { kategorieId: [wert1, wert2] }
 }
 
 export type LernzielKategorie = 'grundlegend' | 'anspruchsvoll'
@@ -146,10 +154,10 @@ export type PruefungTyp =
 
 export const PRUEFUNG_TYP_GRUPPEN: { gruppe: string; optionen: { value: PruefungTyp; label: string }[] }[] = [
   {
-    gruppe: 'Prüfung',
+    gruppe: 'Lernzielkontrolle',
     optionen: [
-      { value: 'pruefung_schriftlich', label: 'Prüfung schriftlich' },
-      { value: 'pruefung_muendlich', label: 'Prüfung mündlich' },
+      { value: 'pruefung_schriftlich', label: 'Lernzielkontrolle schriftlich' },
+      { value: 'pruefung_muendlich', label: 'Lernzielkontrolle mündlich' },
     ],
   },
   {
@@ -254,6 +262,15 @@ export interface Kompetenz {
   id: string
   label: string
 }
+
+export const SEED_COMPETENCIES: Kompetenz[] = [
+  { id: 'c1', label: 'Mathematische Grundlagen' },
+  { id: 'c2', label: 'Leseverstehen' },
+  { id: 'c3', label: 'Problemlösekompetenz' },
+  { id: 'c4', label: 'Mündliche Kommunikation' },
+  { id: 'c5', label: 'Schriftlicher Ausdruck' },
+  { id: 'c6', label: 'Kooperationsfähigkeit' },
+]
 
 // Mock LP (teacher) — will be replaced by real auth later
 export interface Lehrperson {
