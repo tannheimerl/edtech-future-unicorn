@@ -2,13 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { GraduationCap, Target } from "lucide-react"
+import { GraduationCap, Settings2, Target } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { WithClassName } from "@/types"
 
 const NAV_ITEMS = [
   { label: "Deine Klassen", href: "/klassen", icon: GraduationCap },
   { label: "Deine Lernzielsammlung", href: "/lernziele", icon: Target },
+  { label: "Einstellungen", href: "/einstellungen", icon: Settings2 },
 ]
 
 interface HeaderProps extends WithClassName {

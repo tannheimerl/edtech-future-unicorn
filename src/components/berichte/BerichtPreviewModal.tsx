@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Loader2, X } from 'lucide-react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { generatePdfBlob } from '@/lib/berichtUtils'
 import type { SchuelerBerichtPDFProps } from '@/components/berichte/SchuelerBerichtPDF'
 import type { Fach, Klasse, Lernziel, Schueler, Thema } from '@/types/domain'
@@ -143,12 +144,14 @@ export function BerichtPreviewModal({
                 </p>
                 <p className="text-xs text-muted-foreground">{thema.name}</p>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onClick={onClose}
-                className="rounded-md p-1 hover:bg-accent/50 text-muted-foreground transition-colors shrink-0"
+                className="text-muted-foreground shrink-0"
               >
                 <X className="size-4" />
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-1">

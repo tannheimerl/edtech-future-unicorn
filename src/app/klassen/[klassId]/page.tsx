@@ -21,7 +21,7 @@ import { AddThemenModal } from '@/components/shared/AddThemenModal'
 import { CreateThemaModal } from '@/components/shared/CreateThemaModal'
 import { Modal } from '@/components/shared/Modal'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { cn, getFachColor, scoreColor } from '@/lib/utils'
+import { cn, getFachColor, scoreColor, categoryChipClasses } from '@/lib/utils'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 
 import type { Schueler, Lernziel as LernzielType, Fach, Thema, RilzLernziel } from '@/types/domain'
@@ -226,13 +226,15 @@ function SchuelerBearbeitenModal({
         size="sm"
         footer={
           <div className="flex items-center justify-between w-full gap-2">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setDeleteConfirmOpen(true)}
-              className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded-lg hover:bg-destructive/8"
+              className="text-destructive hover:text-destructive/80 hover:bg-destructive/8"
             >
               <Trash2 className="size-3.5" />
               Löschen
-            </button>
+            </Button>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Abbrechen</Button>
               <Button size="sm" onClick={handleSave}>Speichern</Button>
@@ -267,7 +269,7 @@ function SchuelerBearbeitenModal({
           </div>
 
           {/* Toggles card */}
-          <div className="rounded-xl border border-border overflow-hidden divide-y divide-border/60 bg-muted/20">
+          <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border/60 bg-muted/20">
             {/* BVSA */}
             <div
               className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-accent/30 transition-colors"
@@ -277,7 +279,7 @@ function SchuelerBearbeitenModal({
                 <p className="text-sm font-medium leading-tight">BVSA</p>
                 <p className="text-[11px] text-muted-foreground leading-tight">Bericht ohne Noten</p>
               </div>
-              <Toggle on={!!student.bvsa} color="bg-purple-500" />
+              <Toggle on={!!student.bvsa} color="bg-category-bvsa-fg" />
             </div>
 
             {/* RILZ divider label */}
@@ -299,7 +301,7 @@ function SchuelerBearbeitenModal({
                   onClick={() => setRilzFach(student.id, fach.id, !hasRilz)}
                 >
                   <span className="text-sm">{fach.name}</span>
-                  <Toggle on={hasRilz} color="bg-orange-400" />
+                  <Toggle on={hasRilz} color="bg-rilz" />
                 </div>
               )
             })}
@@ -559,7 +561,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
 
               const fachCollapsed = !q && collapsedFaecher.has(fach.id)
               const fachLZCount = fachThemen.reduce((s, { lz }) => s + lz.length, 0)
-              const fachColor = getFachColor(fach.id, faecher.map(f => f.id))
+              const fachColor = getFachColor(fach.id, faecher.map(f => f.id), fach.colorIndex)
               const hasUnassignedInFach = themen.some(t =>
                 t.fachId === fach.id &&
                 (!t.typ || t.typ === 'standard') &&
@@ -571,7 +573,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
 
               return (
                 <div key={fach.id} className={cn(
-                  'rounded-xl border bg-card overflow-hidden shadow-sm border-l-4',
+                  'rounded-2xl border bg-card overflow-hidden shadow-sm border-l-4',
                   fachColor.border,
                 )}>
                   {/* Fach header */}
@@ -620,8 +622,8 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                 className={cn(
                                   'shrink-0 transition-opacity',
                                   statsThemaId === thema.id
-                                    ? 'opacity-100 text-blue-600'
-                                    : 'opacity-0 group-hover/row:opacity-100 text-muted-foreground hover:text-blue-600',
+                                    ? 'opacity-100 text-primary'
+                                    : 'opacity-0 group-hover/row:opacity-100 text-muted-foreground hover:text-primary',
                                 )}
                                 aria-label="Statistiken anzeigen"
                               >
@@ -640,8 +642,8 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                               const statsLZ = lernziele.filter(lz => lz.themaId === thema.id)
                               const n = klassStudents.length
                               return (
-                                <div className="border-t border-blue-100 bg-blue-50/20 px-3 py-2.5 space-y-1.5">
-                                  <p className="text-[9px] font-semibold uppercase tracking-widest text-blue-600 mb-2">
+                                <div className="border-t border-primary/15 bg-primary/5 px-3 py-2.5 space-y-1.5">
+                                  <p className="text-[9px] font-semibold uppercase tracking-widest text-primary mb-2">
                                     Statistik — {n} Schüler
                                   </p>
                                   {statsLZ.map(lz => {
@@ -652,16 +654,16 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                       <div key={lz.id} className="flex items-center gap-2">
                                         <span className={cn(
                                           'shrink-0 rounded px-1 py-0.5 text-[8px] font-bold leading-none',
-                                          lz.kategorie === 'grundlegend' ? 'bg-slate-100 text-slate-700' : 'bg-violet-100 text-violet-700',
+                                          categoryChipClasses(lz.kategorie),
                                         )}>
                                           {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                                         </span>
                                         <span className="flex-1 text-xs truncate text-foreground">{lz.label}</span>
                                         <span className="text-[10px] tabular-nums text-muted-foreground whitespace-nowrap">
-                                          <span className="text-green-600 font-medium">{reached}</span>/{n}
+                                          <span className="text-status-reached font-medium">{reached}</span>/{n}
                                         </span>
-                                        <div className="w-20 bg-gray-100 h-1.5 shrink-0">
-                                          <div className="h-full bg-blue-600 transition-all" style={{ width: `${pct}%` }} />
+                                        <div className="w-20 bg-muted h-1.5 shrink-0">
+                                          <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                                         </div>
                                         <span className={cn('text-[10px] font-bold tabular-nums w-7 text-right shrink-0', scoreColor(pct))}>
                                           {pct}%
@@ -682,7 +684,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                     <div key={kat} className="border-b border-border/40 last:border-b-0">
                                       <div className="pl-8 pr-3 py-1 bg-muted/20">
                                         <span className={cn('text-[10px] font-semibold uppercase tracking-wide',
-                                          kat === 'grundlegend' ? 'text-slate-500' : 'text-violet-500')}>
+                                          kat === 'grundlegend' ? 'text-category-grundlegend-fg' : 'text-category-anspruchsvoll-fg')}>
                                           {kat === 'grundlegend' ? 'Grundlegend' : 'Anspruchsvoll'}
                                         </span>
                                       </div>
@@ -730,7 +732,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                   : <ChevronRight className="size-3 text-muted-foreground shrink-0" />
                                 }
                                 <span className="text-sm font-medium truncate">{thema.name}</span>
-                                <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700 shrink-0">
+                                <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-rilz-soft text-rilz-foreground shrink-0">
                                   RILZ
                                 </span>
                                 <span className="inline-flex items-center gap-0.5 text-[10px] tabular-nums rounded px-1.5 py-0.5 bg-muted text-muted-foreground shrink-0">
@@ -808,13 +810,15 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                 <div key={fach.id} className={cn('flex items-center gap-2 px-3 py-2', fi > 0 && 'border-t border-border/60')}>
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">{fach.name}</span>
                   <span className="text-xs text-muted-foreground mr-1">Keine Themen</span>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setAddFachId(fach.id)}
-                    className="flex items-center justify-center size-5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                    className="text-muted-foreground hover:text-primary hover:bg-primary/10"
                     aria-label={`Themen in ${fach.name} hinzufügen`}
                   >
                     <Plus className="size-3.5" />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -924,7 +928,7 @@ export default function KlasseDetailPage() {
     return (
       <div className="mx-auto w-full max-w-7xl px-6 py-8 text-muted-foreground text-sm">
         Klasse nicht gefunden.{' '}
-        <button className="underline" onClick={() => router.push('/klassen')}>Zur Übersicht</button>
+        <Button variant="link" className="h-auto p-0" onClick={() => router.push('/klassen')}>Zur Übersicht</Button>
       </div>
     )
   }
@@ -999,7 +1003,7 @@ export default function KlasseDetailPage() {
               </div>
 
               {/* Admin table */}
-              <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="rounded-2xl border border-border bg-card overflow-hidden">
                 {/* Column headers */}
                 <div className="flex items-center gap-3 px-3 py-1.5 bg-muted/40 border-b border-border text-xs text-muted-foreground font-medium select-none">
                   <div className="size-7 shrink-0" />
@@ -1046,8 +1050,8 @@ export default function KlasseDetailPage() {
                 <div className="divide-y divide-border">
                   {sortedStudents.map(student => {
                     const cp = compPct(student, competencies)
-                    const pctColor = cp >= 75 ? 'text-emerald-600' : cp >= 40 ? 'text-amber-600' : 'text-red-500'
-                    const barColor = cp >= 75 ? 'bg-emerald-500' : cp >= 40 ? 'bg-amber-400' : 'bg-red-400'
+                    const pctColor = cp >= 75 ? 'text-status-reached' : cp >= 40 ? 'text-status-partial' : 'text-status-not-reached'
+                    const barColor = cp >= 75 ? 'bg-status-reached' : cp >= 40 ? 'bg-status-partial' : 'bg-status-not-reached'
                     return (
                       <div key={student.id}>
                         {/* Main row */}
@@ -1075,10 +1079,10 @@ export default function KlasseDetailPage() {
                           <div className="flex-1 flex items-center gap-1.5 py-0.5 min-w-0 overflow-hidden">
                             {(() => {
                               const badges: { key: string; node: React.ReactNode }[] = []
-                              if (student.bvsa) badges.push({ key: 'bvsa', node: <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-purple-100 text-purple-700 shrink-0">BVSA</span> })
+                              if (student.bvsa) badges.push({ key: 'bvsa', node: <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg shrink-0">BVSA</span> })
                               for (const fachId of student.rilzFachIds ?? []) {
                                 const fach = faecher.find(f => f.id === fachId)
-                                if (fach) badges.push({ key: fachId, node: <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-orange-100 text-orange-700 shrink-0">RILZ {fach.name}</span> })
+                                if (fach) badges.push({ key: fachId, node: <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-rilz-soft text-rilz-foreground shrink-0">RILZ {fach.name}</span> })
                               }
                               if (badges.length === 0) return null
                               const MAX = 4

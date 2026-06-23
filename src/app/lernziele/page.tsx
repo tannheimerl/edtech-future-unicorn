@@ -2,8 +2,8 @@
 
 import { Fragment, useEffect, useRef, useState } from 'react'
 import {
-  BookOpen, ChevronDown, ChevronRight, Download, PencilLine, Plus,
-  Upload, X, Check, GraduationCap, Trash2, Search,
+  BookOpen, ChevronDown, ChevronLeft, ChevronRight, Download, PencilLine, Plus,
+  Upload, X, Check, Trash2, Search,
 } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
@@ -11,12 +11,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { CreateThemaModal } from '@/components/shared/CreateThemaModal'
+import { InputModal } from '@/components/shared/InputModal'
 import { Modal } from '@/components/shared/Modal'
+import { ModalRow } from '@/components/shared/ModalRow'
+import { ThemaAddPickerModal } from '@/components/shared/ThemaAddPickerModal'
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover'
 import {
-  Command, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator,
+  Command, CommandGroup, CommandItem, CommandList, CommandSeparator,
 } from '@/components/ui/command'
 import { cn, getFachColor } from '@/lib/utils'
 import type { LernzielKategorie, TagKategorie, Thema } from '@/types/domain'
@@ -32,230 +35,51 @@ const LS_KEY = 'lezio_lz_sichtbare_spalten'
 
 // ── Create modal (Fach) ───────────────────────────────────────────────────
 
-function CreateModal({ open, onOpenChange, title, label, placeholder, onSubmit }: {
-  open: boolean; onOpenChange: (v: boolean) => void
-  title: string; label: string; placeholder: string
-  onSubmit: (v: string) => void
-}) {
-  const [value, setValue] = useState('')
-  useEffect(() => { if (open) setValue('') }, [open])
-
-  const submit = (e?: React.FormEvent) => {
-    e?.preventDefault()
-    if (!value.trim()) return
-    onSubmit(value.trim())
-    onOpenChange(false)
-  }
-
-  return (
-    <Modal open={open} onOpenChange={onOpenChange} title={title} size="sm"
-      footer={
-        <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
-          <Button onClick={() => submit()}>Erstellen</Button>
-        </>
-      }
-    >
-      <form onSubmit={submit} className="grid gap-3">
-        <div className="grid gap-1.5">
-          <Label>{label}</Label>
-          <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder} autoFocus />
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
 // ── Inline Lernziel section ───────────────────────────────────────────────
 
 function ThemaLZSection({ themaId }: { themaId: string }) {
-  const { lernziele, createLernziel, updateLernziel, deleteLernziel, themen, students, classes, addRilzLernziel } = useData()
+  const { lernziele } = useData()
   const themaLZ = lernziele.filter(lz => lz.themaId === themaId)
-
-  const [newLZG, setNewLZG] = useState('')
-  const [newLZA, setNewLZA] = useState('')
-  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set())
-  const [editLzId, setEditLzId] = useState<string | null>(null)
-  const [editLzLabel, setEditLzLabel] = useState('')
-  const [editLzKategorie, setEditLzKategorie] = useState<LernzielKategorie>('grundlegend')
-  const [deleteLzId, setDeleteLzId] = useState<string | null>(null)
-
-  const thema = themen.find(t => t.id === themaId)
-  const isRilz = thema?.typ === 'rilz'
-  const rilzStudents = isRilz ? students.filter(s => s.rilzFachIds?.includes(thema!.fachId)) : []
-
-  function addLZG() {
-    if (!newLZG.trim()) return
-    createLernziel(themaId, newLZG.trim(), 'grundlegend')
-    selectedStudentIds.forEach(sid => addRilzLernziel(sid, themaId, newLZG.trim()))
-    setNewLZG('')
-  }
-
-  function addLZA() {
-    if (!newLZA.trim()) return
-    createLernziel(themaId, newLZA.trim(), 'anspruchsvoll')
-    selectedStudentIds.forEach(sid => addRilzLernziel(sid, themaId, newLZA.trim()))
-    setNewLZA('')
-  }
-
-  function toggleStudent(id: string) {
-    setSelectedStudentIds(prev => {
-      const n = new Set(prev)
-      n.has(id) ? n.delete(id) : n.add(id)
-      return n
-    })
-  }
-
-  function saveLZ(id: string) {
-    if (!editLzLabel.trim()) return
-    updateLernziel(id, { label: editLzLabel.trim(), kategorie: editLzKategorie })
-    setEditLzId(null)
-  }
-
   const grundlegendLZ = themaLZ.filter(lz => lz.kategorie === 'grundlegend')
   const anspruchsvollLZ = themaLZ.filter(lz => lz.kategorie === 'anspruchsvoll')
-
-  function renderLZRow(lz: typeof themaLZ[number], idx: number) {
-    return (
-      <div key={lz.id} className="group flex items-center gap-2 pl-10 pr-3 py-1.5 hover:bg-accent/20 transition-colors">
-        <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">{idx + 1}</span>
-        {editLzId === lz.id ? (
-          <>
-            <div className="flex rounded border overflow-hidden shrink-0 h-6">
-              {(['grundlegend', 'anspruchsvoll'] as LernzielKategorie[]).map(k => (
-                <button key={k} onClick={() => setEditLzKategorie(k)}
-                  className={cn(
-                    'px-1.5 text-[9px] font-medium transition-colors',
-                    editLzKategorie === k
-                      ? k === 'grundlegend' ? 'bg-slate-400 text-white' : 'bg-violet-400 text-white'
-                      : 'bg-background text-muted-foreground hover:bg-muted',
-                  )}>
-                  {k === 'grundlegend' ? 'G' : 'A'}
-                </button>
-              ))}
-            </div>
-            <Input value={editLzLabel}
-              onChange={(e) => setEditLzLabel(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') saveLZ(lz.id)
-                if (e.key === 'Escape') setEditLzId(null)
-              }}
-              className="h-6 text-xs flex-1 px-1.5" autoFocus />
-            <Button size="icon-sm" variant="ghost" onClick={() => saveLZ(lz.id)}>
-              <Check className="size-3 text-emerald-600" />
-            </Button>
-            <Button size="icon-sm" variant="ghost" onClick={() => setEditLzId(null)}>
-              <X className="size-3" />
-            </Button>
-          </>
-        ) : (
-          <>
-            <span className="flex-1 text-xs leading-snug">{lz.label}</span>
-            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <Button size="icon-sm" variant="ghost"
-                onClick={() => { setEditLzId(lz.id); setEditLzLabel(lz.label); setEditLzKategorie(lz.kategorie) }}
-                aria-label="Bearbeiten">
-                <PencilLine className="size-3" />
-              </Button>
-              <Button size="icon-sm" variant="ghost"
-                className="text-red-400 hover:text-red-600"
-                onClick={() => setDeleteLzId(lz.id)} aria-label="Löschen">
-                <Trash2 className="size-3" />
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    )
-  }
 
   return (
     <div className="border-t border-border/40 bg-muted/10">
       {/* Grundlegend */}
       <div className="border-b border-border/40">
         <div className="pl-10 pr-3 py-1 bg-muted/20">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Grundlegend</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
         </div>
         <div className="divide-y divide-border/30">
           {grundlegendLZ.length === 0 && (
             <p className="pl-10 pr-3 py-1.5 text-[10px] text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
           )}
-          {grundlegendLZ.map((lz, i) => renderLZRow(lz, i))}
-        </div>
-        <div className="pl-10 pr-3 py-1.5 flex items-center gap-1.5 border-t border-border/30">
-          <Input value={newLZG} onChange={e => setNewLZG(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addLZG()}
-            placeholder="Grundlegendes Lernziel…" className="h-6 text-xs flex-1" />
-          <Button size="icon-sm" variant="outline" onClick={addLZG} disabled={!newLZG.trim()}>
-            <Plus className="size-3" />
-          </Button>
+          {grundlegendLZ.map((lz, i) => (
+            <div key={lz.id} className="flex items-center gap-2 pl-10 pr-3 py-1.5">
+              <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">{i + 1}</span>
+              <span className="flex-1 text-xs leading-snug">{lz.label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Anspruchsvoll */}
       <div>
         <div className="pl-10 pr-3 py-1 bg-muted/20">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-500">Anspruchsvoll</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
         </div>
         <div className="divide-y divide-border/30">
           {anspruchsvollLZ.length === 0 && (
             <p className="pl-10 pr-3 py-1.5 text-[10px] text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
           )}
-          {anspruchsvollLZ.map((lz, i) => renderLZRow(lz, i))}
-        </div>
-        <div className="pl-10 pr-3 py-1.5 flex items-center gap-1.5 border-t border-border/30">
-          <Input value={newLZA} onChange={e => setNewLZA(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addLZA()}
-            placeholder="Anspruchsvolles Lernziel…" className="h-6 text-xs flex-1" />
-          <Button size="icon-sm" variant="outline" onClick={addLZA} disabled={!newLZA.trim()}>
-            <Plus className="size-3" />
-          </Button>
+          {anspruchsvollLZ.map((lz, i) => (
+            <div key={lz.id} className="flex items-center gap-2 pl-10 pr-3 py-1.5">
+              <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">{i + 1}</span>
+              <span className="flex-1 text-xs leading-snug">{lz.label}</span>
+            </div>
+          ))}
         </div>
       </div>
-
-      {/* RILZ student picker */}
-      {isRilz && rilzStudents.length > 0 && (
-        <div className="border-t border-border/40 pl-10 pr-3 py-2">
-          <p className="text-[10px] text-muted-foreground mb-1.5">Direkt zuweisen (optional):</p>
-          <div className="flex flex-wrap gap-1.5">
-            {classes
-              .filter(k => rilzStudents.some(s => s.klassId === k.id))
-              .map(klasse => (
-                <div key={klasse.id} className="contents">
-                  <span className="w-full text-[9px] text-muted-foreground/50 font-medium uppercase tracking-wide mt-0.5">{klasse.name}</span>
-                  {rilzStudents
-                    .filter(s => s.klassId === klasse.id)
-                    .map(s => {
-                      const checked = selectedStudentIds.has(s.id)
-                      return (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => toggleStudent(s.id)}
-                          className={cn(
-                            'flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] border transition-colors',
-                            checked
-                              ? 'bg-violet-100 border-violet-400 text-violet-700 dark:bg-violet-900/30 dark:border-violet-600 dark:text-violet-300'
-                              : 'border-border text-muted-foreground hover:bg-accent/50',
-                          )}
-                        >
-                          {checked && <Check className="size-2.5 shrink-0" />}
-                          {s.vorname} {s.nachname}
-                        </button>
-                      )
-                    })}
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
-
-      <ConfirmDialog
-        open={!!deleteLzId} onOpenChange={(o) => { if (!o) setDeleteLzId(null) }}
-        title="Lernziel löschen" description="Soll dieses Lernziel wirklich dauerhaft gelöscht werden?"
-        confirmLabel="Löschen"
-        onConfirm={() => { if (deleteLzId) deleteLernziel(deleteLzId) }}
-      />
     </div>
   )
 }
@@ -363,9 +187,9 @@ function AddSpalteButton({
 
   if (atMax) {
     return (
-      <span className="flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50/50 px-2.5 py-1.5 text-xs text-amber-600 font-medium shrink-0">
+      <span className="flex items-center gap-1 rounded-lg border border-status-partial-fg/25 bg-status-partial-soft px-2.5 py-1.5 text-xs text-status-partial-fg font-medium shrink-0">
         <span className="tabular-nums">{MAX_SPALTEN}/{MAX_SPALTEN}</span>
-        <span className="text-amber-500/70">Spalten</span>
+        <span className="text-status-partial-fg/70">Spalten</span>
       </span>
     )
   }
@@ -432,37 +256,6 @@ function AddSpalteButton({
   )
 }
 
-// ── Modal Row ─────────────────────────────────────────────────────────────
-
-function ModalRow({ label, displayValue, placeholder, open, onOpenChange, children }: {
-  label: string
-  displayValue?: string
-  placeholder?: string
-  open: boolean
-  onOpenChange: (v: boolean) => void
-  children: React.ReactNode
-}) {
-  return (
-    <div className="w-full min-w-0">
-      <Popover open={open} onOpenChange={onOpenChange}>
-        <PopoverTrigger className="w-full min-w-0 max-w-full flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2 hover:bg-accent/30 transition-colors text-left">
-          <span className="text-xs text-muted-foreground shrink-0 w-16">{label}</span>
-          <span className={cn(
-            'flex-1 min-w-0 truncate text-xs',
-            displayValue ? 'text-foreground font-medium' : 'text-muted-foreground/40'
-          )}>
-            {displayValue ?? placeholder ?? '—'}
-          </span>
-          <ChevronDown className="size-3 text-muted-foreground shrink-0" />
-        </PopoverTrigger>
-        <PopoverContent className="p-1.5 w-52" align="start" side="bottom">
-          {children}
-        </PopoverContent>
-      </Popover>
-    </div>
-  )
-}
-
 // ── Thema Edit Modal ──────────────────────────────────────────────────────
 
 function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
@@ -471,11 +264,17 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
   onRequestDelete: () => void
 }) {
   const {
-    themen, faecher, updateThema, exportThema,
+    themen, faecher, lernziele, updateThema, exportThema,
     tagKategorien, deleteTagKategorie, getTagWerte, createTagKategorie,
+    createLernziel, updateLernziel, deleteLernziel,
   } = useData()
   const thema = themen.find(t => t.id === themaId)
+  const themaLZ = lernziele.filter(lz => lz.themaId === themaId)
 
+  // Step
+  const [editStep, setEditStep] = useState<'meta' | 'lernziele'>('meta')
+
+  // Meta state
   const [localName, setLocalName] = useState(thema?.name ?? '')
   const [localFachId, setLocalFachId] = useState(thema?.fachId ?? '')
   const [localTyp, setLocalTyp] = useState<'standard' | 'rilz'>(thema?.typ ?? 'standard')
@@ -486,9 +285,17 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
     )
   )
   const [openRowId, setOpenRowId] = useState<string | null>(null)
-  const [tagSearch, setTagSearch] = useState<Record<string, string>>({})
   const [deleteKatId, setDeleteKatId] = useState<string | null>(null)
+  const [addValueKatId, setAddValueKatId] = useState<string | null>(null)
   const [newKatOpen, setNewKatOpen] = useState(false)
+
+  // Lernziele state
+  const [newLZG, setNewLZG] = useState('')
+  const [newLZA, setNewLZA] = useState('')
+  const [editLzId, setEditLzId] = useState<string | null>(null)
+  const [editLzLabel, setEditLzLabel] = useState('')
+  const [editLzKategorie, setEditLzKategorie] = useState<LernzielKategorie>('grundlegend')
+  const [deleteLzId, setDeleteLzId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!thema) return
@@ -502,7 +309,7 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
       )
     )
     setOpenRowId(null)
-    setTagSearch({})
+    setEditStep('meta')
   }, [themaId])
 
   if (!thema) return null
@@ -530,7 +337,6 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
   function setTagValue(katId: string, value: string) {
     setLocalTagValues(prev => ({ ...prev, [katId]: prev[katId] === value ? '' : value }))
     setOpenRowId(null)
-    setTagSearch(prev => ({ ...prev, [katId]: '' }))
   }
 
   function renderSimpleOptions(
@@ -569,6 +375,79 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
     )
   }
 
+  // Lernziele helpers
+  const grundlegendLZ = themaLZ.filter(lz => lz.kategorie === 'grundlegend')
+  const anspruchsvollLZ = themaLZ.filter(lz => lz.kategorie === 'anspruchsvoll')
+
+  function addLZG() {
+    if (!newLZG.trim()) return
+    createLernziel(themaId, newLZG.trim(), 'grundlegend')
+    setNewLZG('')
+  }
+
+  function addLZA() {
+    if (!newLZA.trim()) return
+    createLernziel(themaId, newLZA.trim(), 'anspruchsvoll')
+    setNewLZA('')
+  }
+
+  function saveLZ(id: string) {
+    if (!editLzLabel.trim()) return
+    updateLernziel(id, { label: editLzLabel.trim(), kategorie: editLzKategorie })
+    setEditLzId(null)
+  }
+
+  function renderLZRow(lz: (typeof themaLZ)[number], idx: number) {
+    return (
+      <div key={lz.id} className="group flex items-center gap-2 py-1.5 hover:bg-accent/20 transition-colors px-1">
+        <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">{idx + 1}</span>
+        {editLzId === lz.id ? (
+          <>
+            <div className="flex rounded border overflow-hidden shrink-0 h-6">
+              {(['grundlegend', 'anspruchsvoll'] as LernzielKategorie[]).map(k => (
+                <button key={k} onClick={() => setEditLzKategorie(k)}
+                  className={cn(
+                    'px-1.5 text-[9px] font-medium transition-colors',
+                    editLzKategorie === k
+                      ? k === 'grundlegend' ? 'bg-category-grundlegend text-white' : 'bg-category-anspruchsvoll text-white'
+                      : 'bg-background text-muted-foreground hover:bg-muted',
+                  )}>
+                  {k === 'grundlegend' ? 'G' : 'A'}
+                </button>
+              ))}
+            </div>
+            <Input value={editLzLabel}
+              onChange={e => setEditLzLabel(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') saveLZ(lz.id); if (e.key === 'Escape') setEditLzId(null) }}
+              className="h-6 text-xs flex-1 px-1.5" autoFocus />
+            <Button size="icon-sm" variant="ghost" onClick={() => saveLZ(lz.id)}>
+              <Check className="size-3 text-status-reached" />
+            </Button>
+            <Button size="icon-sm" variant="ghost" onClick={() => setEditLzId(null)}>
+              <X className="size-3" />
+            </Button>
+          </>
+        ) : (
+          <>
+            <span className="flex-1 text-xs leading-snug">{lz.label}</span>
+            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              <Button size="icon-sm" variant="ghost"
+                onClick={() => { setEditLzId(lz.id); setEditLzLabel(lz.label); setEditLzKategorie(lz.kategorie) }}
+                aria-label="Bearbeiten">
+                <PencilLine className="size-3" />
+              </Button>
+              <Button size="icon-sm" variant="ghost"
+                className="text-destructive/70 hover:text-destructive"
+                onClick={() => setDeleteLzId(lz.id)} aria-label="Löschen">
+                <Trash2 className="size-3" />
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
+
   return (
     <>
       <Modal
@@ -577,170 +456,197 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
         title={thema.name}
         size="md"
         footer={
-          <div className="flex items-center justify-between w-full gap-2">
-            <button
-              onClick={onRequestDelete}
-              className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded-lg hover:bg-destructive/8"
-            >
-              <Trash2 className="size-3.5" />
-              Löschen
-            </button>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="ghost" onClick={() => exportThema(themaId)} aria-label="Exportieren" className="text-muted-foreground">
-                <Download className="size-3.5" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
-              <Button size="sm" onClick={save} disabled={!localName.trim()}>Fertig</Button>
+          editStep === 'meta' ? (
+            <div className="flex items-center justify-between w-full gap-2">
+              <button
+                onClick={onRequestDelete}
+                className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded-lg hover:bg-destructive/8"
+              >
+                <Trash2 className="size-3.5" />
+                Löschen
+              </button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="ghost" onClick={() => exportThema(themaId)} aria-label="Exportieren" className="text-muted-foreground">
+                  <Download className="size-3.5" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
+                <Button size="sm" onClick={() => setEditStep('lernziele')} disabled={!localName.trim()}>
+                  Weiter <ChevronRight className="size-3.5 ml-0.5" />
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between w-full gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setEditStep('meta')} className="text-muted-foreground">
+                <ChevronLeft className="size-3.5 mr-0.5" /> Zurück
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
+                <Button size="sm" onClick={save} disabled={!localName.trim()}>Fertig</Button>
+              </div>
+            </div>
+          )
         }
       >
-        <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden space-y-3">
-          {/* Name */}
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Bezeichnung</Label>
-            <Input
-              value={localName}
-              onChange={e => setLocalName(e.target.value)}
-              placeholder="Themabezeichnung"
-            />
-          </div>
+        {/* Step 1: Meta */}
+        {editStep === 'meta' && (
+          <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden space-y-3">
+            {/* Name */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Bezeichnung</Label>
+              <Input
+                value={localName}
+                onChange={e => setLocalName(e.target.value)}
+                placeholder="Themabezeichnung"
+              />
+            </div>
 
-          {/* Dropdown rows */}
-          <div className="space-y-1 border-t border-border/40 pt-2">
+            {/* Dropdown rows */}
+            <div className="space-y-1 border-t border-border/40 pt-2">
 
-            {/* Fach — only if multiple Fächer exist */}
-            {faecher.length > 1 && (
+              {/* Fach — only if multiple Fächer exist */}
+              {faecher.length > 1 && (
+                <ModalRow
+                  label="Fach"
+                  displayValue={faecher.find(f => f.id === localFachId)?.name}
+                  open={openRowId === 'fach'}
+                  onOpenChange={v => openRow('fach', v)}
+                >
+                  {renderSimpleOptions(
+                    faecher.map(f => ({ value: f.id, label: f.name })),
+                    localFachId,
+                    setLocalFachId
+                  )}
+                </ModalRow>
+              )}
+
+              {/* Typ */}
               <ModalRow
-                label="Fach"
-                displayValue={faecher.find(f => f.id === localFachId)?.name}
-                open={openRowId === 'fach'}
-                onOpenChange={v => openRow('fach', v)}
+                label="Typ"
+                displayValue={localTyp === 'rilz' ? 'RILZ' : 'Standard'}
+                open={openRowId === 'typ'}
+                onOpenChange={v => openRow('typ', v)}
               >
                 {renderSimpleOptions(
-                  faecher.map(f => ({ value: f.id, label: f.name })),
-                  localFachId,
-                  setLocalFachId
+                  [{ value: 'standard', label: 'Standard' }, { value: 'rilz', label: 'RILZ' }],
+                  localTyp,
+                  v => setLocalTyp(v as 'standard' | 'rilz')
                 )}
               </ModalRow>
-            )}
 
-            {/* Typ */}
-            <ModalRow
-              label="Typ"
-              displayValue={localTyp === 'rilz' ? 'RILZ' : 'Standard'}
-              open={openRowId === 'typ'}
-              onOpenChange={v => openRow('typ', v)}
-            >
-              {renderSimpleOptions(
-                [{ value: 'standard', label: 'Standard' }, { value: 'rilz', label: 'RILZ' }],
-                localTyp,
-                v => setLocalTyp(v as 'standard' | 'rilz')
-              )}
-            </ModalRow>
+              {/* Schulstufe */}
+              <ModalRow
+                label="Schulstufe"
+                displayValue={stufe ? `Kl. ${stufe}` : undefined}
+                placeholder="keine"
+                open={openRowId === 'stufe'}
+                onOpenChange={v => openRow('stufe', v)}
+              >
+                {renderSimpleOptions(
+                  [1,2,3,4,5,6,7,8,9].map(n => ({ value: String(n), label: `Kl. ${n}` })),
+                  stufe ? String(stufe) : '',
+                  v => setStufe(v ? Number(v) : undefined),
+                  'Keine Auswahl'
+                )}
+              </ModalRow>
 
-            {/* Schulstufe */}
-            <ModalRow
-              label="Schulstufe"
-              displayValue={stufe ? `Kl. ${stufe}` : undefined}
-              placeholder="keine"
-              open={openRowId === 'stufe'}
-              onOpenChange={v => openRow('stufe', v)}
-            >
-              {renderSimpleOptions(
-                [1,2,3,4,5,6,7,8,9].map(n => ({ value: String(n), label: `Kl. ${n}` })),
-                stufe ? String(stufe) : '',
-                v => setStufe(v ? Number(v) : undefined),
-                'Keine Auswahl'
-              )}
-            </ModalRow>
+              {/* Tag categories — one row each, list with add-value dialog */}
+              {tagKategorien.map(kat => {
+                const currentVal = localTagValues[kat.id] ?? ''
+                const allVals = getTagWerte(kat.id)
 
-            {/* Tag categories — one row each, combobox with create */}
-            {tagKategorien.map(kat => {
-              const currentVal = localTagValues[kat.id] ?? ''
-              const allVals = getTagWerte(kat.id)
-              const search = tagSearch[kat.id] ?? ''
-              const filtered = search
-                ? allVals.filter(v => v.toLowerCase().includes(search.toLowerCase()))
-                : allVals
-              const canCreate = search.trim() !== '' &&
-                !allVals.some(v => v.toLowerCase() === search.trim().toLowerCase())
+                return (
+                  <ModalRow
+                    key={kat.id}
+                    label={kat.name}
+                    displayValue={currentVal || undefined}
+                    open={openRowId === kat.id}
+                    onOpenChange={v => openRow(kat.id, v)}
+                  >
+                    {renderSimpleOptions(
+                      allVals.map(v => ({ value: v, label: v })),
+                      currentVal,
+                      v => setTagValue(kat.id, v),
+                      'Auswahl aufheben',
+                    )}
+                    <div className="border-t border-border/40 mt-0.5 pt-0.5">
+                      <button
+                        onClick={() => setAddValueKatId(kat.id)}
+                        className="flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-md text-xs text-primary hover:bg-primary/5 transition-colors"
+                      >
+                        <Plus className="size-3 shrink-0" />
+                        Wert hinzufügen
+                      </button>
+                      <button
+                        onClick={() => { setDeleteKatId(kat.id); setOpenRowId(null) }}
+                        className="flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
+                      >
+                        <Trash2 className="size-3 shrink-0" />
+                        Kategorie löschen
+                      </button>
+                    </div>
+                  </ModalRow>
+                )
+              })}
 
-              return (
-                <ModalRow
-                  key={kat.id}
-                  label={kat.name}
-                  displayValue={currentVal || undefined}
-                  open={openRowId === kat.id}
-                  onOpenChange={v => {
-                    openRow(kat.id, v)
-                    if (!v) setTagSearch(p => ({ ...p, [kat.id]: '' }))
-                  }}
-                >
-                  <Command shouldFilter={false}>
-                    <CommandInput
-                      placeholder="Suchen oder neu…"
-                      value={search}
-                      onValueChange={v => setTagSearch(prev => ({ ...prev, [kat.id]: v }))}
-                    />
-                    <CommandList>
-                      <CommandGroup>
-                        {currentVal && !search && (
-                          <CommandItem value="__clear__" onSelect={() => setTagValue(kat.id, '')}>
-                            <X className="size-3 mr-1.5 shrink-0 text-muted-foreground" />
-                            <span className="text-muted-foreground text-xs">Auswahl aufheben</span>
-                          </CommandItem>
-                        )}
-                        {filtered.map(v => (
-                          <CommandItem key={v} value={v} onSelect={() => setTagValue(kat.id, v)}>
-                            {currentVal === v
-                              ? <Check className="size-3 mr-1.5 shrink-0 text-primary" />
-                              : <span className="size-3 mr-1.5 shrink-0" />
-                            }
-                            {v}
-                          </CommandItem>
-                        ))}
-                        {canCreate && (
-                          <CommandItem
-                            value={`__new__${search}`}
-                            onSelect={() => setTagValue(kat.id, search.trim())}
-                            className="text-primary"
-                          >
-                            <Plus className="size-3 mr-1.5 shrink-0" />
-                            „{search.trim()}" erstellen
-                          </CommandItem>
-                        )}
-                        {filtered.length === 0 && !canCreate && (
-                          <CommandItem value="__empty__" disabled>
-                            <span className="text-muted-foreground text-xs">Keine Werte vorhanden</span>
-                          </CommandItem>
-                        )}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                  <div className="border-t border-border/40 mt-0.5 pt-0.5">
-                    <button
-                      onClick={() => { setDeleteKatId(kat.id); setOpenRowId(null) }}
-                      className="flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
-                    >
-                      <Trash2 className="size-3 shrink-0" />
-                      Kategorie löschen
-                    </button>
-                  </div>
-                </ModalRow>
-              )
-            })}
-
-            {/* Add category */}
-            <button
-              onClick={() => setNewKatOpen(true)}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-3 py-1.5 w-full"
-            >
-              <Plus className="size-3" />
-              Kategorie hinzufügen
-            </button>
+              {/* Add category */}
+              <button
+                onClick={() => setNewKatOpen(true)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-3 py-1.5 w-full"
+              >
+                <Plus className="size-3" />
+                Kategorie hinzufügen
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Step 2: Lernziele */}
+        {editStep === 'lernziele' && (
+          <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
+            {/* Grundlegend */}
+            <div className="border-b border-border/40">
+              <div className="py-1 bg-muted/20 px-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
+              </div>
+              <div className="divide-y divide-border/30">
+                {grundlegendLZ.length === 0 && (
+                  <p className="py-1.5 px-1 text-[10px] text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
+                )}
+                {grundlegendLZ.map((lz, i) => renderLZRow(lz, i))}
+              </div>
+              <div className="py-1.5 px-1 flex items-center gap-1.5 border-t border-border/30">
+                <Input value={newLZG} onChange={e => setNewLZG(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addLZG()}
+                  placeholder="Grundlegendes Lernziel…" className="h-6 text-xs flex-1" />
+                <Button size="icon-sm" variant="outline" onClick={addLZG} disabled={!newLZG.trim()}>
+                  <Plus className="size-3" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Anspruchsvoll */}
+            <div>
+              <div className="py-1 bg-muted/20 px-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
+              </div>
+              <div className="divide-y divide-border/30">
+                {anspruchsvollLZ.length === 0 && (
+                  <p className="py-1.5 px-1 text-[10px] text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
+                )}
+                {anspruchsvollLZ.map((lz, i) => renderLZRow(lz, i))}
+              </div>
+              <div className="py-1.5 px-1 flex items-center gap-1.5 border-t border-border/30">
+                <Input value={newLZA} onChange={e => setNewLZA(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addLZA()}
+                  placeholder="Anspruchsvolles Lernziel…" className="h-6 text-xs flex-1" />
+                <Button size="icon-sm" variant="outline" onClick={addLZA} disabled={!newLZA.trim()}>
+                  <Plus className="size-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <ConfirmDialog
           open={!!deleteKatId}
@@ -750,15 +656,33 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
           confirmLabel="Löschen"
           onConfirm={() => { if (deleteKatId) { deleteTagKategorie(deleteKatId); setDeleteKatId(null) } }}
         />
+
+        <ConfirmDialog
+          open={!!deleteLzId}
+          onOpenChange={(o) => { if (!o) setDeleteLzId(null) }}
+          title="Lernziel löschen"
+          description="Soll dieses Lernziel wirklich dauerhaft gelöscht werden?"
+          confirmLabel="Löschen"
+          onConfirm={() => { if (deleteLzId) deleteLernziel(deleteLzId) }}
+        />
       </Modal>
 
-      <CreateModal
+      <InputModal
         open={newKatOpen}
         onOpenChange={setNewKatOpen}
         title="Neue Tag-Kategorie"
         label="Bezeichnung"
         placeholder="z. B. Semester, Lerngruppe …"
         onSubmit={(name) => { createTagKategorie(name) }}
+      />
+
+      <InputModal
+        open={!!addValueKatId}
+        onOpenChange={(o) => { if (!o) setAddValueKatId(null) }}
+        title="Wert hinzufügen"
+        label="Wert"
+        placeholder="z. B. 1"
+        onSubmit={(v) => { if (addValueKatId) setTagValue(addValueKatId, v) }}
       />
     </>
   )
@@ -767,7 +691,7 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function LernzielePage() {
-  const { faecher, themen, lernziele, students, createFach, exportThema, exportFach, importThema, deleteThema, tagKategorien, createTagKategorie, getTagWerte } = useData()
+  const { faecher, themen, lernziele, createFach, exportThema, exportFach, importThema, deleteThema, tagKategorien, createTagKategorie, getTagWerte } = useData()
 
   const [aktiveKolonnen, setAktiveKolonnen] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(LS_KEY) ?? '["fach","typ"]') }
@@ -779,6 +703,7 @@ export default function LernzielePage() {
   const [collapsedFaecher, setCollapsedFaecher] = useState<Set<string>>(new Set())
   const [fachCreateOpen, setFachCreateOpen] = useState(false)
   const [themaCreateFachId, setThemaCreateFachId] = useState<string | null>(null)
+  const [themaPickerFachId, setThemaPickerFachId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [importFeedback, setImportFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null)
@@ -799,6 +724,17 @@ export default function LernzielePage() {
     const newFachId = createFach(name)
     setFachCreateOpen(false)
     setThemaCreateFachId(newFachId)
+  }
+
+  function handlePickerNeuErstellen() {
+    setThemaCreateFachId(themaPickerFachId)
+    setThemaPickerFachId(null)
+  }
+
+  function handlePickerImportieren() {
+    setThemaPickerFachId(null)
+    // 50ms defer: Radix Dialog must unmount before native file dialog opens
+    setTimeout(() => fileInputRef.current?.click(), 50)
   }
 
   function addKolonne(id: string) {
@@ -887,12 +823,12 @@ export default function LernzielePage() {
       if (spalteId === 'fach') {
         const fach = faecher.find(f => f.id === thema.fachId)
         if (!fach) return []
-        const color = getFachColor(thema.fachId, fachIdList)
+        const color = getFachColor(thema.fachId, fachIdList, fach?.colorIndex)
         return [<span key="fach" className={cn('shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium', color.bg)}>{fach.name}</span>]
       }
       if (spalteId === 'typ') {
         return thema.typ === 'rilz'
-          ? [<span key="typ" className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700">RILZ</span>]
+          ? [<span key="typ" className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium bg-rilz-soft text-rilz-foreground">RILZ</span>]
           : [<span key="typ" className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">Standard</span>]
       }
       if (spalteId === 'stufe') {
@@ -940,7 +876,7 @@ export default function LernzielePage() {
                 const faecherMitThemen = faecher.filter(f => themen.some(t => t.fachId === f.id))
                 options = [
                   { value: '', label: 'Alle Fächer' },
-                  ...faecherMitThemen.map(f => ({ value: f.id, label: f.name, dot: getFachColor(f.id, faecher.map(x => x.id)).dot })),
+                  ...faecherMitThemen.map(f => ({ value: f.id, label: f.name, dot: getFachColor(f.id, faecher.map(x => x.id), f.colorIndex).dot })),
                 ]
                 showSearch = faecherMitThemen.length > 4
               } else if (colId === 'typ') {
@@ -1014,7 +950,7 @@ export default function LernzielePage() {
               <Upload className="size-3.5" /> Importieren
             </Button>
             {importFeedback && (
-              <span className={cn('text-xs', importFeedback.ok ? 'text-emerald-600' : 'text-red-500')}>
+              <span className={cn('text-xs', importFeedback.ok ? 'text-status-reached' : 'text-status-not-reached')}>
                 {importFeedback.msg}
               </span>
             )}
@@ -1029,7 +965,7 @@ export default function LernzielePage() {
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card py-14 text-center">
               <p className="text-sm font-medium text-muted-foreground">Noch keine Themen angelegt</p>
               {newThemaFachId && (
-                <Button size="sm" variant="outline" onClick={() => setThemaCreateFachId(newThemaFachId)}>
+                <Button size="sm" variant="outline" onClick={() => setThemaPickerFachId(newThemaFachId)}>
                   <Plus className="size-3" /> Erstes Thema erstellen
                 </Button>
               )}
@@ -1037,12 +973,12 @@ export default function LernzielePage() {
           ) : (
             <div className="space-y-3">
               {tableData.map(({ fach, themen: fachThemen }) => {
-                const fachColor = getFachColor(fach.id, faecher.map(f => f.id))
+                const fachColor = getFachColor(fach.id, faecher.map(f => f.id), fach.colorIndex)
                 const fachCollapsed = collapsedFaecher.has(fach.id)
                 const fachLZCount = fachThemen.reduce((s, t) => s + lernziele.filter(lz => lz.themaId === t.id).length, 0)
                 return (
                   <div key={fach.id} className={cn(
-                    'rounded-xl border bg-card overflow-hidden shadow-sm border-l-4',
+                    'rounded-2xl border bg-card overflow-hidden shadow-sm border-l-4',
                     fachColor.border,
                   )}>
                     {/* Fach header */}
@@ -1081,10 +1017,6 @@ export default function LernzielePage() {
                           <>
                             {fachThemen.map(thema => {
                               const isExpanded = expandedThemen.has(thema.id)
-                              const isRilz = thema.typ === 'rilz'
-                              const rilzAssignedStudents = isRilz
-                                ? students.filter(s => s.rilzFachIds?.includes(thema.fachId))
-                                : []
 
                               return (
                                 <div key={thema.id}>
@@ -1101,25 +1033,6 @@ export default function LernzielePage() {
                                       <span className="text-sm font-medium truncate">{thema.name}</span>
                                       {renderChips(thema)}
                                     </button>
-
-                                    {/* Rechte Seite: Schüler für RILZ */}
-                                    {isRilz && (
-                                      <div className="hidden sm:flex shrink-0">
-                                        <span className={cn(
-                                          'flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium',
-                                          rilzAssignedStudents.length > 0
-                                            ? 'bg-orange-100 text-orange-700'
-                                            : 'bg-muted text-muted-foreground',
-                                        )}>
-                                          <GraduationCap className="size-2.5 shrink-0" />
-                                          <span className="ml-0.5 max-w-[120px] truncate">
-                                            {rilzAssignedStudents.length > 0
-                                              ? rilzAssignedStudents.slice(0, 2).map(s => s.vorname).join(' · ') + (rilzAssignedStudents.length > 2 ? ` +${rilzAssignedStudents.length - 2}` : '')
-                                              : 'Kein Schüler'}
-                                          </span>
-                                        </span>
-                                      </div>
-                                    )}
 
                                     {/* Actions — hover reveal */}
                                     <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1148,7 +1061,7 @@ export default function LernzielePage() {
                               )
                             })}
                             <button
-                              onClick={() => setThemaCreateFachId(fach.id)}
+                              onClick={() => setThemaPickerFachId(fach.id)}
                               className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-accent/20 transition-colors">
                               <Plus className="size-3" /> Thema hinzufügen
                             </button>
@@ -1164,13 +1077,13 @@ export default function LernzielePage() {
         </>
       )}
 
-      <CreateModal
+      <InputModal
         open={fachCreateOpen} onOpenChange={setFachCreateOpen}
         title="Neues Fach" label="Fachbezeichnung" placeholder="z. B. Mathematik"
         onSubmit={handleFachCreated}
       />
 
-      <CreateModal
+      <InputModal
         open={katCreateOpen} onOpenChange={setKatCreateOpen}
         title="Neue Tag-Kategorie" label="Bezeichnung" placeholder="z. B. Semester, Lerngruppe …"
         onSubmit={(name) => { createTagKategorie(name); setKatCreateOpen(false) }}
@@ -1181,6 +1094,16 @@ export default function LernzielePage() {
           open={!!themaCreateFachId}
           onOpenChange={(o) => { if (!o) setThemaCreateFachId(null) }}
           fachId={themaCreateFachId}
+        />
+      )}
+
+      {themaPickerFachId && (
+        <ThemaAddPickerModal
+          open={!!themaPickerFachId}
+          onOpenChange={(o) => { if (!o) setThemaPickerFachId(null) }}
+          fachName={faecher.find(f => f.id === themaPickerFachId)?.name ?? ''}
+          onImportieren={handlePickerImportieren}
+          onNeuErstellen={handlePickerNeuErstellen}
         />
       )}
 
@@ -1210,7 +1133,7 @@ export default function LernzielePage() {
       >
         <div className="flex flex-col gap-1">
           {faecher.map(f => {
-            const fc = getFachColor(f.id, faecher.map(fx => fx.id))
+            const fc = getFachColor(f.id, faecher.map(fx => fx.id), f.colorIndex)
             return (
               <button
                 key={f.id}

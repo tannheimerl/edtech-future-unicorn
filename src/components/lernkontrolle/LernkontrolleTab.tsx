@@ -6,7 +6,8 @@ import { useData } from '@/contexts/DataContext'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { StatusCell, nextStatus } from '@/components/shared/StatusCell'
 import { Tooltip } from '@/components/ui/tooltip'
-import { cn, getFachColor } from '@/lib/utils'
+import { cn, getFachColor, categoryChipClasses } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { RilzStudentCard } from './RilzStudentCard'
 import type { Status, Thema } from '@/types/domain'
 
@@ -86,7 +87,7 @@ function ThemaSelect({
   onChange: (id: string) => void
   placeholder: string
   allFachIds: string[]
-  themenByFach: { fach: { id: string; name: string }; themen: { id: string; name: string }[] }[]
+  themenByFach: { fach: { id: string; name: string; colorIndex?: number }; themen: { id: string; name: string }[] }[]
   themaIds: (string | null)[]
   getLernzieleForThema: (id: string) => unknown[]
 }) {
@@ -125,7 +126,10 @@ function ThemaSelect({
   const selectedFachId = value
     ? themenByFach.find(({ themen }) => themen.some(t => t.id === value))?.fach.id ?? null
     : null
-  const selectedFachColor = selectedFachId ? getFachColor(selectedFachId, allFachIds) : null
+  const selectedFach = selectedFachId
+    ? themenByFach.find(({ fach }) => fach.id === selectedFachId)?.fach ?? null
+    : null
+  const selectedFachColor = selectedFach ? getFachColor(selectedFach.id, allFachIds, selectedFach.colorIndex) : null
 
   return (
     <div ref={containerRef} className="relative">
@@ -163,7 +167,7 @@ function ThemaSelect({
               filtered.map(({ fach, themen }) => (
                 <div key={fach.id}>
                   <p className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60 flex items-center gap-1">
-                    <span className={cn('size-1.5 rounded-full shrink-0', getFachColor(fach.id, allFachIds).dot)} />
+                    <span className={cn('size-1.5 rounded-full shrink-0', getFachColor(fach.id, allFachIds, fach.colorIndex).dot)} />
                     {fach.name}
                   </p>
                   {themen.map(thema => {
@@ -416,13 +420,15 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                   allFachIds={faecher.map(f => f.id)}
                 />
                 {i > 0 && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={() => removeThema(i)}
-                    className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted transition-colors"
+                    className="h-5 w-5 text-muted-foreground/60 hover:text-foreground"
                     title="Thema entfernen"
                   >
                     <X className="size-3" />
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -448,10 +454,10 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
       {selectedThemen.length > 0 && allLernziele.length > 0 && (
         <div className="flex justify-end gap-3">
           {([
-            ['bg-emerald-200', 'Erreicht'],
-            ['bg-amber-200', 'Teilweise erreicht'],
-            ['bg-red-100 border border-red-300', 'Nicht erreicht'],
-            ['bg-slate-200', 'Nicht bewertet'],
+            ['bg-status-reached-soft', 'Erreicht'],
+            ['bg-status-partial-soft', 'Teilweise erreicht'],
+            ['bg-status-not-reached-soft border border-status-not-reached', 'Nicht erreicht'],
+            ['bg-status-none-soft', 'Nicht bewertet'],
           ] as const).map(([cls, label]) => (
             <span key={label} className="flex items-center gap-1 text-[10px] text-muted-foreground/70">
               <span className={cn('inline-block size-2.5 rounded-sm shrink-0', cls)} />
@@ -544,7 +550,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                               <div className="flex items-center gap-0.5 flex-wrap">
                                 <span className={cn(
                                   'rounded px-1 py-px text-[9px] font-semibold',
-                                  lz.kategorie === 'grundlegend' ? 'bg-slate-100 text-slate-700' : 'bg-violet-100 text-violet-700',
+                                  categoryChipClasses(lz.kategorie),
                                 )}>
                                   {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                                 </span>
@@ -578,9 +584,9 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                     const isRilzSeparator = rowIdx === regularStudents.length && bvsaStudents.length > 0
                     const pct = studentTotalPct(student.id)
                     const pctColor =
-                      pct >= 75 ? 'text-emerald-600' :
-                      pct >= 40 ? 'text-amber-600' :
-                      'text-red-500'
+                      pct >= 75 ? 'text-status-reached' :
+                      pct >= 40 ? 'text-status-partial' :
+                      'text-status-not-reached'
                     const rowBg = rowIdx % 2 === 0 ? 'bg-card' : 'bg-muted/10'
                     const totalCols = 1 + allLernziele.length + 1 + (showComment ? 1 : 0)
                     return (
@@ -589,7 +595,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                           <tr className="border-t-2 border-border">
                             <td
                               colSpan={totalCols}
-                              className="sticky left-0 bg-orange-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-orange-700"
+                              className="sticky left-0 bg-rilz-soft px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-rilz-foreground"
                             >
                               Schülerinnen und Schüler mit BVSA
                             </td>
@@ -668,9 +674,9 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                       lernziele.map((lz, lzIdx) => {
                         const pct = lzReachedPct(lz.id)
                         const color =
-                          pct >= 75 ? 'text-emerald-600 bg-emerald-50' :
-                          pct >= 40 ? 'text-amber-600 bg-amber-50' :
-                          'text-red-500 bg-red-50'
+                          pct >= 75 ? 'text-status-reached-fg bg-status-reached-soft' :
+                          pct >= 40 ? 'text-status-partial-fg bg-status-partial-soft' :
+                          'text-status-not-reached-fg bg-status-not-reached-soft'
                         const isLastInGroup = lzIdx === lernziele.length - 1 && gi < lernzieleGroups.length - 1
                         return (
                           <td
@@ -701,7 +707,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
       {/* RILZ container — students removed from main table */}
       {rilzContainerStudents.length > 0 && selectedThemen.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
+          <p className="text-xs font-semibold uppercase tracking-wide text-rilz-foreground">
             RILZ – Individuelle Beurteilung
           </p>
           {rilzContainerStudents.map(student => {

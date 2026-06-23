@@ -217,19 +217,15 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
             <Label>Fach</Label>
             <div className="flex flex-wrap gap-2">
               {availableFaecher.map((f) => (
-                <button
+                <Button
                   key={f.id}
                   type="button"
+                  variant={fachId === f.id ? 'default' : 'outline'}
+                  size="sm"
                   onClick={() => handleFachChange(f.id)}
-                  className={cn(
-                    'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
-                    fachId === f.id
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-background text-foreground hover:bg-accent'
-                  )}
                 >
                   {f.name}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -246,7 +242,7 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
                     setSelectedThemaIds(new Set())
                     setSelectedLzIds(new Set())
                   }}
-                  className="shrink-0 accent-orange-600"
+                  className="shrink-0 accent-rilz"
                 />
                 <div>
                   <p className="text-sm font-medium leading-none">RILZ-Lernzielkontrolle</p>
@@ -254,8 +250,8 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
                 </div>
               </label>
               {nurRilz && rilzSchuelerInFach.length > 0 && (
-                <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 space-y-2">
-                  <p className="text-xs font-semibold text-orange-700">RILZ-Schüler auswählen</p>
+                <div className="rounded-lg border border-rilz-border bg-rilz-soft p-3 space-y-2">
+                  <p className="text-xs font-semibold text-rilz-foreground">RILZ-Schüler auswählen</p>
                   {rilzSchuelerInFach.map((s) => (
                     <label key={s.id} className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -264,7 +260,7 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
                         onChange={e => setRilzSchuelerIds(prev =>
                           e.target.checked ? [...prev, s.id] : prev.filter(id => id !== s.id)
                         )}
-                        className="shrink-0 accent-orange-600"
+                        className="shrink-0 accent-rilz"
                       />
                       <span className="text-sm">{s.vorname} {s.nachname}</span>
                     </label>
@@ -284,19 +280,15 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
               <Label>Thema</Label>
               <div className="flex flex-wrap gap-2">
                 {filteredThemen.map((t) => (
-                  <button
+                  <Button
                     key={t.id}
                     type="button"
+                    variant={selectedThemaIds.has(t.id) ? 'default' : 'outline'}
+                    size="sm"
                     onClick={() => toggleThemaChip(t.id)}
-                    className={cn(
-                      'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
-                      selectedThemaIds.has(t.id)
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border bg-background text-foreground hover:bg-accent'
-                    )}
                   >
                     {t.name}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -316,7 +308,7 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
                   const allSelected = themaLzIds.every((id) => selectedLzIds.has(id))
                   const someSelected = themaLzIds.some((id) => selectedLzIds.has(id))
                   return (
-                    <div key={thema.id} className="rounded-xl border border-border overflow-hidden">
+                    <div key={thema.id} className="rounded-2xl border border-border overflow-hidden">
                       <button
                         type="button"
                         onClick={() => toggleAllLzForThema(themaLzIds)}
@@ -325,7 +317,7 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
                         <span>{thema.name}</span>
                         <span className={cn(
                           'rounded px-1.5 py-0.5 text-xs',
-                          allSelected ? 'bg-primary text-primary-foreground' : someSelected ? 'bg-amber-100 text-amber-700' : 'bg-background text-muted-foreground'
+                          allSelected ? 'bg-primary text-primary-foreground' : someSelected ? 'bg-status-partial-soft text-status-partial-fg' : 'bg-background text-muted-foreground'
                         )}>
                           {allSelected ? 'Alle' : someSelected ? 'Teilweise' : 'Keine'}
                         </span>
@@ -345,8 +337,8 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
                                 <span className={cn(
                                   'ml-2 rounded px-1 py-0.5 text-xs',
                                   lz.kategorie === 'grundlegend'
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'bg-violet-100 text-violet-700'
+                                    ? 'bg-category-grundlegend-soft text-category-grundlegend-fg'
+                                    : 'bg-category-anspruchsvoll-soft text-category-anspruchsvoll-fg'
                                 )}>
                                   {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                                 </span>

@@ -62,7 +62,10 @@ export async function fetchAllData() {
     if (err) console.error(`fetchAllData ${label}:`, err.message)
   }
 
-  const faecher: Fach[] = (dbFaecher ?? []).map((f) => ({ id: f.id, name: f.name }))
+  const faecher: Fach[] = (dbFaecher ?? []).map((f) => ({
+    id: f.id, name: f.name,
+    ...(f.color_index != null ? { colorIndex: f.color_index as number } : {}),
+  }))
 
   const themen: Thema[] = (dbThemen ?? []).map((t) => ({
     id: t.id, fachId: t.fach_id, name: t.name,

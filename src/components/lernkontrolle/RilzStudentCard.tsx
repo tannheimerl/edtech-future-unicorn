@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { Check, Minus, X } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { cn, getFachColor } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { AddLzRow } from './RilzBeurteilungView'
 import type { Schueler, Thema, Lernziel, Status, RilzLernziel } from '@/types/domain'
 import { STATUS_CYCLE } from '@/types/domain'
@@ -35,16 +36,16 @@ function StatusCell({
         }
         className={cn(
           'w-7 h-7 rounded-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer',
-          status === 'reached'           ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' :
-          status === 'partially_reached' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' :
-          status === 'not_reached'       ? 'bg-red-100 text-red-500 hover:bg-red-200' :
-                                           'bg-slate-100 text-slate-400 hover:bg-slate-200',
+          status === 'reached'           ? 'bg-status-reached-soft text-status-reached-fg' :
+          status === 'partially_reached' ? 'bg-status-partial-soft text-status-partial-fg' :
+          status === 'not_reached'       ? 'bg-status-not-reached-soft text-status-not-reached-fg' :
+                                           'bg-status-none-soft text-status-none-fg',
         )}
       >
         {status === 'reached'           && <Check className="size-3 stroke-[2.5]" />}
         {status === 'partially_reached' && <Minus className="size-3 stroke-[2.5]" />}
         {status === 'not_reached'       && <X className="size-3 stroke-[2.5]" />}
-        {status === undefined           && <span className="size-1.5 rounded-full bg-slate-300" />}
+        {status === undefined           && <span className="size-1.5 rounded-full bg-status-none-fg" />}
       </button>
     </div>
   )
@@ -72,9 +73,9 @@ function RilzStatusCell({
         }
         className={cn(
           'w-7 h-7 rounded-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer',
-          status === 'reached'           ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' :
-          status === 'partially_reached' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' :
-                                           'bg-red-100 text-red-500 hover:bg-red-200',
+          status === 'reached'           ? 'bg-status-reached-soft text-status-reached-fg' :
+          status === 'partially_reached' ? 'bg-status-partial-soft text-status-partial-fg' :
+                                           'bg-status-not-reached-soft text-status-not-reached-fg',
         )}
       >
         {status === 'reached'           && <Check className="size-3 stroke-[2.5]" />}
@@ -101,16 +102,18 @@ function RilzLzHeader({ lz, studentId }: { lz: RilzLernziel; studentId: string }
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center justify-between gap-0.5">
-        <span className="rounded px-1 py-px text-[9px] font-semibold bg-orange-100 text-orange-700 shrink-0">
+        <span className="rounded px-1 py-px text-[9px] font-semibold bg-rilz-soft text-rilz-foreground shrink-0">
           RILZ
         </span>
-        <button
+        <Button
+          variant="ghost"
+          size="icon-xs"
           onClick={() => deleteRilzLernziel(studentId, lz.id)}
-          className="size-3.5 rounded flex items-center justify-center text-muted-foreground/40 hover:text-destructive hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+          className="size-3.5 text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 shrink-0"
           title="Lernziel löschen"
         >
           <X className="size-2.5" />
-        </button>
+        </Button>
       </div>
       {editing ? (
         <input
@@ -126,7 +129,7 @@ function RilzLzHeader({ lz, studentId }: { lz: RilzLernziel; studentId: string }
         />
       ) : (
         <span
-          className="text-[11px] font-medium text-foreground leading-snug cursor-pointer hover:text-orange-700"
+          className="text-[11px] font-medium text-foreground leading-snug cursor-pointer hover:text-rilz-foreground"
           onClick={() => { setDraft(lz.label); setEditing(true) }}
           title="Klicken zum Bearbeiten"
         >
@@ -212,14 +215,14 @@ export function RilzStudentCard({
   }
 
   const pct = computePct()
-  const pctColor = pct >= 75 ? 'text-emerald-600' : pct >= 40 ? 'text-amber-600' : 'text-red-500'
+  const pctColor = pct >= 75 ? 'text-status-reached' : pct >= 40 ? 'text-status-partial' : 'text-status-not-reached'
   const showThemeGroupHeader = colGroups.length > 1
 
   return (
-    <div className="rounded-2xl border border-orange-200 bg-card overflow-hidden">
+    <div className="rounded-2xl border border-rilz-border bg-card overflow-hidden">
 
       {/* Student header */}
-      <div className="flex items-center gap-2.5 px-4 py-3 bg-orange-50 border-b border-orange-200">
+      <div className="flex items-center gap-2.5 px-4 py-3 bg-rilz-soft border-b border-rilz-border">
         <div className={cn(
           'size-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0',
           getAvatarColor(student.vorname + ' ' + student.nachname),
@@ -232,13 +235,13 @@ export function RilzStudentCard({
             {(student.rilzFachIds ?? []).map(fachId => {
               const fach = faecher.find(f => f.id === fachId)
               return fach ? (
-                <span key={fachId} className="rounded px-1 py-px text-[9px] font-semibold bg-orange-100 text-orange-700">
+                <span key={fachId} className="rounded px-1 py-px text-[9px] font-semibold bg-rilz-soft text-rilz-foreground">
                   RILZ {fach.name}
                 </span>
               ) : null
             })}
             {student.bvsa && (
-              <span className="rounded px-1 py-px text-[9px] font-semibold bg-purple-100 text-purple-700">BVSA</span>
+              <span className="rounded px-1 py-px text-[9px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg">BVSA</span>
             )}
           </div>
         </div>
@@ -265,14 +268,14 @@ export function RilzStudentCard({
                         key={g.thema.id}
                         colSpan={colSpan}
                         className={cn(
-                          'px-2 py-1 text-xs font-semibold text-center bg-orange-50/60 text-orange-700',
-                          !isLast && 'border-r-2 border-orange-200',
+                          'px-2 py-1 text-xs font-semibold text-center bg-rilz-soft/60 text-rilz-foreground',
+                          !isLast && 'border-r-2 border-rilz-border',
                         )}
                       >
                         <span className="flex items-center justify-center gap-1">
                           {g.fach && (
                             <span className="flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
-                              <span className={cn('size-1.5 rounded-full shrink-0', getFachColor(g.fach.id, allFachIds).dot)} />
+                              <span className={cn('size-1.5 rounded-full shrink-0', getFachColor(g.fach.id, allFachIds, g.fach.colorIndex).dot)} />
                               {g.fach.name}
                             </span>
                           )}
@@ -290,7 +293,7 @@ export function RilzStudentCard({
                 <th className="sticky left-0 z-10 bg-card w-32 min-w-32 border-r border-border px-2 py-1.5 align-bottom">
                   {!showThemeGroupHeader && colGroups[0]?.fach && (
                     <span className="flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      <span className={cn('size-1.5 rounded-full shrink-0', getFachColor(colGroups[0].fach.id, allFachIds).dot)} />
+                      <span className={cn('size-1.5 rounded-full shrink-0', getFachColor(colGroups[0].fach.id, allFachIds, colGroups[0].fach.colorIndex).dot)} />
                       {colGroups[0].fach.name}
                     </span>
                   )}
@@ -308,13 +311,13 @@ export function RilzStudentCard({
                             <th
                               key={lz.id}
                               className={cn(
-                                'bg-orange-50/30 px-1.5 py-2 text-left align-top',
-                                isLast && 'border-r-2 border-orange-200',
+                                'bg-rilz-soft/30 px-1.5 py-2 text-left align-top',
+                                isLast && 'border-r-2 border-rilz-border',
                               )}
                               style={{ width: 88, minWidth: 88 }}
                             >
                               <div className="flex flex-col gap-0.5">
-                                <span className="rounded px-1 py-px text-[9px] font-semibold bg-orange-100 text-orange-700 self-start">RILZ</span>
+                                <span className="rounded px-1 py-px text-[9px] font-semibold bg-rilz-soft text-rilz-foreground self-start">RILZ</span>
                                 <span className="text-[11px] font-medium text-foreground leading-snug">{lz.label}</span>
                               </div>
                             </th>
@@ -332,12 +335,12 @@ export function RilzStudentCard({
                                 key={lz.id}
                                 className={cn(
                                   'bg-muted/20 px-1.5 py-2 text-left align-top',
-                                  (hasDividerToRilz || hasDividerToGroup) && 'border-r-2 border-orange-200/70',
+                                  (hasDividerToRilz || hasDividerToGroup) && 'border-r-2 border-rilz-border/70',
                                 )}
                                 style={{ width: 72, minWidth: 72 }}
                               >
                                 <div className="flex flex-col gap-0.5">
-                                  <span className="rounded px-1 py-px text-[9px] font-semibold bg-slate-100 text-slate-700 self-start">G</span>
+                                  <span className="rounded px-1 py-px text-[9px] font-semibold bg-category-grundlegend-soft text-category-grundlegend-fg self-start">G</span>
                                   <span className="text-[11px] font-medium text-foreground leading-snug">{lz.label}</span>
                                 </div>
                               </th>
@@ -351,8 +354,8 @@ export function RilzStudentCard({
                               <th
                                 key={lz.id}
                                 className={cn(
-                                  'bg-orange-50/30 px-1.5 py-2 text-left align-top group',
-                                  isLastRilz && 'border-r-2 border-orange-200',
+                                  'bg-rilz-soft/30 px-1.5 py-2 text-left align-top group',
+                                  isLastRilz && 'border-r-2 border-rilz-border',
                                 )}
                                 style={{ width: 88, minWidth: 88 }}
                               >
@@ -395,8 +398,8 @@ export function RilzStudentCard({
                             <td
                               key={lz.id}
                               className={cn(
-                                'px-1 py-1 text-center bg-orange-50/20',
-                                isLast && 'border-r-2 border-orange-200',
+                                'px-1 py-1 text-center bg-rilz-soft/20',
+                                isLast && 'border-r-2 border-rilz-border',
                               )}
                             >
                               <StatusCell
@@ -419,7 +422,7 @@ export function RilzStudentCard({
                                 key={lz.id}
                                 className={cn(
                                   'px-1 py-1 text-center',
-                                  (hasDividerToRilz || hasDividerToGroup) && 'border-r-2 border-orange-200/70',
+                                  (hasDividerToRilz || hasDividerToGroup) && 'border-r-2 border-rilz-border/70',
                                 )}
                               >
                                 <StatusCell
@@ -437,8 +440,8 @@ export function RilzStudentCard({
                               <td
                                 key={lz.id}
                                 className={cn(
-                                  'px-1 py-1 text-center bg-orange-50/20',
-                                  isLastRilz && 'border-r-2 border-orange-200',
+                                  'px-1 py-1 text-center bg-rilz-soft/20',
+                                  isLastRilz && 'border-r-2 border-rilz-border',
                                 )}
                               >
                                 <RilzStatusCell
@@ -472,7 +475,7 @@ export function RilzStudentCard({
           {colGroups.filter(g => g.mode === 'adhoc').map(g => (
             <div key={g.thema.id}>
               {colGroups.filter(g => g.mode === 'adhoc').length > 1 && (
-                <p className="px-3 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-orange-600">
+                <p className="px-3 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-rilz-foreground">
                   {g.thema.name}
                 </p>
               )}

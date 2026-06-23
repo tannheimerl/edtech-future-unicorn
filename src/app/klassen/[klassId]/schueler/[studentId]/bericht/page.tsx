@@ -6,14 +6,20 @@ import { Printer, ArrowLeft } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { Breadcrumb } from '@/components/shared/Breadcrumb'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { cn, categoryChipClasses } from '@/lib/utils'
 import type { Status } from '@/types/domain'
 import { STATUS_LABELS } from '@/types/domain'
 
 const STATUS_DOT: Record<Status, string> = {
-  reached: 'bg-emerald-500',
-  partially_reached: 'bg-amber-400',
-  not_reached: 'bg-red-400',
+  reached: 'bg-status-reached',
+  partially_reached: 'bg-status-partial',
+  not_reached: 'bg-status-not-reached',
+}
+
+const STATUS_TEXT: Record<Status, string> = {
+  reached: 'text-status-reached-fg',
+  partially_reached: 'text-status-partial-fg',
+  not_reached: 'text-status-not-reached-fg',
 }
 
 export default function BerichtPage() {
@@ -71,7 +77,7 @@ export default function BerichtPage() {
     return (
       <div className="mx-auto w-full max-w-7xl px-6 py-8 text-sm text-muted-foreground">
         Schüler nicht gefunden.{' '}
-        <button className="underline text-primary" onClick={() => router.push('/klassen')}>Zur Übersicht</button>
+        <Button variant="link" className="h-auto p-0 underline" onClick={() => router.push('/klassen')}>Zur Übersicht</Button>
       </div>
     )
   }
@@ -107,24 +113,24 @@ export default function BerichtPage() {
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Lernziele</p>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" checked={includeGrundlegend} onChange={e => setIncludeGrundlegend(e.target.checked)} className="accent-slate-500 h-3.5 w-3.5" />
+                <input type="checkbox" checked={includeGrundlegend} onChange={e => setIncludeGrundlegend(e.target.checked)} className="accent-category-grundlegend h-3.5 w-3.5" />
                 Grundlegend (G)
               </label>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" checked={includeAnspruchsvoll} onChange={e => setIncludeAnspruchsvoll(e.target.checked)} className="accent-violet-500 h-3.5 w-3.5" />
+                <input type="checkbox" checked={includeAnspruchsvoll} onChange={e => setIncludeAnspruchsvoll(e.target.checked)} className="accent-category-anspruchsvoll h-3.5 w-3.5" />
                 Anspruchsvoll (A)
               </label>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" checked={includeKommentare} onChange={e => setIncludeKommentare(e.target.checked)} className="accent-blue-500 h-3.5 w-3.5" />
+                <input type="checkbox" checked={includeKommentare} onChange={e => setIncludeKommentare(e.target.checked)} className="accent-primary h-3.5 w-3.5" />
                 Kommentare einbeziehen
               </label>
             </div>
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Fach</p>
               <div className="flex flex-wrap gap-1">
-                <button onClick={() => setFachFilter(null)} className={cn('rounded px-2 py-0.5 text-xs border transition-all', fachFilter === null ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:bg-muted')}>Alle</button>
+                <Button size="sm" variant={fachFilter === null ? 'default' : 'outline'} onClick={() => setFachFilter(null)}>Alle</Button>
                 {faecher.map(f => (
-                  <button key={f.id} onClick={() => setFachFilter(f.id === fachFilter ? null : f.id)} className={cn('rounded px-2 py-0.5 text-xs border transition-all', fachFilter === f.id ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:bg-muted')}>{f.name}</button>
+                  <Button key={f.id} size="sm" variant={fachFilter === f.id ? 'default' : 'outline'} onClick={() => setFachFilter(f.id === fachFilter ? null : f.id)}>{f.name}</Button>
                 ))}
               </div>
             </div>
@@ -137,7 +143,7 @@ export default function BerichtPage() {
                 className="h-7 rounded border border-border bg-background text-xs px-2 focus:outline-none"
               />
               {zeitraumBis && (
-                <button onClick={() => setZeitraumBis('')} className="text-[10px] text-muted-foreground hover:text-foreground ml-1">zurücksetzen</button>
+                <Button variant="link" onClick={() => setZeitraumBis('')} className="h-auto p-0 ml-1 text-[10px] text-muted-foreground hover:text-foreground no-underline hover:no-underline">zurücksetzen</Button>
               )}
             </div>
           </div>
@@ -166,7 +172,7 @@ export default function BerichtPage() {
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{fach}</span>
                   <h2 className="text-base font-semibold">{thema}</h2>
                 </div>
-                <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+                <div className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
                   {lernziele.map(({ lz, status, kommentar }) => (
                     <div key={lz.id} className="px-3 py-2.5 space-y-1">
                       <div className="flex items-start gap-2">
@@ -175,15 +181,13 @@ export default function BerichtPage() {
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className={cn(
                               'rounded px-1 text-[9px] font-semibold',
-                              lz.kategorie === 'grundlegend' ? 'bg-slate-100 text-slate-700' : 'bg-violet-100 text-violet-700',
+                              categoryChipClasses(lz.kategorie),
                             )}>
                               {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                             </span>
                             <span className="text-sm">{lz.label}</span>
                           </div>
-                          <p className="text-xs font-medium mt-0.5" style={{
-                            color: status === 'reached' ? '#10b981' : status === 'partially_reached' ? '#f59e0b' : '#ef4444',
-                          }}>
+                          <p className={cn('text-xs font-medium mt-0.5', STATUS_TEXT[status])}>
                             {STATUS_LABELS[status]}
                           </p>
                           {kommentar && (

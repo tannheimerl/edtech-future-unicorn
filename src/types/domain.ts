@@ -18,6 +18,7 @@ export const STATUS_CYCLE: Status[] = ['not_reached', 'partially_reached', 'reac
 export interface Fach {
   id: string
   name: string
+  colorIndex?: number
 }
 
 export interface TagKategorie {

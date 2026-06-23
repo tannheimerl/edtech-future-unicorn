@@ -112,6 +112,7 @@ interface DataContextValue {
   // Fach CRUD
   createFach: (name: string) => string
   updateFach: (id: string, name: string) => void
+  updateFachColor: (id: string, colorIndex: number | null) => void
   deleteFach: (id: string) => void
 
   // Thema CRUD
@@ -559,6 +560,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }))
   }, [])
 
+  const updateFachColor = useCallback((id: string, colorIndex: number | null) => {
+    setFaecher((prev) => prev.map((f) => {
+      if (f.id !== id) return f
+      const updated = { ...f, colorIndex: colorIndex ?? undefined }
+      dbSaveFach(updated)
+      return updated
+    }))
+  }, [])
+
   const deleteFach = useCallback((id: string) => {
     const themenToDelete = new Set<string>()
     setThemen((prev) => {
@@ -939,6 +949,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         createFolgeklasse,
         createFach,
         updateFach,
+        updateFachColor,
         deleteFach,
         createThema,
         updateThema,

@@ -54,36 +54,40 @@ export function BeurteilungTab({ klassId }: Props) {
       <div className="flex items-center gap-2">
         {activePruefungId ? (
           <nav className="flex items-center gap-1.5 text-sm">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setActivePruefungId(null)}
-              className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+              className="gap-1 text-muted-foreground"
             >
               <ChevronLeft className="size-4" />
               Beurteilung
-            </button>
+            </Button>
             <span className="text-muted-foreground/40">/</span>
             <span className="font-semibold text-foreground">{activePruefung?.name}</span>
           </nav>
         ) : (
           <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5 text-xs">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setMode('pruefung')}
               className={cn(
-                'rounded-md px-3 py-1 font-medium transition-all',
-                mode === 'pruefung' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                mode === 'pruefung' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
               )}
             >
               Lernzielkontrollen
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setMode('frei')}
               className={cn(
-                'rounded-md px-3 py-1 font-medium transition-all',
-                mode === 'frei' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                mode === 'frei' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
               )}
             >
               Freie Beurteilung
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -140,19 +144,15 @@ export function BeurteilungTab({ klassId }: Props) {
               <span className="text-xs text-muted-foreground">Fach:</span>
               <div className="flex flex-wrap gap-1">
                 {[{ id: null, name: 'Alle' }, ...filterableFaecher].map(f => (
-                  <button
+                  <Button
                     key={f.id ?? 'alle'}
                     type="button"
+                    variant={filterFachId === f.id ? 'default' : 'outline'}
+                    size="xs"
                     onClick={() => setFilterFachId(f.id)}
-                    className={cn(
-                      'rounded-md border px-2.5 py-0.5 text-xs font-medium transition-colors',
-                      filterFachId === f.id
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border bg-background text-foreground hover:bg-accent',
-                    )}
                   >
                     {f.name}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -161,19 +161,16 @@ export function BeurteilungTab({ klassId }: Props) {
             <span className="text-xs text-muted-foreground">Status:</span>
             <div className="flex gap-1">
               {(['alle', 'laufend', 'abgeschlossen'] as const).map(s => (
-                <button
+                <Button
                   key={s}
                   type="button"
+                  variant={filterStatus === s ? 'default' : 'outline'}
+                  size="xs"
                   onClick={() => setFilterStatus(s)}
-                  className={cn(
-                    'rounded-md border px-2.5 py-0.5 text-xs font-medium transition-colors capitalize',
-                    filterStatus === s
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-background text-foreground hover:bg-accent',
-                  )}
+                  className="capitalize"
                 >
                   {s === 'alle' ? 'Alle' : s === 'laufend' ? 'Laufend' : 'Abgeschlossen'}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -222,17 +219,19 @@ export function BeurteilungTab({ klassId }: Props) {
             return (
               <div
                 key={p.id}
-                className="group relative flex flex-col gap-2 rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-md cursor-pointer"
+                className="group relative flex flex-col gap-2 rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-md cursor-pointer"
                 onClick={() => setActivePruefungId(p.id)}
               >
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={e => { e.stopPropagation(); setConfirmDeleteId(p.id) }}
-                  className="absolute right-3 top-3 hidden size-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover:flex transition-colors"
+                  className="absolute right-3 top-3 hidden text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover:flex"
                   title="Lernzielkontrolle löschen"
                 >
                   <Trash2 className="size-3.5" />
-                </button>
+                </Button>
 
                 <div className="flex items-start justify-between gap-2 pr-6">
                   <p className="font-semibold leading-tight">{p.name}</p>
@@ -245,8 +244,8 @@ export function BeurteilungTab({ klassId }: Props) {
                     className={cn(
                       'shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium transition-colors',
                       p.status === 'abgeschlossen'
-                        ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200',
+                        ? 'bg-secondary text-muted-foreground hover:bg-muted'
+                        : 'bg-status-reached-soft text-status-reached-fg hover:bg-status-reached-soft/80',
                     )}
                   >
                     {p.status === 'abgeschlossen' ? 'Abgeschlossen' : 'Laufend'}
@@ -277,13 +276,13 @@ export function BeurteilungTab({ klassId }: Props) {
                     </div>
                   )}
                   {pending2nd > 0 && (
-                    <div className="flex items-center gap-1 text-xs font-medium text-amber-700">
+                    <div className="flex items-center gap-1 text-xs font-medium text-status-partial">
                       <RotateCcw className="size-3" />
                       <span>{pending2nd} 2. Versuch ausstehend</span>
                     </div>
                   )}
                   {pending3rd > 0 && (
-                    <div className="flex items-center gap-1 text-xs font-medium text-amber-700">
+                    <div className="flex items-center gap-1 text-xs font-medium text-status-partial">
                       <RotateCcw className="size-3" />
                       <span>{pending3rd} 3. Versuch ausstehend</span>
                     </div>
@@ -294,13 +293,13 @@ export function BeurteilungTab({ klassId }: Props) {
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>
                       {bewertet}/{relevantStudents.length} abgeschlossen
-                      {rilzExcluded > 0 && <span className="ml-1 text-orange-600">· {rilzExcluded} RILZ</span>}
+                      {rilzExcluded > 0 && <span className="ml-1 text-rilz-foreground">· {rilzExcluded} RILZ</span>}
                     </span>
-                    <span className={pct === 100 ? 'text-emerald-600 font-medium' : ''}>{pct}%</span>
+                    <span className={pct === 100 ? 'text-status-reached font-medium' : ''}>{pct}%</span>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                     <div
-                      className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-emerald-500' : 'bg-primary')}
+                      className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-status-reached' : 'bg-primary')}
                       style={{ width: `${pct}%` }}
                     />
                   </div>

@@ -145,8 +145,8 @@ function StudentRow({
       ? (ergebnis?.anzahlVersuche ?? 1) >= 2 ? 'dritter_versuch' : 'zweiter_versuch'
       : 'laufend'
   const rowBg = rowIdx % 2 === 0 ? 'bg-card' : 'bg-muted/10'
-  const effectiveBg = isPending ? 'bg-amber-50' : rowBg
-  const stickyBg = isPending ? 'bg-amber-50' : 'bg-card'
+  const effectiveBg = isPending ? 'bg-status-partial-soft' : rowBg
+  const stickyBg = isPending ? 'bg-status-partial-soft' : 'bg-card'
 
   const pct = (() => {
     const applicable = allLzIds.filter(lzId => {
@@ -163,9 +163,9 @@ function StudentRow({
   })()
 
   const pctColor =
-    pct >= 75 ? 'text-emerald-600' :
-    pct >= 40 ? 'text-amber-600' :
-    'text-red-500'
+    pct >= 75 ? 'text-status-reached' :
+    pct >= 40 ? 'text-status-partial' :
+    'text-status-not-reached'
 
   return (
     <tr className={cn('transition-colors group', effectiveBg, isAbgeschlossen && 'opacity-60')}>
@@ -179,8 +179,8 @@ function StudentRow({
             onChange={e => handleVersuchChange(e.target.value as 'laufend' | 'zweiter_versuch' | 'dritter_versuch' | 'abgeschlossen')}
             className={cn(
               'shrink-0 rounded px-1 py-0.5 text-[10px] font-medium border-0 focus:outline-none cursor-pointer',
-              versuchVal === 'abgeschlossen' && 'bg-emerald-100 text-emerald-800',
-              (versuchVal === 'zweiter_versuch' || versuchVal === 'dritter_versuch') && 'bg-amber-100 text-amber-800',
+              versuchVal === 'abgeschlossen' && 'bg-status-reached-soft text-status-reached-fg',
+              (versuchVal === 'zweiter_versuch' || versuchVal === 'dritter_versuch') && 'bg-status-partial-soft text-status-partial-fg',
               versuchVal === 'laufend' && 'bg-muted text-muted-foreground',
             )}
           >
@@ -397,10 +397,10 @@ export function BeurteilungGrid({ pruefungId, klassId }: Props) {
       {/* Legend */}
       <div className="flex justify-end gap-3">
         {([
-          ['bg-emerald-200', 'Erreicht'],
-          ['bg-amber-200', 'Teilweise'],
-          ['bg-red-100 border border-red-300', 'Nicht erreicht'],
-          ['bg-slate-200', 'Nicht bewertet'],
+          ['bg-status-reached', 'Erreicht'],
+          ['bg-status-partial', 'Teilweise'],
+          ['bg-status-not-reached-soft border border-status-not-reached', 'Nicht erreicht'],
+          ['bg-status-none-soft', 'Nicht bewertet'],
         ] as const).map(([cls, label]) => (
           <span key={label} className="flex items-center gap-1 text-[10px] text-muted-foreground/70">
             <span className={cn('inline-block size-2.5 rounded-sm shrink-0', cls)} />
@@ -474,7 +474,7 @@ export function BeurteilungGrid({ pruefungId, klassId }: Props) {
                           style={{ width: 72, minWidth: 72 }}
                         >
                           <div className="flex flex-col gap-0.5">
-                            <span className="rounded px-1 py-px text-[9px] font-semibold bg-slate-100 text-slate-700 w-fit">G</span>
+                            <span className="rounded px-1 py-px text-[9px] font-semibold bg-category-grundlegend-soft text-category-grundlegend-fg w-fit">G</span>
                             <span className="text-[11px] font-medium text-foreground leading-snug">{lz.label}</span>
                           </div>
                         </th>
@@ -489,7 +489,7 @@ export function BeurteilungGrid({ pruefungId, klassId }: Props) {
                           style={{ width: 72, minWidth: 72 }}
                         >
                           <div className="flex flex-col gap-0.5">
-                            <span className="rounded px-1 py-px text-[9px] font-semibold bg-violet-100 text-violet-700 w-fit">A</span>
+                            <span className="rounded px-1 py-px text-[9px] font-semibold bg-category-anspruchsvoll-soft text-category-anspruchsvoll-fg w-fit">A</span>
                             <span className="text-[11px] font-medium text-foreground leading-snug">{lz.label}</span>
                           </div>
                         </th>
@@ -585,9 +585,9 @@ export function BeurteilungGrid({ pruefungId, klassId }: Props) {
                         }, 0)
                         const pct = eligible.length > 0 ? Math.round((sum / eligible.length) * 100) : 0
                         const color =
-                          pct >= 75 ? 'text-emerald-600 bg-emerald-50' :
-                          pct >= 40 ? 'text-amber-600 bg-amber-50' :
-                          'text-red-500 bg-red-50'
+                          pct >= 75 ? 'text-status-reached-fg bg-status-reached-soft' :
+                          pct >= 40 ? 'text-status-partial-fg bg-status-partial-soft' :
+                          'text-status-not-reached-fg bg-status-not-reached-soft'
                         const isAEnd = lz.kategorie === 'anspruchsvoll' && !isLastGroup && lzIdx === group.grundlegend.length + group.anspruchsvoll.length - 1
                         const isGEnd = lz.kategorie === 'grundlegend' && group.anspruchsvoll.length > 0 && lzIdx === group.grundlegend.length - 1
                         return (

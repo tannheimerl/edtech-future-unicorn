@@ -14,29 +14,29 @@ export function StudentKpiTiles({ kpis }: Props) {
           label="Gesamtfortschritt"
           value={`${kpis.gesamtPct}%`}
           sub={`${kpis.reached} von ${kpis.totalLz} erreicht`}
-          accent="bg-emerald-50"
-          valueColor="text-emerald-700"
+          accent="bg-status-reached-soft"
+          valueColor="text-status-reached-fg"
         />
         <Tile
           label="Noch offen"
           value={String(kpis.openLz)}
           sub="Lernziele"
-          accent="bg-rose-50"
-          valueColor={kpis.openLz === 0 ? 'text-emerald-600' : 'text-rose-600'}
+          accent="bg-status-not-reached-soft"
+          valueColor={kpis.openLz === 0 ? 'text-status-reached-fg' : 'text-status-not-reached-fg'}
         />
         <Tile
           label="Grundlegend"
           value={`${kpis.grundPct}%`}
           sub={`${kpis.grundReached} / ${kpis.grundTotal}`}
-          accent="bg-slate-50"
-          valueColor="text-slate-700"
+          accent="bg-category-grundlegend-soft"
+          valueColor="text-category-grundlegend-fg"
         />
         <Tile
           label="Anspruchsvoll"
           value={`${kpis.ansprPct}%`}
           sub={`${kpis.ansprReached} / ${kpis.ansprTotal}`}
-          accent="bg-violet-50"
-          valueColor="text-violet-700"
+          accent="bg-category-anspruchsvoll-soft"
+          valueColor="text-category-anspruchsvoll-fg"
         />
       </div>
     </div>

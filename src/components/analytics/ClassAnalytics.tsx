@@ -1,8 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
-import { cn, getFachColor, sv, scoreColor } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
+import { cn, getFachColor, sv, scoreColor, categoryChipClasses } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
+import { DistributionBars } from '@/components/analytics/DistributionBars'
 import { useData } from '@/contexts/DataContext'
 import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach } from '@/types/domain'
 
@@ -59,17 +62,14 @@ function Chip({
   onClick: () => void
 }) {
   return (
-    <button
+    <Button
       onClick={onClick}
-      className={cn(
-        'h-7 px-2.5 rounded text-xs font-medium transition-all whitespace-nowrap',
-        active
-          ? cn('shadow-sm', activeClass ?? 'bg-blue-600 text-white')
-          : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground',
-      )}
+      variant={active ? 'default' : 'outline'}
+      size="sm"
+      className={cn('whitespace-nowrap', active && activeClass)}
     >
       {label}
-    </button>
+    </Button>
   )
 }
 
@@ -90,8 +90,8 @@ function FilterBar({
           label={KAT_LABELS[k]}
           active={katFilter === k}
           activeClass={
-            k === 'grundlegend' ? 'bg-slate-500 text-white'
-            : k === 'anspruchsvoll' ? 'bg-violet-500 text-white'
+            k === 'grundlegend' ? 'bg-category-grundlegend text-white hover:bg-category-grundlegend/90'
+            : k === 'anspruchsvoll' ? 'bg-category-anspruchsvoll text-white hover:bg-category-anspruchsvoll/90'
             : undefined
           }
           onClick={() => onKatChange(k)}
@@ -122,7 +122,7 @@ function KpiTile({
   valueClass?: string
 }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-sm px-4 py-3">
+    <div className="bg-card border border-border rounded-md px-4 py-3">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">{label}</p>
       <p className={cn('text-2xl font-bold tabular-nums tracking-tight leading-none', valueClass ?? 'text-foreground')}>
         {value}
@@ -146,22 +146,22 @@ function LZStatusBar({
   const np = (notReached / total) * 100
   return (
     <div className="space-y-1.5">
-      <div className="flex h-2 w-full overflow-hidden bg-gray-100">
-        {rp > 0 && <div style={{ width: `${rp}%` }} className="h-full bg-green-500 transition-all" />}
-        {pp > 0 && <div style={{ width: `${pp}%` }} className="h-full bg-amber-400 transition-all" />}
-        {np > 0 && <div style={{ width: `${np}%` }} className="h-full bg-gray-200 transition-all" />}
+      <div className="flex h-2 w-full overflow-hidden bg-muted">
+        {rp > 0 && <div style={{ width: `${rp}%` }} className="h-full bg-status-reached transition-all" />}
+        {pp > 0 && <div style={{ width: `${pp}%` }} className="h-full bg-status-partial transition-all" />}
+        {np > 0 && <div style={{ width: `${np}%` }} className="h-full bg-status-none-soft transition-all" />}
       </div>
       <div className="flex gap-4 text-[10px] text-muted-foreground">
         <span className="flex items-center gap-1">
-          <span className="inline-block size-1.5 bg-green-500 shrink-0" />
+          <span className="inline-block size-1.5 bg-status-reached shrink-0" />
           {reached} erreicht
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block size-1.5 bg-amber-400 shrink-0" />
+          <span className="inline-block size-1.5 bg-status-partial shrink-0" />
           {partial} teilweise
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block size-1.5 bg-gray-300 shrink-0" />
+          <span className="inline-block size-1.5 bg-status-none-soft shrink-0" />
           {notReached} nicht erreicht
         </span>
       </div>
@@ -182,34 +182,34 @@ function DistributionBar({
   const sp = (struggling / total) * 100
   return (
     <div className="space-y-1.5">
-      <div className="flex h-3 w-full overflow-hidden bg-gray-100">
+      <div className="flex h-3 w-full overflow-hidden bg-muted">
         {ep > 0 && (
-          <div style={{ width: `${ep}%` }} className="h-full bg-green-500 flex items-center justify-center transition-all">
+          <div style={{ width: `${ep}%` }} className="h-full bg-status-reached flex items-center justify-center transition-all">
             {ep > 10 && <span className="text-white text-[9px] font-bold tabular-nums">{excellent}</span>}
           </div>
         )}
         {pp > 0 && (
-          <div style={{ width: `${pp}%` }} className="h-full bg-amber-400 flex items-center justify-center transition-all">
+          <div style={{ width: `${pp}%` }} className="h-full bg-status-partial flex items-center justify-center transition-all">
             {pp > 10 && <span className="text-white text-[9px] font-bold tabular-nums">{progressing}</span>}
           </div>
         )}
         {sp > 0 && (
-          <div style={{ width: `${sp}%` }} className="h-full bg-red-400 flex items-center justify-center transition-all">
+          <div style={{ width: `${sp}%` }} className="h-full bg-status-not-reached flex items-center justify-center transition-all">
             {sp > 10 && <span className="text-white text-[9px] font-bold tabular-nums">{struggling}</span>}
           </div>
         )}
       </div>
       <div className="flex gap-5 text-[10px] text-muted-foreground">
         <span className="flex items-center gap-1">
-          <span className="size-1.5 bg-green-500 inline-block shrink-0" />
+          <span className="size-1.5 bg-status-reached inline-block shrink-0" />
           {excellent} sehr gut (≥75%)
         </span>
         <span className="flex items-center gap-1">
-          <span className="size-1.5 bg-amber-400 inline-block shrink-0" />
+          <span className="size-1.5 bg-status-partial inline-block shrink-0" />
           {progressing} im Aufbau (25–74%)
         </span>
         <span className="flex items-center gap-1">
-          <span className="size-1.5 bg-red-400 inline-block shrink-0" />
+          <span className="size-1.5 bg-status-not-reached inline-block shrink-0" />
           {struggling} Förderbedarf (&lt;25%)
         </span>
       </div>
@@ -221,8 +221,8 @@ function DistributionBar({
 
 function ProgressBar({ pct, h = 'h-1.5' }: { pct: number; h?: string }) {
   return (
-    <div className={cn('w-full bg-gray-100 overflow-hidden', h)}>
-      <div className="h-full bg-blue-600 transition-all" style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }} />
+    <div className={cn('w-full bg-muted overflow-hidden', h)}>
+      <div className="h-full bg-primary transition-all" style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }} />
     </div>
   )
 }
@@ -230,11 +230,12 @@ function ProgressBar({ pct, h = 'h-1.5' }: { pct: number; h?: string }) {
 // ── Student ranking table ──────────────────────────────────────────────────
 
 function StudentRankingTable({
-  students, sort, onSortChange,
+  students, sort, onSortChange, onRowClick,
 }: {
   students: ScoredStudent[]
   sort: StudentSort
   onSortChange: (s: StudentSort) => void
+  onRowClick?: (studentId: string) => void
 }) {
   const sorted = [...students].sort(
     sort === 'score'
@@ -244,22 +245,24 @@ function StudentRankingTable({
 
   function ColHeader({ field, children }: { field: StudentSort; children: React.ReactNode }) {
     return (
-      <button
+      <Button
         onClick={() => onSortChange(field)}
+        variant="ghost"
+        size="xs"
         className={cn(
-          'text-[9px] font-mono uppercase tracking-widest transition-colors',
+          'h-auto px-0 font-mono text-[9px] uppercase tracking-widest hover:bg-transparent',
           sort === field ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
         )}
       >
         {children}{sort === field ? ' ↓' : ''}
-      </button>
+      </Button>
     )
   }
 
   return (
     <div className="overflow-y-auto max-h-[380px]">
       <table className="w-full text-sm border-collapse">
-        <thead className="sticky top-0 bg-white z-10 border-b border-gray-200">
+        <thead className="sticky top-0 bg-card z-10 border-b border-border">
           <tr>
             <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-8">#</th>
             <th className="py-2 px-2 text-left"><ColHeader field="name">Name</ColHeader></th>
@@ -272,9 +275,13 @@ function StudentRankingTable({
           {sorted.map((s, i) => {
             const pct = Math.round(s.score)
             return (
-              <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <tr
+                key={s.id}
+                className={cn('border-b border-border hover:bg-accent transition-colors', onRowClick && 'cursor-pointer')}
+                onClick={() => onRowClick?.(s.id)}
+              >
                 <td className="py-2 px-3">
-                  <span className="inline-flex items-center justify-center size-5 rounded text-[10px] font-bold tabular-nums bg-gray-100 text-gray-600">
+                  <span className="inline-flex items-center justify-center size-5 rounded text-[10px] font-bold tabular-nums bg-muted text-muted-foreground">
                     {i + 1}
                   </span>
                 </td>
@@ -284,10 +291,10 @@ function StudentRankingTable({
                 <td className="py-2 px-3 text-right">
                   <div className="flex items-center justify-end gap-1">
                     {s.rilzFachIds?.length
-                      ? <span className="text-[9px] font-bold bg-purple-100 text-purple-700 rounded px-1 py-0.5">RILZ</span>
+                      ? <span className="text-[9px] font-bold bg-rilz-soft text-rilz-foreground rounded px-1 py-0.5">RILZ</span>
                       : null}
                     {s.bvsa
-                      ? <span className="text-[9px] font-bold bg-blue-100 text-blue-700 rounded px-1 py-0.5">BVSA</span>
+                      ? <span className="text-[9px] font-bold bg-primary/10 text-primary rounded px-1 py-0.5">BVSA</span>
                       : null}
                   </div>
                 </td>
@@ -313,12 +320,12 @@ function LZRow({
 }) {
   const pct = total === 0 ? 0 : Math.round(((reached + partial * 0.5) / total) * 100)
   return (
-    <div className="py-1.5 px-2 hover:bg-gray-50 transition-colors">
+    <div className="py-1.5 px-2 hover:bg-accent transition-colors">
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span className={cn(
             'shrink-0 rounded px-1 py-0.5 text-[8px] font-bold leading-none',
-            kategorie === 'grundlegend' ? 'bg-slate-100 text-slate-700' : 'bg-violet-100 text-violet-700',
+            categoryChipClasses(kategorie),
           )}>
             {kategorie === 'grundlegend' ? 'G' : 'A'}
           </span>
@@ -326,7 +333,7 @@ function LZRow({
         </div>
         <div className="flex items-center gap-2 shrink-0 text-xs">
           <span className="text-[10px] tabular-nums text-muted-foreground">
-            <span className="text-green-600 font-medium">{reached}</span>/{total}
+            <span className="text-status-reached font-medium">{reached}</span>/{total}
           </span>
           <span className={cn('font-bold tabular-nums w-8 text-right', scoreColor(pct))}>{pct}%</span>
         </div>
@@ -347,20 +354,21 @@ const VIEW_OPTIONS: { key: StatView; label: string }[] = [
 
 function ViewSwitcher({ view, onChange }: { view: StatView; onChange: (v: StatView) => void }) {
   return (
-    <div className="flex border-b border-gray-200 -mx-1">
+    <div className="flex border-b border-border -mx-1">
       {VIEW_OPTIONS.map(o => (
-        <button
+        <Button
           key={o.key}
           onClick={() => onChange(o.key)}
+          variant="ghost"
           className={cn(
-            'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap',
+            'h-auto rounded-none px-4 py-2 border-b-2 -mb-px whitespace-nowrap hover:bg-transparent',
             view === o.key
-              ? 'border-blue-600 text-blue-600'
+              ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground',
           )}
         >
           {o.label}
-        </button>
+        </Button>
       ))}
     </div>
   )
@@ -380,6 +388,12 @@ export function ClassAnalytics({
   klassId, students, themen, lernziele, faecher,
 }: ClassAnalyticsProps) {
   const { pruefungen, pruefungErgebnisse } = useData()
+  const router = useRouter()
+
+  function navigateToStudent(studentId: string, fachIds: string[] = []) {
+    const params = fachIds.length > 0 ? `?fachIds=${fachIds.join(',')}` : ''
+    router.push(`/klassen/${klassId}/schueler/${studentId}${params}`)
+  }
 
   const [view, setView] = useState<StatView>('gesamt')
   const [selectedFachIds, setSelectedFachIds] = useState<string[]>([])
@@ -436,6 +450,9 @@ export function ClassAnalytics({
   const progressing = allScored.filter(s => s.allScore >= 25 && s.allScore < 75).length
   const struggling = allScored.filter(s => s.allScore < 25).length
 
+  const scopeExcellent = scopeScored.filter(s => s.score >= 75).length
+  const scopeProgressing = scopeScored.filter(s => s.score >= 25 && s.score < 75).length
+  const scopeStruggling = scopeScored.filter(s => s.score < 25).length
 
   // ── Thema selector data ────────────────────────────────────────────────
 
@@ -475,7 +492,9 @@ export function ClassAnalytics({
   const pruefungErgebn = pruefungErgebnisse.filter(e => e.pruefungId === selectedPruefungId)
 
   const pruefungStudentRows = students
-    .filter(s => !selectedPruefung?.nurRilz || (selectedPruefung.rilzSchuelerIds ?? []).includes(s.id))
+    .filter(s => selectedPruefung?.nurRilz
+      ? (selectedPruefung.rilzSchuelerIds ?? []).includes(s.id)
+      : !s.rilzFachIds?.includes(selectedPruefung?.fachId ?? ''))
     .map(s => ({ student: s, ergebnis: pruefungErgebn.find(e => e.schuelerId === s.id) }))
     .sort((a, b) => {
       if (selectedPruefung?.punkteEnabled) {
@@ -488,16 +507,23 @@ export function ClassAnalytics({
       return ord[a.ergebnis?.status ?? 'not_reached'] - ord[b.ergebnis?.status ?? 'not_reached']
     })
 
+  // Notenverteilung als Buckets über der festen Skala 1.0–6.0 (0.5-Schritte)
   const gradeDistribution = (() => {
     if (!selectedPruefung?.noteEnabled) return []
-    const counts = new Map<string, number>()
+    const counts = new Map<number, number>()
     for (const row of pruefungStudentRows) {
       const note = row.ergebnis?.note
-      if (note) counts.set(note, (counts.get(note) ?? 0) + 1)
+      if (!note) continue
+      const val = Math.round(parseFloat(note) * 2) / 2
+      if (Number.isNaN(val)) continue
+      counts.set(val, (counts.get(val) ?? 0) + 1)
     }
-    return [...counts.entries()]
-      .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))
-      .map(([note, count]) => ({ note, count }))
+    const buckets: { x: number; count: number }[] = []
+    for (let g = 1; g <= 6.0001; g += 0.5) {
+      const x = Math.round(g * 2) / 2
+      buckets.push({ x, count: counts.get(x) ?? 0 })
+    }
+    return buckets
   })()
 
   const pointsStats = (() => {
@@ -512,6 +538,29 @@ export function ClassAnalytics({
       max: Math.max(...values),
       count: values.length,
     }
+  })()
+
+  // Punkteverteilung als Buckets über 0…maxPunkte (Fallback: beobachteter Bereich)
+  const pointsDistribution = (() => {
+    if (!selectedPruefung?.punkteEnabled || !pointsStats) return null
+    const lo = selectedPruefung.maxPunkte != null ? 0 : pointsStats.min
+    const hi = selectedPruefung.maxPunkte ?? pointsStats.max
+    const min = Math.floor(lo)
+    const max = Math.ceil(hi)
+    if (max <= min) return null
+    const counts = new Map<number, number>()
+    for (const row of pruefungStudentRows) {
+      const p = row.ergebnis?.punkte
+      if (p == null) continue
+      const x = Math.round(p)
+      counts.set(x, (counts.get(x) ?? 0) + 1)
+    }
+    const buckets: { x: number; count: number }[] = []
+    for (let p = min; p <= max; p++) buckets.push({ x: p, count: counts.get(p) ?? 0 })
+    // ~5 gleichmäßige X-Ticks über den Bereich
+    const ticks: number[] = []
+    for (let i = 0; i <= 4; i++) ticks.push(Math.round(min + ((max - min) * i) / 4))
+    return { buckets, min, max, ticks: [...new Set(ticks)] }
   })()
 
   const statusDistrib = (() => {
@@ -531,7 +580,7 @@ export function ClassAnalytics({
       <ViewSwitcher view={view} onChange={setView} />
 
       {/* ── Unified filter zone ─────────────────────────────────────── */}
-      <div className="space-y-2 pb-3 border-b border-gray-100">
+      <div className="space-y-2 pb-3 border-b border-border">
         {view === 'fach' && (
           <FachChipFilter
             faecher={assignedFaecher}
@@ -547,7 +596,7 @@ export function ClassAnalytics({
               id="thema-select"
               value={selectedThemaId}
               onChange={e => setSelectedThemaId(e.target.value)}
-              className="flex-1 text-sm border border-gray-200 rounded-sm px-2 py-1.5 bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
+              className="flex-1 text-sm border border-input rounded-md px-2 py-1.5 bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring"
             >
               <option value="">— Thema wählen —</option>
               {assignedFaecher.map(fach => {
@@ -571,7 +620,7 @@ export function ClassAnalytics({
               id="pruefung-select"
               value={selectedPruefungId}
               onChange={e => setSelectedPruefungId(e.target.value)}
-              className="flex-1 text-sm border border-gray-200 rounded-sm px-2 py-1.5 bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
+              className="flex-1 text-sm border border-input rounded-md px-2 py-1.5 bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring"
             >
               <option value="">— Lernzielkontrolle wählen —</option>
               {klassePruefungen.map(p => {
@@ -604,9 +653,9 @@ export function ClassAnalytics({
                 valueClass={scoreColor(Math.round(avgScore))}
                 sub={`${students.length} Schüler`}
               />
-              <KpiTile label="Sehr gut" value={excellent} valueClass="text-green-600" sub={`≥75% · ${students.length} gesamt`} />
-              <KpiTile label="Im Aufbau" value={progressing} valueClass="text-amber-600" sub="25–74%" />
-              <KpiTile label="Förderbedarf" value={struggling} valueClass={struggling > 0 ? 'text-red-500' : 'text-muted-foreground'} sub="unter 25%" />
+              <KpiTile label="Sehr gut" value={excellent} valueClass="text-status-reached" sub={`≥75% · ${students.length} gesamt`} />
+              <KpiTile label="Im Aufbau" value={progressing} valueClass="text-status-partial" sub="25–74%" />
+              <KpiTile label="Förderbedarf" value={struggling} valueClass={struggling > 0 ? 'text-status-not-reached' : 'text-muted-foreground'} sub="unter 25%" />
             </div>
 
             <DistributionBar excellent={excellent} progressing={progressing} struggling={struggling} total={students.length} />
@@ -616,8 +665,13 @@ export function ClassAnalytics({
           {/* Schüler-Ranking */}
           <div className="space-y-2">
             <SectionLabel label={`Lernstand — ${scopeScored.length} Schüler`} />
-            <div className="border border-gray-200 rounded-sm overflow-hidden bg-white">
-              <StudentRankingTable students={scopeScored} sort={studentSort} onSortChange={setStudentSort} />
+            <div className="border border-border rounded-2xl overflow-hidden bg-card">
+              <StudentRankingTable
+                students={scopeScored}
+                sort={studentSort}
+                onSortChange={setStudentSort}
+                onRowClick={id => navigateToStudent(id)}
+              />
             </div>
           </div>
 
@@ -628,68 +682,89 @@ export function ClassAnalytics({
       {view === 'fach' && (
         <div className="space-y-4">
           {filteredFaecher.length > 0 ? (
-            <div className="border border-gray-200 rounded-sm overflow-hidden">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Fach</th>
-                    <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">Ø</th>
-                    <th className="py-2 px-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-40">Verlauf</th>
-                    <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">G</th>
-                    <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">A</th>
-                    <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-12">LZ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredFaecher.map(fach => {
-                    const fachThemen = activeThemen.filter(t => t.fachId === fach.id)
-                    const fachAllLZ = fachThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
-                    const fachLZ = katFilter === 'all' ? fachAllLZ : fachAllLZ.filter(lz => lz.kategorie === katFilter)
-                    if (fachLZ.length === 0) return null
+            <>
+              <div className="border border-border rounded-2xl overflow-hidden">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-border bg-muted">
+                      <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Fach</th>
+                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">Ø</th>
+                      <th className="py-2 px-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-40">Verlauf</th>
+                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">G</th>
+                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">A</th>
+                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-12">LZ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredFaecher.map(fach => {
+                      const fachThemen = activeThemen.filter(t => t.fachId === fach.id)
+                      const fachAllLZ = fachThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
+                      const fachLZ = katFilter === 'all' ? fachAllLZ : fachAllLZ.filter(lz => lz.kategorie === katFilter)
+                      if (fachLZ.length === 0) return null
 
-                    const grundLZ = fachAllLZ.filter(lz => lz.kategorie === 'grundlegend')
-                    const ansprLZ = fachAllLZ.filter(lz => lz.kategorie === 'anspruchsvoll')
-                    const nReg = regularStudents.length
+                      const grundLZ = fachAllLZ.filter(lz => lz.kategorie === 'grundlegend')
+                      const ansprLZ = fachAllLZ.filter(lz => lz.kategorie === 'anspruchsvoll')
+                      const nReg = regularStudents.length
 
-                    const avgG = nReg && grundLZ.length
-                      ? Math.round(regularStudents.reduce((s, x) => s + studentLZScore(x, grundLZ.map(l => l.id)), 0) / nReg)
-                      : null
-                    const avgA = nReg && ansprLZ.length
-                      ? Math.round(regularStudents.reduce((s, x) => s + studentLZScore(x, ansprLZ.map(l => l.id)), 0) / nReg)
-                      : null
+                      const avgG = nReg && grundLZ.length
+                        ? Math.round(regularStudents.reduce((s, x) => s + studentLZScore(x, grundLZ.map(l => l.id)), 0) / nReg)
+                        : null
+                      const avgA = nReg && ansprLZ.length
+                        ? Math.round(regularStudents.reduce((s, x) => s + studentLZScore(x, ansprLZ.map(l => l.id)), 0) / nReg)
+                        : null
 
-                    const reached = fachLZ.reduce((sum, lz) => {
-                      const elig = regularStudents.filter(s => !isLZSkipped(lz, s, activeThemen))
-                      return sum + elig.filter(s => s.lernzielStatus[lz.id] === 'reached').length
-                    }, 0)
-                    const partial = fachLZ.reduce((sum, lz) => {
-                      const elig = regularStudents.filter(s => !isLZSkipped(lz, s, activeThemen))
-                      return sum + elig.filter(s => s.lernzielStatus[lz.id] === 'partially_reached').length
-                    }, 0)
-                    const total = fachLZ.reduce((sum, lz) =>
-                      sum + regularStudents.filter(s => !isLZSkipped(lz, s, activeThemen)).length, 0)
-                    const avgPct = total === 0 ? 0 : Math.round(((reached + partial * 0.5) / total) * 100)
-                    const fc = getFachColor(fach.id, allFachIds)
+                      const reached = fachLZ.reduce((sum, lz) => {
+                        const elig = regularStudents.filter(s => !isLZSkipped(lz, s, activeThemen))
+                        return sum + elig.filter(s => s.lernzielStatus[lz.id] === 'reached').length
+                      }, 0)
+                      const partial = fachLZ.reduce((sum, lz) => {
+                        const elig = regularStudents.filter(s => !isLZSkipped(lz, s, activeThemen))
+                        return sum + elig.filter(s => s.lernzielStatus[lz.id] === 'partially_reached').length
+                      }, 0)
+                      const total = fachLZ.reduce((sum, lz) =>
+                        sum + regularStudents.filter(s => !isLZSkipped(lz, s, activeThemen)).length, 0)
+                      const avgPct = total === 0 ? 0 : Math.round(((reached + partial * 0.5) / total) * 100)
+                      const fc = getFachColor(fach.id, allFachIds, fach.colorIndex)
 
-                    return (
-                      <tr key={fach.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors">
-                        <td className="py-2.5 px-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
-                            <span className="text-sm font-medium">{fach.name}</span>
-                          </div>
-                        </td>
-                        <td className={cn('py-2.5 px-3 text-right tabular-nums font-bold text-sm', scoreColor(avgPct))}>{avgPct}%</td>
-                        <td className="py-2.5 px-3"><ProgressBar pct={avgPct} h="h-1.5" /></td>
-                        <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{avgG !== null ? `${avgG}%` : '—'}</td>
-                        <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{avgA !== null ? `${avgA}%` : '—'}</td>
-                        <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{fachAllLZ.length}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      return (
+                        <tr key={fach.id} className="border-b border-border last:border-b-0 hover:bg-accent transition-colors">
+                          <td className="py-2.5 px-3">
+                            <div className="flex items-center gap-1.5">
+                              <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
+                              <span className="text-sm font-medium">{fach.name}</span>
+                            </div>
+                          </td>
+                          <td className={cn('py-2.5 px-3 text-right tabular-nums font-bold text-sm', scoreColor(avgPct))}>{avgPct}%</td>
+                          <td className="py-2.5 px-3"><ProgressBar pct={avgPct} h="h-1.5" /></td>
+                          <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{avgG !== null ? `${avgG}%` : '—'}</td>
+                          <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{avgA !== null ? `${avgA}%` : '—'}</td>
+                          <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{fachAllLZ.length}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <DistributionBar
+                excellent={scopeExcellent}
+                progressing={scopeProgressing}
+                struggling={scopeStruggling}
+                total={scopeScored.length}
+              />
+
+              <div className="space-y-2">
+                <SectionLabel label={`Lernstand — ${scopeScored.length} Schüler`} />
+                <div className="border border-border rounded-2xl overflow-hidden bg-card">
+                  <StudentRankingTable
+                    students={scopeScored}
+                    sort={studentSort}
+                    onSortChange={setStudentSort}
+                    onRowClick={id => navigateToStudent(id, selectedFachIds)}
+                  />
+                </div>
+              </div>
+            </>
           ) : (
             <p className="text-sm text-muted-foreground">Keine Fächer für diese Auswahl.</p>
           )}
@@ -702,12 +777,12 @@ export function ClassAnalytics({
           {!selectedThema ? (
             <p className="text-sm text-muted-foreground">Wähle ein Thema um die Statistiken zu sehen.</p>
           ) : (
-            <div className="border border-gray-200 rounded-sm overflow-hidden">
+            <div className="border border-border rounded-2xl overflow-hidden">
               {/* Header */}
-              <div className="flex items-center justify-between gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200">
+              <div className="flex items-center justify-between gap-4 px-4 py-3 bg-muted border-b border-border">
                 <div className="flex items-center gap-2">
                   {selectedThema.fach && (
-                    <span className={cn('size-2 rounded-full shrink-0', getFachColor(selectedThema.fach.id, allFachIds).dot)} />
+                    <span className={cn('size-2 rounded-full shrink-0', getFachColor(selectedThema.fach.id, allFachIds, selectedThema.fach.colorIndex).dot)} />
                   )}
                   <span className="text-sm font-semibold">{selectedThema.thema.name}</span>
                   {selectedThema.fach && (
@@ -724,7 +799,7 @@ export function ClassAnalytics({
 
               {/* LZ breakdown */}
               {themaLZStats.length > 0 && (
-                <div className="divide-y divide-gray-100 px-2 py-1">
+                <div className="divide-y divide-border px-2 py-1">
                   {themaLZStats.map(({ lz, reached, partial, eligibleCount }) => (
                     <LZRow key={lz.id} label={lz.label} kategorie={lz.kategorie} reached={reached} partial={partial} total={eligibleCount} />
                   ))}
@@ -732,26 +807,33 @@ export function ClassAnalytics({
               )}
 
               {/* Student list */}
-              {themaStudents.length > 0 && (
-                <div className="border-t border-gray-200">
-                  <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
-                    <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Schüler</span>
+              {themaStudents.length > 0 && (() => {
+                const themaExcellent = themaStudents.filter(s => s.themaScore >= 75).length
+                const themaProgressing = themaStudents.filter(s => s.themaScore >= 25 && s.themaScore < 75).length
+                const themaStruggling = themaStudents.filter(s => s.themaScore < 25).length
+                const themaAsScored: ScoredStudent[] = themaStudents.map(s => ({ ...s, score: s.themaScore }))
+                return (
+                  <div className="border-t border-border space-y-4 p-4">
+                    <DistributionBar
+                      excellent={themaExcellent}
+                      progressing={themaProgressing}
+                      struggling={themaStruggling}
+                      total={themaStudents.length}
+                    />
+                    <div className="space-y-2">
+                      <SectionLabel label={`Lernstand — ${themaStudents.length} Schüler`} />
+                      <div className="border border-border rounded-2xl overflow-hidden bg-card">
+                        <StudentRankingTable
+                          students={themaAsScored}
+                          sort={studentSort}
+                          onSortChange={setStudentSort}
+                          onRowClick={id => navigateToStudent(id, selectedThema?.fach ? [selectedThema.fach.id] : [])}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
-                    {themaStudents.map((s, i) => {
-                      const pct = Math.round(s.themaScore)
-                      return (
-                        <div key={s.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition-colors">
-                          <span className="text-[10px] tabular-nums text-muted-foreground w-4 text-right">{i + 1}</span>
-                          <span className="text-xs font-medium flex-1 truncate">{sName(s)}</span>
-                          <span className={cn('text-xs font-bold tabular-nums w-10 text-right', scoreColor(pct))}>{pct}%</span>
-                          <div className="w-24 shrink-0"><ProgressBar pct={pct} h="h-1.5" /></div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
+                )
+              })()}
             </div>
           )}
         </div>
@@ -765,13 +847,13 @@ export function ClassAnalytics({
           ) : !selectedPruefung ? (
             <p className="text-sm text-muted-foreground">Wähle eine Lernzielkontrolle um die Statistiken zu sehen.</p>
           ) : (
-            <div className="border border-gray-200 rounded-sm overflow-hidden">
+            <div className="border border-border rounded-2xl overflow-hidden">
               {/* Exam header */}
-              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-start justify-between gap-4">
+              <div className="px-4 py-3 bg-muted border-b border-border flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">{selectedPruefung.name}</span>
-                    <span className="text-[10px] bg-blue-100 text-blue-700 rounded px-1.5 py-0.5 font-medium">
+                    <span className="text-[10px] bg-primary/10 text-primary rounded px-1.5 py-0.5 font-medium">
                       {selectedPruefung.punkteEnabled ? 'Punkte' : selectedPruefung.noteEnabled ? 'Note' : 'Status'}
                     </span>
                   </div>
@@ -785,17 +867,17 @@ export function ClassAnalytics({
                 </div>
               </div>
 
-              {/* Points mode */}
+              {/* Points stats */}
               {selectedPruefung.punkteEnabled && pointsStats && (
-                <div className="px-4 py-3 border-b border-gray-100 space-y-2">
+                <div className="px-4 py-3 border-b border-border space-y-2">
                   <div className="flex items-center gap-6 text-xs">
                     <div>
                       <span className="text-muted-foreground">Ø Punkte </span>
                       <span className="font-bold tabular-nums">{pointsStats.avg.toFixed(1)}</span>
                       {selectedPruefung.maxPunkte && <span className="text-muted-foreground"> / {selectedPruefung.maxPunkte}</span>}
                     </div>
-                    <div><span className="text-muted-foreground">Min </span><span className="font-bold tabular-nums text-red-500">{pointsStats.min}</span></div>
-                    <div><span className="text-muted-foreground">Max </span><span className="font-bold tabular-nums text-green-600">{pointsStats.max}</span></div>
+                    <div><span className="text-muted-foreground">Min </span><span className="font-bold tabular-nums text-status-not-reached">{pointsStats.min}</span></div>
+                    <div><span className="text-muted-foreground">Max </span><span className="font-bold tabular-nums text-status-reached">{pointsStats.max}</span></div>
                     <div><span className="text-muted-foreground">Bewertet </span><span className="font-bold tabular-nums">{pointsStats.count}</span></div>
                   </div>
                   {selectedPruefung.maxPunkte && (
@@ -804,34 +886,40 @@ export function ClassAnalytics({
                 </div>
               )}
 
-              {/* Grade mode */}
-              {selectedPruefung.noteEnabled && gradeDistribution.length > 0 && (
-                <div className="px-4 py-3 border-b border-gray-100 space-y-1.5">
-                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Notenverteilung</p>
-                  {gradeDistribution.map(({ note, count }) => {
-                    const maxCount = Math.max(...gradeDistribution.map(g => g.count))
-                    const pct = (count / maxCount) * 100
-                    return (
-                      <div key={note} className="flex items-center gap-2">
-                        <span className="text-xs font-bold tabular-nums w-8 text-right">{note}</span>
-                        <div className="flex-1 bg-gray-100 h-4 overflow-hidden flex items-center">
-                          <div
-                            className="h-full bg-blue-600 flex items-center justify-end pr-1 transition-all"
-                            style={{ width: `${pct}%`, minWidth: count > 0 ? 20 : 0 }}
-                          >
-                            {pct > 15 && <span className="text-[9px] text-white font-bold tabular-nums">{count}</span>}
-                          </div>
-                          {pct <= 15 && <span className="text-[9px] text-muted-foreground font-bold tabular-nums ml-1">{count}</span>}
-                        </div>
-                      </div>
-                    )
-                  })}
+              {/* Verteilungen — kompakt, nebeneinander */}
+              {((selectedPruefung.punkteEnabled && pointsDistribution) || (selectedPruefung.noteEnabled && gradeDistribution.length > 0)) && (
+                <div className="px-4 py-3 border-b border-border flex flex-col sm:flex-row gap-6">
+                  {selectedPruefung.punkteEnabled && pointsDistribution && (
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Punkteverteilung</p>
+                      <DistributionBars
+                        buckets={pointsDistribution.buckets}
+                        domainMin={pointsDistribution.min}
+                        domainMax={pointsDistribution.max}
+                        ticks={pointsDistribution.ticks}
+                        ariaLabel="Punkteverteilung der Klasse"
+                      />
+                    </div>
+                  )}
+                  {selectedPruefung.noteEnabled && gradeDistribution.length > 0 && (
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Notenverteilung</p>
+                      <DistributionBars
+                        buckets={gradeDistribution}
+                        domainMin={1}
+                        domainMax={6}
+                        ticks={[1, 2, 3, 4, 5, 6]}
+                        formatTick={v => v.toFixed(1)}
+                        ariaLabel="Notenverteilung der Klasse"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Status mode */}
               {statusDistrib && (
-                <div className="px-4 py-3 border-b border-gray-100">
+                <div className="px-4 py-3 border-b border-border">
                   <LZStatusBar reached={statusDistrib.reached} partial={statusDistrib.partial} notReached={statusDistrib.notReached} />
                 </div>
               )}
@@ -839,7 +927,7 @@ export function ClassAnalytics({
               {/* Student results */}
               <div className="max-h-72 overflow-y-auto">
                 <table className="w-full text-xs border-collapse">
-                  <thead className="sticky top-0 bg-white border-b border-gray-200">
+                  <thead className="sticky top-0 bg-card border-b border-border">
                     <tr>
                       <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Schüler</th>
                       <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground">
@@ -850,7 +938,11 @@ export function ClassAnalytics({
                   </thead>
                   <tbody>
                     {pruefungStudentRows.map(({ student, ergebnis }) => (
-                      <tr key={student.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors">
+                      <tr
+                        key={student.id}
+                        className="border-b border-border last:border-b-0 hover:bg-accent transition-colors cursor-pointer"
+                        onClick={() => navigateToStudent(student.id, selectedPruefung?.fachId ? [selectedPruefung.fachId] : [])}
+                      >
                         <td className="py-2 px-3 font-medium">{sName(student)}</td>
                         <td className="py-2 px-3 text-right font-bold tabular-nums">
                           {selectedPruefung.punkteEnabled
@@ -861,14 +953,14 @@ export function ClassAnalytics({
                             ? (ergebnis?.note ?? <span className="text-muted-foreground font-normal">—</span>)
                             : (
                               <span className={cn('inline-flex items-center gap-1',
-                                ergebnis?.status === 'reached' ? 'text-green-600'
-                                  : ergebnis?.status === 'partially_reached' ? 'text-amber-600'
+                                ergebnis?.status === 'reached' ? 'text-status-reached'
+                                  : ergebnis?.status === 'partially_reached' ? 'text-status-partial'
                                   : 'text-muted-foreground',
                               )}>
                                 <span className={cn('inline-block size-2 rounded-full',
-                                  ergebnis?.status === 'reached' ? 'bg-green-500'
-                                    : ergebnis?.status === 'partially_reached' ? 'bg-amber-400'
-                                    : 'bg-gray-300',
+                                  ergebnis?.status === 'reached' ? 'bg-status-reached'
+                                    : ergebnis?.status === 'partially_reached' ? 'bg-status-partial'
+                                    : 'bg-status-none-soft',
                                 )} />
                                 {ergebnis?.status === 'reached' ? 'Erreicht'
                                   : ergebnis?.status === 'partially_reached' ? 'Teilweise'

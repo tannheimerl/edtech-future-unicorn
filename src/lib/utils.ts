@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Status } from '@/types/domain'
+import type { Status, LernzielKategorie } from '@/types/domain'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -21,7 +21,8 @@ export const FACH_COLORS = [
 
 export type FachColor = (typeof FACH_COLORS)[number]
 
-export function getFachColor(fachId: string, allFachIds: string[]): FachColor {
+export function getFachColor(fachId: string, allFachIds: string[], colorIndex?: number): FachColor {
+  if (colorIndex !== undefined) return FACH_COLORS[colorIndex % FACH_COLORS.length]
   const idx = allFachIds.indexOf(fachId)
   return FACH_COLORS[idx === -1 ? 0 : idx % FACH_COLORS.length]
 }
@@ -32,5 +33,27 @@ export function sv(status: Status | string): number {
 
 export function scoreColor(pct: number): string {
   return pct >= 75 ? 'text-status-reached' : pct >= 25 ? 'text-status-partial' : 'text-status-not-reached'
+}
+
+// Token-based chip classes for a RAG status (soft bg + readable fg).
+// `undefined` = "nicht bewertet" → neutral.
+export function statusChipClasses(status: Status | undefined): string {
+  switch (status) {
+    case 'reached':
+      return 'bg-status-reached-soft text-status-reached-fg'
+    case 'partially_reached':
+      return 'bg-status-partial-soft text-status-partial-fg'
+    case 'not_reached':
+      return 'bg-status-not-reached-soft text-status-not-reached-fg'
+    default:
+      return 'bg-status-none-soft text-status-none-fg'
+  }
+}
+
+// Token-based chip classes for a Lernziel-Anspruchsniveau.
+export function categoryChipClasses(kategorie: LernzielKategorie): string {
+  return kategorie === 'anspruchsvoll'
+    ? 'bg-category-anspruchsvoll-soft text-category-anspruchsvoll-fg'
+    : 'bg-category-grundlegend-soft text-category-grundlegend-fg'
 }
 

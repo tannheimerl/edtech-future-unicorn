@@ -153,7 +153,8 @@ export async function dbDeleteThemaKommentar(studentId: string, themaId: string)
 export async function dbSaveFach(f: Fach) {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_faecher').upsert(
-    { id: f.id, name: f.name, tenant_id: tenantId }, { onConflict: 'id' }
+    { id: f.id, name: f.name, color_index: f.colorIndex ?? null, tenant_id: tenantId },
+    { onConflict: 'id' }
   )
   log('dbSaveFach', error)
 }

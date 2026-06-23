@@ -3,6 +3,7 @@
 import { Settings } from 'lucide-react'
 import { useState } from 'react'
 import { useData } from '@/contexts/DataContext'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { KlasseBeurteilungSettings } from '@/types/domain'
 
@@ -27,22 +28,19 @@ export function BeurteilungSettingsPanel({ klassId, settings }: Props) {
 
   return (
     <div className="relative">
-      <button
+      <Button
+        variant={open ? 'secondary' : 'outline'}
+        size="sm"
         onClick={() => setOpen(v => !v)}
         title="Beurteilungs-Einstellungen"
-        className={cn(
-          'flex items-center gap-1.5 rounded-lg border border-border px-2 py-1.5 text-xs font-medium transition-colors',
-          open
-            ? 'bg-muted text-foreground border-border'
-            : 'bg-card text-muted-foreground hover:text-foreground hover:bg-muted/40',
-        )}
+        className="gap-1.5"
       >
         <Settings className="size-3.5" />
         Einstellungen
-      </button>
+      </Button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-xl border border-border bg-card shadow-lg p-4 space-y-3">
+        <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-2xl border border-border bg-card shadow-lg p-4 space-y-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Optionale Felder
           </p>

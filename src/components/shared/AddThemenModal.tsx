@@ -53,12 +53,12 @@ function ThemaRow({
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-xl border-2 p-3 transition-all',
+        'flex items-center gap-3 rounded-2xl border p-3 transition-all',
         disabled
           ? 'border-border/50 opacity-50 cursor-default'
           : selected
             ? 'cursor-pointer border-primary bg-primary/5'
-            : 'cursor-pointer border-border hover:border-primary/40 hover:bg-accent/30',
+            : 'cursor-pointer border-border hover:border-primary/40 hover:bg-accent',
       )}
       onClick={disabled ? undefined : onToggle}
     >
@@ -86,9 +86,9 @@ function ThemaRow({
           <span className={cn(
             'rounded px-1.5 py-0.5 text-[10px] tabular-nums',
             isOverdue
-              ? 'bg-rose-100 text-rose-600 font-medium'
+              ? 'bg-status-not-reached-soft text-status-not-reached-fg font-medium'
               : isNearDeadline
-                ? 'bg-amber-100 text-amber-600'
+                ? 'bg-status-partial-soft text-status-partial-fg'
                 : 'bg-muted text-muted-foreground',
           )}>
             {new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
@@ -260,7 +260,7 @@ export function AddThemenModal({
                 if (s === 'create') { onCreateNew?.(); onOpenChange(false) }
                 else setStep(s)
               }}
-              className="flex items-center gap-3 rounded-xl border-2 border-border p-3.5 text-left hover:border-primary/40 hover:bg-accent/20 transition-all"
+              className="flex items-center gap-3 rounded-2xl border border-border p-3.5 text-left hover:border-primary/40 hover:bg-accent transition-all"
             >
               <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
                 <Icon className="size-4 text-muted-foreground" />

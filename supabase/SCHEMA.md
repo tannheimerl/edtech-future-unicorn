@@ -1,7 +1,7 @@
 # Lezio – Datenbankschema (aktueller Stand)
 
 > Dieses Dokument immer aktuell halten wenn eine Migration hinzugefügt wird.
-> Migrationsreihenfolge: `migrations/001_init.sql` → `011_thema_einmal_pro_klasse.sql`
+> Migrationsreihenfolge: `migrations/001_init.sql` → `012_fach_farbe.sql`
 
 ---
 
@@ -45,6 +45,7 @@ dim_tenants
 |--------|-----|-----------|
 | id | TEXT PK | z.B. `'f1'` |
 | name | TEXT NOT NULL | z.B. `'Deutsch'` |
+| color_index | SMALLINT | Index in FACH_COLORS (0–7), NULL = positions-basiert |
 | tenant_id | TEXT → dim_tenants | |
 | created_at | TIMESTAMPTZ | |
 
