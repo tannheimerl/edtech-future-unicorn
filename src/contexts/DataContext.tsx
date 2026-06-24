@@ -33,6 +33,8 @@ import {
   dbSaveBeurteilungSettings,
   dbSaveTagKategorie, dbDeleteTagKategorie,
 } from '@/actions/db-write'
+import { findExactFachMatch } from '@/lib/fachMatch'
+import { parseLezio } from '@/lib/lezioImport'
 
 // ── Public interface ─────────────────────────────────────────────────────────
 
@@ -137,6 +139,7 @@ interface DataContextValue {
   exportThema: (themaId: string) => void
   exportFach: (fachId: string) => void
   importThema: (file: File, targetFachId?: string) => Promise<void>
+  importThemaData: (data: LezioExport, fachId: string) => void
 
   // Prüfungen
   getPruefungenForKlasse: (klassId: string) => Pruefung[]
@@ -863,21 +866,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     URL.revokeObjectURL(url)
   }, [themen, faecher, lernziele])
 
-  const importThema = useCallback(async (file: File, targetFachId?: string): Promise<void> => {
-    const text = await file.text()
-    const data = JSON.parse(text) as LezioExport
-    if (data.version !== '1' || !data.fachName || !data.thema?.name) {
-      throw new Error('Ungültiges Dateiformat')
-    }
-
-    let fachId: string
-    if (targetFachId) {
-      fachId = targetFachId
-    } else {
-      const existingFach = faecher.find((f) => f.name.toLowerCase() === data.fachName.toLowerCase())
-      if (!existingFach) throw new Error('FACH_NOT_FOUND')
-      fachId = existingFach.id
-    }
+  // Legt aus bereits geparsten Importdaten ein Thema + Lernziele unter dem aufgelösten Fach an.
+  // Kein Matching – die fachId muss vom Aufrufer aufgelöst sein (Einzel- und Batch-Import).
+  const importThemaData = useCallback((data: LezioExport, fachId: string): void => {
     const themaId = crypto.randomUUID()
     const newThema: Thema = {
       id: themaId, fachId, name: data.thema.name,
@@ -896,7 +887,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setLernziele((prev) => [...prev, ...newLZ])
       for (const lz of newLZ) dbSaveLernziel(lz)
     }
-  }, [faecher])
+  }, [])
+
+  const importThema = useCallback(async (file: File, targetFachId?: string): Promise<void> => {
+    const data = parseLezio(await file.text())
+
+    let fachId: string
+    if (targetFachId) {
+      fachId = targetFachId
+    } else {
+      const existingFach = findExactFachMatch(data.fachName, faecher)
+      if (!existingFach) throw new Error('FACH_NOT_FOUND')
+      fachId = existingFach.id
+    }
+    importThemaData(data, fachId)
+  }, [faecher, importThemaData])
 
   return (
     <DataContext.Provider
@@ -962,6 +967,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         exportThema,
         exportFach,
         importThema,
+        importThemaData,
         createTagKategorie,
         updateTagKategorie,
         deleteTagKategorie,

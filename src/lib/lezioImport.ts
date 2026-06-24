@@ -1,0 +1,68 @@
+import type { LezioExport } from '@/types/domain'
+
+/**
+ * Einlesen von `.lezio`-Importdateien für Einzel- und Mehrfach-Import.
+ *
+ * Eine `.lezio`-Datei ist JSON mit genau einem Thema und dessen Lernzielen
+ * (siehe {@link LezioExport}). Beim Mehrfach-Import können mehrere `.lezio`-Dateien
+ * oder ein `.zip`-Archiv (Gegenstück zu `exportFach`) ausgewählt werden.
+ */
+
+/** Ein eingelesenes Thema samt Herkunft (Dateiname) für Fehlermeldungen/Anzeige. */
+export interface LezioImportItem {
+  source: string
+  data: LezioExport
+}
+
+/** Parst und validiert den Inhalt einer einzelnen `.lezio`/`.json`-Datei. */
+export function parseLezio(text: string): LezioExport {
+  const data = JSON.parse(text) as LezioExport
+  if (data.version !== '1' || !data.fachName || !data.thema?.name) {
+    throw new Error('Ungültiges Dateiformat')
+  }
+  return data
+}
+
+function isLezioEntry(name: string): boolean {
+  const lower = name.toLowerCase()
+  return lower.endsWith('.lezio') || lower.endsWith('.json')
+}
+
+/**
+ * Liest eine Liste ausgewählter Dateien ein. `.zip`-Archive werden entpackt und jede
+ * enthaltene `.lezio`/`.json`-Datei verarbeitet. Ungültige Einträge werden gezählt
+ * (`errors`), brechen den Import aber nicht ab.
+ */
+export async function readLezioFiles(
+  files: File[],
+): Promise<{ items: LezioImportItem[]; errors: number }> {
+  const items: LezioImportItem[] = []
+  let errors = 0
+
+  for (const file of files) {
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      try {
+        const JSZip = (await import('jszip')).default
+        const zip = await JSZip.loadAsync(file)
+        const entries = Object.values(zip.files).filter((e) => !e.dir && isLezioEntry(e.name))
+        for (const entry of entries) {
+          try {
+            items.push({ source: entry.name, data: parseLezio(await entry.async('string')) })
+          } catch {
+            errors++
+          }
+        }
+      } catch {
+        errors++
+      }
+    } else {
+      try {
+        items.push({ source: file.name, data: parseLezio(await file.text()) })
+      } catch {
+        errors++
+      }
+    }
+  }
+
+  return { items, errors }
+}

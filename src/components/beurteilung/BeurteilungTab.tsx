@@ -6,6 +6,8 @@ import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { PillTabs } from '@/components/shared/PillTabs'
+import { SegmentedControl } from '@/components/shared/SegmentedControl'
 import { PruefungErstellenModal } from '@/components/pruefungen/PruefungErstellenModal'
 import { BeurteilungGrid } from './BeurteilungGrid'
 import { LernkontrolleTab } from '@/components/lernkontrolle/LernkontrolleTab'
@@ -67,28 +69,15 @@ export function BeurteilungTab({ klassId }: Props) {
             <span className="font-semibold text-foreground">{activePruefung?.name}</span>
           </nav>
         ) : (
-          <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5 text-xs">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setMode('pruefung')}
-              className={cn(
-                mode === 'pruefung' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
-              )}
-            >
-              Lernzielkontrollen
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setMode('frei')}
-              className={cn(
-                mode === 'frei' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
-              )}
-            >
-              Freie Beurteilung
-            </Button>
-          </div>
+          <PillTabs
+            size="sm"
+            value={mode}
+            onChange={setMode}
+            options={[
+              { key: 'pruefung', label: 'Lernzielkontrollen' },
+              { key: 'frei', label: 'Freie Beurteilung' },
+            ]}
+          />
         )}
       </div>
       <div className="flex items-center gap-2">
@@ -140,40 +129,26 @@ export function BeurteilungTab({ klassId }: Props) {
       {pruefungen.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {filterableFaecher.length > 1 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground">Fach:</span>
-              <div className="flex flex-wrap gap-1">
-                {[{ id: null, name: 'Alle' }, ...filterableFaecher].map(f => (
-                  <Button
-                    key={f.id ?? 'alle'}
-                    type="button"
-                    variant={filterFachId === f.id ? 'default' : 'outline'}
-                    size="xs"
-                    onClick={() => setFilterFachId(f.id)}
-                  >
-                    {f.name}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            <SegmentedControl
+              label="Fach"
+              value={filterFachId ?? ''}
+              onChange={v => setFilterFachId(v === '' ? null : v)}
+              options={[
+                { key: '', label: 'Alle' },
+                ...filterableFaecher.map(f => ({ key: f.id, label: f.name })),
+              ]}
+            />
           )}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">Status:</span>
-            <div className="flex gap-1">
-              {(['alle', 'laufend', 'abgeschlossen'] as const).map(s => (
-                <Button
-                  key={s}
-                  type="button"
-                  variant={filterStatus === s ? 'default' : 'outline'}
-                  size="xs"
-                  onClick={() => setFilterStatus(s)}
-                  className="capitalize"
-                >
-                  {s === 'alle' ? 'Alle' : s === 'laufend' ? 'Laufend' : 'Abgeschlossen'}
-                </Button>
-              ))}
-            </div>
-          </div>
+          <SegmentedControl<'alle' | 'laufend' | 'abgeschlossen'>
+            label="Status"
+            value={filterStatus}
+            onChange={setFilterStatus}
+            options={[
+              { key: 'alle', label: 'Alle' },
+              { key: 'laufend', label: 'Laufend' },
+              { key: 'abgeschlossen', label: 'Abgeschlossen' },
+            ]}
+          />
         </div>
       )}
 

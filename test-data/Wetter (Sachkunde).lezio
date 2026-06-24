@@ -1,0 +1,13 @@
+{
+  "version": "1",
+  "exportedAt": "2026-06-24T10:10:00.000Z",
+  "fachName": "Sachkunde",
+  "thema": { "name": "Das Wetter", "typ": "standard", "stufe": [3, 4] },
+  "lernziele": [
+    { "kategorie": "grundlegend", "label": "Wetterphänomene benennen (Sonne, Regen, Wind, Schnee)" },
+    { "kategorie": "grundlegend", "label": "Das aktuelle Wetter beobachten und beschreiben" },
+    { "kategorie": "grundlegend", "label": "Temperatur mit einem Thermometer ablesen", "kriterien": ["Grad Celsius lesen", "Plus- und Minustemperaturen unterscheiden"] },
+    { "kategorie": "anspruchsvoll", "label": "Einfache Wettersymbole einer Wetterkarte deuten" },
+    { "kategorie": "anspruchsvoll", "label": "Wetterbeobachtungen über eine Woche protokollieren", "beschreibung": "Tägliches Festhalten von Temperatur und Himmelsbild" }
+  ]
+}

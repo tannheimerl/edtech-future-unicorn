@@ -1,6 +1,11 @@
 /**
- * Seed script: inserts a half-corrected demo exam (Prüfung) for all demo tenants.
- * Klasse 5a (k1), Mathematik (f2), Zahlen & Geometrie — 6 Lernziele, 6 of 7 students have results.
+ * Seed script: inserts the demo exam (Prüfung) for all demo tenants.
+ * Klasse 5a (k1), Mathematik (f2), Zahlen & Geometrie — 6 Lernziele.
+ * Alle 21 Schüler:innen sind bewertet, ausser Anna (s14, 2. Versuch offen)
+ * und Paul (s15, 3. Versuch offen).
+ *
+ * Single source of truth für die Demo-Prüfung – ersetzt den früheren
+ * SQL-Patch scripts/fix-demo-pruefung-ergebnisse.sql.
  *
  * Run with:  npx tsx --env-file=.env.local scripts/seed-demo-pruefung.ts
  *
@@ -57,9 +62,33 @@ const DEMO_LZ_STATUS: { schuelerId: string; lzId: string; status: string }[] = [
   { schuelerId: 's14', lzId: 'lma2a', status: 'not_reached' },
   { schuelerId: 's14', lzId: 'lma2b', status: 'not_reached' },
   { schuelerId: 's14', lzId: 'lma2c', status: 'partially_reached' },
-  // s15 Paul Koch — laufend, teilweise korrigiert
+  // s15 Paul Koch — 3. Versuch ausstehend (2 Versuche nicht bestanden)
   { schuelerId: 's15', lzId: 'lma1a', status: 'reached' },
   { schuelerId: 's15', lzId: 'lma1b', status: 'partially_reached' },
+]
+
+// Abgeschlossene Ergebnisse (alle 21 Schüler:innen ausser s14/s15):
+// [schueler_id, punkte, note, status]
+const ABGESCHLOSSEN: [string, number, string, string][] = [
+  ['s1', 18, '5.5', 'reached'],
+  ['s2', 14, '4.5', 'reached'],
+  ['s4', 16, '5.0', 'reached'],
+  ['s13', 11, '3.5', 'partially_reached'],
+  ['s16', 16, '5.0', 'reached'],
+  ['s17', 12, '4.0', 'partially_reached'],
+  ['s18', 20, '6.0', 'reached'],
+  ['s19', 14, '4.5', 'reached'],
+  ['s20', 12, '4.0', 'partially_reached'],
+  ['s21', 16, '5.0', 'reached'],
+  ['s22', 18, '5.5', 'reached'],
+  ['s23', 10, '3.5', 'partially_reached'],
+  ['s24', 14, '4.5', 'reached'],
+  ['s25', 18, '5.5', 'reached'],
+  ['s26', 12, '4.0', 'partially_reached'],
+  ['s27', 14, '4.5', 'reached'],
+  ['s28', 10, '3.5', 'partially_reached'],
+  ['sNeg1', 8, '3.0', 'not_reached'],
+  ['s29', 16, '5.0', 'reached'],
 ]
 
 async function run() {
@@ -108,64 +137,23 @@ async function run() {
 
     // Ergebnisse
     const ergebnisse = [
-      {
-        id: `demo-erg-s1-${tenantId}`,
+      // ── Fertig bewertet (abgeschlossen, mit Note + Punkten) ──────────────
+      ...ABGESCHLOSSEN.map(([sid, punkte, note, status]) => ({
+        id: `demo-erg-${sid}-${tenantId}`,
         pruefung_id: pruefungId,
-        schueler_id: 's1',
-        punkte: 18,
-        note: '5.5',
+        schueler_id: sid,
+        punkte,
+        note,
         anzahl_versuche: 1,
         zweiter_versuch_ausstehend: false,
         abgeschlossen: true,
         versuch_snapshots: [],
-        status: 'reached',
+        status,
         anhang_urls: [],
         tenant_id: tenantId,
-      },
+      })),
       {
-        id: `demo-erg-s2-${tenantId}`,
-        pruefung_id: pruefungId,
-        schueler_id: 's2',
-        punkte: 14,
-        note: '4.5',
-        anzahl_versuche: 1,
-        zweiter_versuch_ausstehend: false,
-        abgeschlossen: true,
-        versuch_snapshots: [],
-        status: 'reached',
-        anhang_urls: [],
-        tenant_id: tenantId,
-      },
-      {
-        id: `demo-erg-s4-${tenantId}`,
-        pruefung_id: pruefungId,
-        schueler_id: 's4',
-        punkte: 16,
-        note: '5.0',
-        anzahl_versuche: 1,
-        zweiter_versuch_ausstehend: false,
-        abgeschlossen: true,
-        versuch_snapshots: [],
-        status: 'reached',
-        anhang_urls: [],
-        tenant_id: tenantId,
-      },
-      {
-        id: `demo-erg-s13-${tenantId}`,
-        pruefung_id: pruefungId,
-        schueler_id: 's13',
-        punkte: 11,
-        note: '3.5',
-        anzahl_versuche: 1,
-        zweiter_versuch_ausstehend: false,
-        abgeschlossen: true,
-        versuch_snapshots: [],
-        status: 'partially_reached',
-        anhang_urls: [],
-        tenant_id: tenantId,
-      },
-      {
-        // Anna: zweiter Versuch ausstehend
+        // Anna: zweiter Versuch ausstehend (1. Versuch: 9 Pkt / Note 3.0)
         id: `demo-erg-s14-${tenantId}`,
         pruefung_id: pruefungId,
         schueler_id: 's14',
@@ -182,16 +170,19 @@ async function run() {
         tenant_id: tenantId,
       },
       {
-        // Paul: laufend, Punkte eingetragen, Note noch ausstehend
+        // Paul: dritter Versuch ausstehend (1. Versuch: 8/3.0 · 2. Versuch: 11/3.5)
         id: `demo-erg-s15-${tenantId}`,
         pruefung_id: pruefungId,
         schueler_id: 's15',
-        punkte: 7,
+        punkte: null,
         note: null,
-        anzahl_versuche: 1,
-        zweiter_versuch_ausstehend: false,
+        anzahl_versuche: 2,
+        zweiter_versuch_ausstehend: true,
         abgeschlossen: false,
-        versuch_snapshots: [],
+        versuch_snapshots: [
+          { nr: 1, date: '2026-05-14', punkte: 8, note: '3.0', status: 'not_reached' },
+          { nr: 2, date: '2026-05-28', punkte: 11, note: '3.5', status: 'partially_reached' },
+        ],
         status: null,
         anhang_urls: [],
         tenant_id: tenantId,
@@ -208,7 +199,7 @@ async function run() {
   console.log('\n✅ Demo-Prüfung seed complete!')
   console.log(`   Tenants: ${ALL_TENANTS.length}`)
   console.log('   Prüfung: "Schriftliche Prüfung – Zahlen & Geometrie" (Klasse 5a, Mathematik)')
-  console.log('   Ergebnisse: 4 abgeschlossen · 1 zweiter Versuch · 1 laufend · 1 ohne Ergebnis (RILZ)')
+  console.log(`   Ergebnisse: ${ABGESCHLOSSEN.length} abgeschlossen · 1 zweiter Versuch (Anna) · 1 dritter Versuch (Paul)`)
 }
 
 run().catch((err) => {

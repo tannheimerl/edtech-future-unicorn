@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { StudentAnalytics } from '@/components/analytics/StudentAnalytics'
@@ -134,12 +133,6 @@ export default function SchuelerDetailPage() {
             </div>
           </div>
         </div>
-        <Link
-          href={`/klassen/${klassId}/schueler/${studentId}/bericht`}
-          className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors flex items-center gap-1.5"
-        >
-          Bericht erstellen
-        </Link>
       </div>
 
       <div className="space-y-5">

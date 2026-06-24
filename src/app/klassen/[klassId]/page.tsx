@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   SquarePen, Plus, UserRound,
   ChevronDown, ChevronRight, Trash2,
-  Search, Info, Pencil, PencilLine, Calendar, BookMarked, BarChart2,
+  Info, Pencil, PencilLine, Calendar, BookMarked, BarChart2,
 } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { ClassAnalytics } from '@/components/analytics/ClassAnalytics'
@@ -21,6 +21,8 @@ import { AddThemenModal } from '@/components/shared/AddThemenModal'
 import { CreateThemaModal } from '@/components/shared/CreateThemaModal'
 import { Modal } from '@/components/shared/Modal'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { PillTabs } from '@/components/shared/PillTabs'
+import { SearchBar } from '@/components/shared/SearchBar'
 import { cn, getFachColor, scoreColor, categoryChipClasses } from '@/lib/utils'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 
@@ -112,40 +114,25 @@ function TabBar({
     { key: 'lernziele',        label: 'Lernziele' },
     { key: 'berichte',         label: 'Berichte' },
   ]
+  const leading = editingTitle ? (
+    <div className="flex items-center pr-2 mr-1 border-r border-border shrink-0">
+      {editNode}
+    </div>
+  ) : (
+    <span className="flex items-center gap-1 pl-1 pr-3 mr-1 border-r border-border shrink-0">
+      <span className="text-sm font-semibold whitespace-nowrap">{title}</span>
+      <button
+        onClick={onEditTitle}
+        className="text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Klassenname bearbeiten"
+      >
+        <SquarePen className="size-3.5" />
+      </button>
+    </span>
+  )
   return (
     <div className="overflow-x-auto scrollbar-hide mb-2">
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-muted w-fit min-w-full sm:min-w-0">
-        {editingTitle ? (
-          <div className="flex items-center pr-2 mr-1 border-r border-border shrink-0">
-            {editNode}
-          </div>
-        ) : (
-          <span className="flex items-center gap-1 pl-1 pr-3 mr-1 border-r border-border shrink-0">
-            <span className="text-sm font-semibold whitespace-nowrap">{title}</span>
-            <button
-              onClick={onEditTitle}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Klassenname bearbeiten"
-            >
-              <SquarePen className="size-3.5" />
-            </button>
-          </span>
-        )}
-        {tabs.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => onChange(key)}
-            className={cn(
-              'px-3 py-1 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0',
-              active === key
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <PillTabs options={tabs} value={active} onChange={onChange} leading={leading} />
     </div>
   )
 }
@@ -522,20 +509,16 @@ function LernzieleTab({ klassId }: { klassId: string }) {
 
       {/* LZ tree */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-            <Input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Lernziele, Themen oder Fächer suchen…"
-              className="pl-8 h-8 text-sm"
-            />
-          </div>
-          <span className="text-xs text-muted-foreground tabular-nums shrink-0 ml-auto">
-            {`${klasse.assignedThemaIds.length} Themen · ${assignedLzIds.size} Lernziele`}
-          </span>
-        </div>
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Lernziele, Themen oder Fächer suchen…"
+          right={
+            <span className="self-center text-xs text-muted-foreground tabular-nums shrink-0">
+              {`${klasse.assignedThemaIds.length} Themen · ${assignedLzIds.size} Lernziele`}
+            </span>
+          }
+        />
 
         {!catalogHasThemen ? (
           <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-2">
@@ -986,21 +969,18 @@ export default function KlasseDetailPage() {
           {students.length > 0 && (
             <>
               {/* Toolbar */}
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="relative flex-1 max-w-xs">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-                  <input
-                    value={adminSearch}
-                    onChange={e => setAdminSearch(e.target.value)}
-                    placeholder="Schüler suchen …"
-                    className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
-                <Button size="sm" onClick={() => setCreateOpen(true)}>
-                  <Plus className="size-3.5" />
-                  Neuer Schüler
-                </Button>
-              </div>
+              <SearchBar
+                value={adminSearch}
+                onChange={setAdminSearch}
+                placeholder="Schüler suchen …"
+                className="mb-2"
+                right={
+                  <Button size="sm" className="h-auto" onClick={() => setCreateOpen(true)}>
+                    <Plus className="size-3.5" />
+                    Neuer Schüler
+                  </Button>
+                }
+              />
 
               {/* Admin table */}
               <div className="rounded-2xl border border-border bg-card overflow-hidden">
