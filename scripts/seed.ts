@@ -33,10 +33,13 @@ const supabase = createClient(
 // Jeder Tester + 'dev' (für lokale Entwicklung via NEXT_PUBLIC_DEV_TENANT) bekommt eine Kopie.
 const DATA_TENANTS = [...TENANT_TOKENS, 'dev']
 
-// Only seed 5a (k1) and 5b (k2), not 7c (k3)
+// Seed 5a (k1) und 5b (k2), nicht 7c (k3).
 const SHARED_CLASS_IDS = new Set(['k1', 'k2'])
+// 5b (k2) bleibt eine LEERE Sandbox: Klasse + LP-Zuweisung werden angelegt, aber
+// keine Schüler und keine Themen-Zuweisungen (siehe scripts/empty-5b.sql).
+const POPULATED_CLASS_IDS = new Set(['k1'])
 const classes = SEED_CLASSES.filter((k) => SHARED_CLASS_IDS.has(k.id))
-const students = SEED_STUDENTS.filter((s) => SHARED_CLASS_IDS.has(s.klassId))
+const students = SEED_STUDENTS.filter((s) => POPULATED_CLASS_IDS.has(s.klassId))
 
 // ── ID-Remapping ───────────────────────────────────────────────────────────────
 // Prefixt eine Basis-ID mit dem Tenant. lp-Referenzen bleiben original (shared).
@@ -157,7 +160,7 @@ async function run() {
   console.log('Inserting bridge_klasse_themen…')
   await upsertBatched('bridge_klasse_themen', DATA_TENANTS.flatMap((t) => {
     const seenThemen = new Set<string>()
-    return classes.flatMap((k) =>
+    return classes.filter((k) => POPULATED_CLASS_IDS.has(k.id)).flatMap((k) =>
       k.assignedThemaIds
         .filter((themaId) => !seenThemen.has(themaId) && seenThemen.add(themaId))
         .map((themaId) => ({
