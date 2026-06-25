@@ -2,8 +2,8 @@
 
 import { Fragment, useEffect, useRef, useState } from 'react'
 import {
-  BookOpen, ChevronDown, ChevronLeft, ChevronRight, Download, PencilLine, Plus,
-  Upload, X, Check, Trash2, Search,
+  ArrowRight, BookOpen, ChevronDown, ChevronLeft, ChevronRight, Download, PencilLine, Plus,
+  Upload, X, Check, Trash2,
 } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
@@ -11,10 +11,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { CreateThemaModal } from '@/components/shared/CreateThemaModal'
+import { FilterDropdown } from '@/components/shared/FilterDropdown'
 import { InputModal } from '@/components/shared/InputModal'
 import { Modal } from '@/components/shared/Modal'
 import { ModalRow } from '@/components/shared/ModalRow'
 import { ThemaAddPickerModal } from '@/components/shared/ThemaAddPickerModal'
+import { SearchBar } from '@/components/shared/SearchBar'
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover'
@@ -22,7 +24,19 @@ import {
   Command, CommandGroup, CommandItem, CommandList, CommandSeparator,
 } from '@/components/ui/command'
 import { cn, getFachColor } from '@/lib/utils'
-import type { LernzielKategorie, TagKategorie, Thema } from '@/types/domain'
+import { findExactFachMatch, normalizeFachName, rankFachSuggestions, SUGGEST_THRESHOLD } from '@/lib/fachMatch'
+import { readLezioFiles } from '@/lib/lezioImport'
+import type { Fach, LernzielKategorie, LezioExport, TagKategorie, Thema } from '@/types/domain'
+
+// Sentinel: in der Fächer-Zuordnung „neues Fach anlegen" wählen
+const NEW_FACH = '__new__'
+
+function importDoneMsg(themen: number, neueFaecher: number, errors: number): string {
+  const teile = [`${themen} ${themen === 1 ? 'Thema' : 'Themen'} importiert`]
+  if (neueFaecher > 0) teile.push(`${neueFaecher} ${neueFaecher === 1 ? 'neues Fach' : 'neue Fächer'} angelegt`)
+  if (errors > 0) teile.push(`${errors} übersprungen`)
+  return teile.join(' · ')
+}
 
 const BUILTIN_KOLONNEN = [
   { id: 'fach',  label: 'Fach' },
@@ -84,88 +98,6 @@ function ThemaLZSection({ themaId }: { themaId: string }) {
   )
 }
 
-// ── FilterSpalte ─────────────────────────────────────────────────────────
-
-function FilterSpalte({
-  label, value, options, onChange, onRemove, showSearch,
-}: {
-  label: string
-  value: string
-  options: { value: string; label: string; dot?: string }[]
-  onChange: (v: string) => void
-  onRemove: () => void
-  showSearch?: boolean
-}) {
-  const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState('')
-  const selectedLabel = options.find(o => o.value === value)?.label ?? `Alle ${label}`
-  const selectedDot = options.find(o => o.value === value)?.dot
-  const filtered = showSearch && search
-    ? options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
-    : options
-
-  return (
-    <div className="flex items-center rounded-full border border-border bg-card text-xs overflow-hidden shrink-0">
-      <Popover open={open} onOpenChange={v => { setOpen(v); if (!v) setSearch('') }}>
-        <PopoverTrigger className="flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 hover:bg-accent/30 transition-colors">
-          <span className="font-medium text-muted-foreground">{label}</span>
-          <span className="text-border">|</span>
-          {selectedDot && <span className={cn('size-2 rounded-full shrink-0', selectedDot)} />}
-          <span className={cn(value ? 'font-medium text-foreground' : 'text-muted-foreground')}>
-            {selectedLabel}
-          </span>
-          <ChevronDown className="size-3 text-muted-foreground shrink-0" />
-        </PopoverTrigger>
-        <PopoverContent className="p-1.5 w-52" align="start" side="bottom">
-          {showSearch && (
-            <div className="px-1 pb-1.5">
-              <input
-                autoFocus
-                placeholder="Suchen…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-xs outline-none placeholder:text-muted-foreground"
-              />
-            </div>
-          )}
-          <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto">
-            {filtered.map((opt, i) => (
-              <Fragment key={opt.value || '__all__'}>
-                <button
-                  onClick={() => { onChange(opt.value); setOpen(false); setSearch('') }}
-                  className={cn(
-                    'flex items-center gap-2.5 w-full px-3 py-2 rounded-md text-xs transition-colors text-left',
-                    opt.value === value
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : 'hover:bg-muted/60 text-foreground'
-                  )}
-                >
-                  {opt.dot
-                    ? <span className={cn('size-2.5 rounded-full shrink-0', opt.dot)} />
-                    : <span className="size-2.5 shrink-0" />
-                  }
-                  <span className="flex-1">{opt.label}</span>
-                  {opt.value === value && <Check className="size-3 shrink-0 text-primary" />}
-                </button>
-                {i === 0 && options.length > 1 && !search && (
-                  <div className="my-0.5 border-t border-border/40" />
-                )}
-              </Fragment>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
-      <button
-        onClick={onRemove}
-        className="flex items-center justify-center px-1.5 py-1.5 hover:bg-accent/50 transition-colors text-muted-foreground hover:text-foreground border-l border-border/40"
-        aria-label={`${label}-Spalte entfernen`}
-      >
-        <X className="size-3" />
-      </button>
-    </div>
-  )
-}
-
 // ── AddSpalteButton ───────────────────────────────────────────────────────
 
 function AddSpalteButton({
@@ -187,7 +119,7 @@ function AddSpalteButton({
 
   if (atMax) {
     return (
-      <span className="flex items-center gap-1 rounded-lg border border-status-partial-fg/25 bg-status-partial-soft px-2.5 py-1.5 text-xs text-status-partial-fg font-medium shrink-0">
+      <span className="flex items-center gap-1 rounded-full border border-status-partial-fg/25 bg-status-partial-soft px-3 py-1.5 text-xs text-status-partial-fg font-medium shrink-0">
         <span className="tabular-nums">{MAX_SPALTEN}/{MAX_SPALTEN}</span>
         <span className="text-status-partial-fg/70">Spalten</span>
       </span>
@@ -196,7 +128,7 @@ function AddSpalteButton({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="flex items-center gap-1 rounded-lg border border-dashed border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors shrink-0">
+      <PopoverTrigger className="flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors shrink-0">
         <Plus className="size-3" />
         Spalte
         <span className="text-muted-foreground/50 tabular-nums">{aktiveKolonnen.length}/{MAX_SPALTEN}</span>
@@ -688,10 +620,83 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
   )
 }
 
+// ── Fächer-Zuordnung beim Import ──────────────────────────────────────────
+
+function FachZuordnenRow({ importName, count, faecher, value, onChange }: {
+  importName: string
+  count: number
+  faecher: Fach[]
+  value: string  // fachId oder NEW_FACH
+  onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ranked = rankFachSuggestions(importName, faecher)
+  const selectedFach = value === NEW_FACH ? null : faecher.find(f => f.id === value)
+
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto_13rem] items-center gap-3 py-2.5">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold">{importName}</p>
+        <p className="text-[11px] text-muted-foreground">{count} {count === 1 ? 'Thema' : 'Themen'}</p>
+      </div>
+      <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-accent/30 transition-colors">
+          {selectedFach ? (
+            <>
+              <span className={cn('size-2 rounded-full shrink-0', getFachColor(selectedFach.id, faecher.map(f => f.id), selectedFach.colorIndex).dot)} />
+              <span className="flex-1 truncate text-left">{selectedFach.name}</span>
+            </>
+          ) : (
+            <span className="flex-1 truncate text-left text-muted-foreground">Neues Fach anlegen</span>
+          )}
+          <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-1.5" align="end">
+          <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto">
+            {ranked.map(({ fach: f, score }, idx) => {
+              const isSuggested = idx === 0 && score >= SUGGEST_THRESHOLD
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => { onChange(f.id); setOpen(false) }}
+                  className={cn(
+                    'flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-left transition-colors',
+                    value === f.id ? 'bg-primary/10 text-primary' : 'hover:bg-muted/60',
+                  )}
+                >
+                  <span className={cn('size-2 rounded-full shrink-0', getFachColor(f.id, faecher.map(fx => fx.id), f.colorIndex).dot)} />
+                  <span className="flex-1 truncate">{f.name}</span>
+                  {isSuggested && (
+                    <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">Vorschlag</span>
+                  )}
+                  {value === f.id && <Check className="size-3 shrink-0 text-primary" />}
+                </button>
+              )
+            })}
+            <div className="my-0.5 border-t border-border/40" />
+            <button
+              onClick={() => { onChange(NEW_FACH); setOpen(false) }}
+              className={cn(
+                'flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-left transition-colors',
+                value === NEW_FACH ? 'bg-primary/10 text-primary' : 'hover:bg-muted/60',
+              )}
+            >
+              <Plus className="size-3.5 shrink-0" />
+              <span className="flex-1 truncate">Neues Fach „{importName}“ anlegen</span>
+              {value === NEW_FACH && <Check className="size-3 shrink-0 text-primary" />}
+            </button>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function LernzielePage() {
-  const { faecher, themen, lernziele, createFach, exportThema, exportFach, importThema, deleteThema, tagKategorien, createTagKategorie, getTagWerte } = useData()
+  const { faecher, themen, lernziele, createFach, exportThema, exportFach, importThemaData, deleteThema, deleteFach, tagKategorien, createTagKategorie, getTagWerte } = useData()
 
   const [aktiveKolonnen, setAktiveKolonnen] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(LS_KEY) ?? '["fach","typ"]') }
@@ -702,15 +707,20 @@ export default function LernzielePage() {
   const [expandedThemen, setExpandedThemen] = useState<Set<string>>(new Set())
   const [collapsedFaecher, setCollapsedFaecher] = useState<Set<string>>(new Set())
   const [fachCreateOpen, setFachCreateOpen] = useState(false)
+  const [fachCreateMode, setFachCreateMode] = useState<'withThema' | 'only'>('withThema')
   const [themaCreateFachId, setThemaCreateFachId] = useState<string | null>(null)
   const [themaPickerFachId, setThemaPickerFachId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [importFeedback, setImportFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
-  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null)
-  const [fachPickerOpen, setFachPickerOpen] = useState(false)
+  // Mehrfach-Import: geparste Themen + Zuordnungs-Maske für alle distinkten Fächernamen
+  const [importItems, setImportItems] = useState<{ source: string; data: LezioExport }[]>([])
+  const [distinctFaecher, setDistinctFaecher] = useState<{ name: string; count: number }[]>([])
+  const [fachChoice, setFachChoice] = useState<Record<string, string>>({})
+  const [fachZuordnenOpen, setFachZuordnenOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [editThemaId, setEditThemaId] = useState<string | null>(null)
   const [deleteThemaId, setDeleteThemaId] = useState<string | null>(null)
+  const [deleteFachId, setDeleteFachId] = useState<string | null>(null)
 
   function toggleThema(id: string) {
     setExpandedThemen(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -724,6 +734,11 @@ export default function LernzielePage() {
     const newFachId = createFach(name)
     setFachCreateOpen(false)
     setThemaCreateFachId(newFachId)
+  }
+
+  function handleFachOnlyCreated(name: string) {
+    createFach(name)
+    setFachCreateOpen(false)
   }
 
   function handlePickerNeuErstellen() {
@@ -781,40 +796,82 @@ export default function LernzielePage() {
 
   const hasActiveFilters = q || Object.values(kolonnenFilter).some(v => v !== '')
 
-  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    importThema(file)
-      .then(() => {
-        setImportFeedback({ ok: true, msg: 'Thema erfolgreich importiert.' })
-        setTimeout(() => setImportFeedback(null), 3000)
-      })
-      .catch((err: Error) => {
-        if (err.message === 'FACH_NOT_FOUND') {
-          setPendingImportFile(file)
-          setFachPickerOpen(true)
-        } else {
-          setImportFeedback({ ok: false, msg: 'Ungültiges Dateiformat.' })
-          setTimeout(() => setImportFeedback(null), 3000)
-        }
-      })
+  function showImportFeedback(ok: boolean, msg: string) {
+    setImportFeedback({ ok, msg })
+    setTimeout(() => setImportFeedback(null), 4000)
   }
 
-  function handleFachPicked(fachId: string) {
-    if (!pendingImportFile) return
-    setFachPickerOpen(false)
-    importThema(pendingImportFile, fachId)
-      .then(() => {
-        setPendingImportFile(null)
-        setImportFeedback({ ok: true, msg: 'Thema erfolgreich importiert.' })
-        setTimeout(() => setImportFeedback(null), 3000)
-      })
-      .catch(() => {
-        setPendingImportFile(null)
-        setImportFeedback({ ok: false, msg: 'Fehler beim Importieren.' })
-        setTimeout(() => setImportFeedback(null), 3000)
-      })
+  // Importiert alle Themen mit aufgelösten fachIds (normKey → fachId).
+  function runImport(items: { data: LezioExport }[], fachByKey: Record<string, string>) {
+    for (const { data } of items) {
+      const fachId = fachByKey[normalizeFachName(data.fachName)]
+      if (fachId) importThemaData(data, fachId)
+    }
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    e.target.value = ''
+    if (files.length === 0) return
+
+    const { items, errors } = await readLezioFiles(files)
+    if (items.length === 0) {
+      showImportFeedback(false, 'Keine gültigen Lernziel-Dateien gefunden.')
+      return
+    }
+
+    // Distinkte Fächernamen sammeln (normalisierter Schlüssel → Anzeigename + Anzahl Themen).
+    // Gleiche Bezeichnungen werden zusammengefasst (10× „Mathe" → 1 Eintrag mit count 10).
+    const distinctMap = new Map<string, { name: string; count: number }>()
+    for (const { data } of items) {
+      const key = normalizeFachName(data.fachName)
+      const entry = distinctMap.get(key)
+      if (entry) entry.count++
+      else distinctMap.set(key, { name: data.fachName, count: 1 })
+    }
+    const distinct = [...distinctMap.values()]
+
+    // Vorbelegung pro Fach: exakter Treffer → dessen Fach; sonst guter Vorschlag; sonst „neu anlegen"
+    const choice: Record<string, string> = {}
+    for (const { name } of distinct) {
+      const key = normalizeFachName(name)
+      const exact = findExactFachMatch(name, faecher)
+      if (exact) { choice[key] = exact.id; continue }
+      const [best] = rankFachSuggestions(name, faecher)
+      choice[key] = best && best.score >= SUGGEST_THRESHOLD ? best.fach.id : NEW_FACH
+    }
+
+    setImportItems(items)
+    setDistinctFaecher(distinct)
+    setFachChoice(choice)
+    setFachZuordnenOpen(true)
+    if (errors > 0) showImportFeedback(false, `${errors} Datei(en) konnten nicht gelesen werden.`)
+  }
+
+  function handleZuordnenConfirm() {
+    const fachByKey: Record<string, string> = {}
+    let neueFaecher = 0
+    for (const { name } of distinctFaecher) {
+      const key = normalizeFachName(name)
+      const sel = fachChoice[key]
+      if (sel === NEW_FACH) {
+        fachByKey[key] = createFach(name)
+        neueFaecher++
+      } else if (sel) {
+        fachByKey[key] = sel
+      }
+    }
+    runImport(importItems, fachByKey)
+    const count = importItems.length
+    closeZuordnen()
+    showImportFeedback(true, importDoneMsg(count, neueFaecher, 0))
+  }
+
+  function closeZuordnen() {
+    setFachZuordnenOpen(false)
+    setImportItems([])
+    setDistinctFaecher([])
+    setFachChoice({})
   }
 
   function renderChips(thema: Thema) {
@@ -856,7 +913,7 @@ export default function LernzielePage() {
             <p className="font-semibold">Noch keine Fächer angelegt</p>
             <p className="mt-1 text-sm text-muted-foreground">Erstelle dein erstes Fach, um Lernziele zu verwalten.</p>
           </div>
-          <Button onClick={() => setFachCreateOpen(true)}>Erstes Fach erstellen</Button>
+          <Button onClick={() => { setFachCreateMode('withThema'); setFachCreateOpen(true) }}>Erstes Fach erstellen</Button>
         </div>
       )}
 
@@ -902,7 +959,7 @@ export default function LernzielePage() {
               }
 
               return (
-                <FilterSpalte
+                <FilterDropdown
                   key={colId}
                   label={label}
                   value={kolonnenFilter[colId] ?? ''}
@@ -933,28 +990,22 @@ export default function LernzielePage() {
           </div>
 
           {/* Search + Import row */}
-          <div className="flex items-center gap-2 mb-6">
-            <div className="relative w-72">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-              <Input
-                placeholder="Thema suchen…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-9 h-8"
-              />
-            </div>
-
-            <div className="h-5 w-px bg-border" />
-
-            <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="size-3.5" /> Importieren
-            </Button>
-            {importFeedback && (
-              <span className={cn('text-xs', importFeedback.ok ? 'text-status-reached' : 'text-status-not-reached')}>
-                {importFeedback.msg}
-              </span>
-            )}
-          </div>
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Thema suchen…"
+            className="mb-6"
+            right={<>
+              {importFeedback && (
+                <span className={cn('self-center text-xs', importFeedback.ok ? 'text-status-reached' : 'text-status-not-reached')}>
+                  {importFeedback.msg}
+                </span>
+              )}
+              <Button size="sm" className="h-auto" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="size-3.5" /> Importieren
+              </Button>
+            </>}
+          />
 
           {/* Table */}
           {!hasAnyThemen && hasActiveFilters ? (
@@ -1005,17 +1056,20 @@ export default function LernzielePage() {
                       >
                         <Download className="size-3.5" />
                       </Button>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={e => { e.stopPropagation(); setDeleteFachId(fach.id) }}
+                        aria-label={`${fach.name} löschen`}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-destructive"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
                     </div>
 
                     {!fachCollapsed && (
                       <div className="divide-y divide-border/40">
-                        {fachThemen.length === 0 ? (
-                          <div className="flex items-center gap-1.5 px-3 py-2.5 text-xs text-muted-foreground">
-                            Keine Themen entsprechen den Filtern.
-                          </div>
-                        ) : (
-                          <>
-                            {fachThemen.map(thema => {
+                        {fachThemen.map(thema => {
                               const isExpanded = expandedThemen.has(thema.id)
 
                               return (
@@ -1060,13 +1114,18 @@ export default function LernzielePage() {
                                 </div>
                               )
                             })}
-                            <button
-                              onClick={() => setThemaPickerFachId(fach.id)}
-                              className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-accent/20 transition-colors">
-                              <Plus className="size-3" /> Thema hinzufügen
-                            </button>
-                          </>
+
+                        {fachThemen.length === 0 && (
+                          <div className="flex items-center gap-1.5 px-3 py-2.5 text-xs text-muted-foreground">
+                            {hasActiveFilters ? 'Keine Themen entsprechen den Filtern.' : 'Noch keine Themen angelegt.'}
+                          </div>
                         )}
+
+                        <button
+                          onClick={() => setThemaPickerFachId(fach.id)}
+                          className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-accent/20 transition-colors">
+                          <Plus className="size-3" /> Thema hinzufügen
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1074,13 +1133,21 @@ export default function LernzielePage() {
               })}
             </div>
           )}
+
+          {/* Neues Fach — ganz unten in der Lernzielsammlung */}
+          <button
+            onClick={() => { setFachCreateMode('only'); setFachCreateOpen(true) }}
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border py-2.5 text-xs text-muted-foreground hover:text-primary hover:bg-accent/20 transition-colors"
+          >
+            <Plus className="size-3" /> Neues Fach
+          </button>
         </>
       )}
 
       <InputModal
         open={fachCreateOpen} onOpenChange={setFachCreateOpen}
         title="Neues Fach" label="Fachbezeichnung" placeholder="z. B. Mathematik"
-        onSubmit={handleFachCreated}
+        onSubmit={fachCreateMode === 'only' ? handleFachOnlyCreated : handleFachCreated}
       />
 
       <InputModal
@@ -1123,35 +1190,48 @@ export default function LernzielePage() {
         confirmLabel="Löschen"
         onConfirm={() => { if (deleteThemaId) deleteThema(deleteThemaId) }}
       />
+      <ConfirmDialog
+        open={!!deleteFachId}
+        onOpenChange={(o) => { if (!o) setDeleteFachId(null) }}
+        title="Fach löschen"
+        description="Soll dieses Fach mit allen zugehörigen Themen und Lernzielen wirklich dauerhaft gelöscht werden?"
+        confirmLabel="Löschen"
+        onConfirm={() => { if (deleteFachId) { deleteFach(deleteFachId); setDeleteFachId(null) } }}
+      />
 
       <Modal
-        open={fachPickerOpen}
-        onOpenChange={(o) => { if (!o) { setFachPickerOpen(false); setPendingImportFile(null) } }}
-        title="Fach auswählen"
-        description="Das Fach aus der Importdatei wurde nicht gefunden. Wähle ein bestehendes Fach:"
-        size="xs"
+        open={fachZuordnenOpen}
+        onOpenChange={(o) => { if (!o) closeZuordnen() }}
+        title="Fächer zuordnen"
+        description={`${distinctFaecher.length} ${distinctFaecher.length === 1 ? 'Fach' : 'Fächer'} · ${importItems.length} ${importItems.length === 1 ? 'Thema' : 'Themen'} importieren. Ordne jedes Fach einem deiner Fächer zu oder lege es neu an:`}
+        size="md"
       >
-        <div className="flex flex-col gap-1">
-          {faecher.map(f => {
-            const fc = getFachColor(f.id, faecher.map(fx => fx.id), f.colorIndex)
+        <div className="flex flex-col divide-y divide-border/40">
+          {distinctFaecher.map(({ name, count }) => {
+            const key = normalizeFachName(name)
             return (
-              <button
-                key={f.id}
-                onClick={() => handleFachPicked(f.id)}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent text-left transition-colors"
-              >
-                <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
-                {f.name}
-              </button>
+              <FachZuordnenRow
+                key={key}
+                importName={name}
+                count={count}
+                faecher={faecher}
+                value={fachChoice[key] ?? NEW_FACH}
+                onChange={(v) => setFachChoice(prev => ({ ...prev, [key]: v }))}
+              />
             )
           })}
+        </div>
+        <div className="mt-4 flex justify-end gap-2 border-t pt-3">
+          <Button variant="outline" size="sm" onClick={closeZuordnen}>Abbrechen</Button>
+          <Button size="sm" onClick={handleZuordnenConfirm}>Importieren</Button>
         </div>
       </Modal>
 
       <input
         ref={fileInputRef}
         type="file"
-        accept=".lezio,.json"
+        accept=".lezio,.json,.zip"
+        multiple
         className="hidden"
         onChange={handleImportFile}
       />

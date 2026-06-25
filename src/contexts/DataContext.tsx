@@ -33,6 +33,8 @@ import {
   dbSaveBeurteilungSettings,
   dbSaveTagKategorie, dbDeleteTagKategorie,
 } from '@/actions/db-write'
+import { findExactFachMatch } from '@/lib/fachMatch'
+import { parseLezio } from '@/lib/lezioImport'
 
 // ── Public interface ─────────────────────────────────────────────────────────
 
@@ -137,6 +139,7 @@ interface DataContextValue {
   exportThema: (themaId: string) => void
   exportFach: (fachId: string) => void
   importThema: (file: File, targetFachId?: string) => Promise<void>
+  importThemaData: (data: LezioExport, fachId: string) => void
 
   // Prüfungen
   getPruefungenForKlasse: (klassId: string) => Pruefung[]
@@ -168,9 +171,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [tagKategorien, setTagKategorien] = useState<TagKategorie[]>([])
   const competencies = SEED_COMPETENCIES
 
-  // Load all data from Supabase on mount
-  useEffect(() => {
-    fetchAllData()
+  // Reload all data from Supabase into context state. Used on mount and to
+  // resync the optimistic UI with the DB after a failed write.
+  const reloadData = useCallback(() => {
+    return fetchAllData()
       .then((data) => {
         setFaecher(data.faecher)
         setThemen(data.themen)
@@ -185,8 +189,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setTagKategorien(data.tagKategorien)
       })
       .catch((err) => console.error('fetchAllData failed:', err))
-      .finally(() => setIsLoading(false))
   }, [])
+
+  // Load all data from Supabase on mount
+  useEffect(() => {
+    reloadData().finally(() => setIsLoading(false))
+  }, [reloadData])
 
   // ── Queries ──────────────────────────────────────────────────────────
 
@@ -613,8 +621,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       prev.map((c) => ({ ...c, assignedThemaIds: c.assignedThemaIds.filter((tid) => tid !== id) }))
     )
     setThemen((prev) => prev.filter((t) => t.id !== id))
-    dbDeleteThema(id)
-  }, [])
+    dbDeleteThema(id).then((error) => {
+      if (error) {
+        console.error('dbDeleteThema failed, reloading:', error.message)
+        reloadData() // optimistic removal war falsch → DB-Wahrheit wiederherstellen
+      }
+    })
+  }, [reloadData])
 
   // ── Tag-Kategorien ────────────────────────────────────────────────────
 
@@ -863,21 +876,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     URL.revokeObjectURL(url)
   }, [themen, faecher, lernziele])
 
-  const importThema = useCallback(async (file: File, targetFachId?: string): Promise<void> => {
-    const text = await file.text()
-    const data = JSON.parse(text) as LezioExport
-    if (data.version !== '1' || !data.fachName || !data.thema?.name) {
-      throw new Error('Ungültiges Dateiformat')
-    }
-
-    let fachId: string
-    if (targetFachId) {
-      fachId = targetFachId
-    } else {
-      const existingFach = faecher.find((f) => f.name.toLowerCase() === data.fachName.toLowerCase())
-      if (!existingFach) throw new Error('FACH_NOT_FOUND')
-      fachId = existingFach.id
-    }
+  // Legt aus bereits geparsten Importdaten ein Thema + Lernziele unter dem aufgelösten Fach an.
+  // Kein Matching – die fachId muss vom Aufrufer aufgelöst sein (Einzel- und Batch-Import).
+  const importThemaData = useCallback((data: LezioExport, fachId: string): void => {
     const themaId = crypto.randomUUID()
     const newThema: Thema = {
       id: themaId, fachId, name: data.thema.name,
@@ -896,7 +897,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setLernziele((prev) => [...prev, ...newLZ])
       for (const lz of newLZ) dbSaveLernziel(lz)
     }
-  }, [faecher])
+  }, [])
+
+  const importThema = useCallback(async (file: File, targetFachId?: string): Promise<void> => {
+    const data = parseLezio(await file.text())
+
+    let fachId: string
+    if (targetFachId) {
+      fachId = targetFachId
+    } else {
+      const existingFach = findExactFachMatch(data.fachName, faecher)
+      if (!existingFach) throw new Error('FACH_NOT_FOUND')
+      fachId = existingFach.id
+    }
+    importThemaData(data, fachId)
+  }, [faecher, importThemaData])
 
   return (
     <DataContext.Provider
@@ -962,6 +977,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         exportThema,
         exportFach,
         importThema,
+        importThemaData,
         createTagKategorie,
         updateTagKategorie,
         deleteTagKategorie,

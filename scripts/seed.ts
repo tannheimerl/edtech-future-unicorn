@@ -1,6 +1,12 @@
 /**
- * Seed script: inserts all shared base data (5a + 5b) into Supabase under tenant_id = 'shared'.
- * Also inserts the 'dev' tenant and all 15 tester tenants.
+ * Seed script: gibt jedem Tester-Tenant (und 'dev') eine EIGENE, vollständige Kopie
+ * der Basisdaten (5a + 5b samt Bibliothek) unter seiner tenant_id. Die IDs werden dabei
+ * pro Tenant geprefixt (`<tenant>__<id>`), damit der einspaltige TEXT-PK eindeutig bleibt
+ * und Tester sich gegenseitig nicht beeinflussen können (delete/upsert by id trifft nur
+ * die eigene Kopie).
+ *
+ * Ausnahme: dim_lehrpersonen bleibt einmalig unter 'shared' (reine Identitäts-Referenz,
+ * keine Schreibpfade in der App). Alle lp_id/autor_lp_id-Referenzen bleiben deshalb original.
  *
  * Run with:  npx tsx --env-file=.env.local scripts/seed.ts
  */
@@ -16,6 +22,7 @@ import {
   SEED_STUDENTS,
 } from './seed-data'
 import { TENANT_TOKENS } from '../src/lib/tenants'
+import type { Status, StatusSnapshot } from '../src/types/domain'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,17 +30,52 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 )
 
-// Only seed 5a (k1) and 5b (k2), not 7c (k3)
+// Jeder Tester + 'dev' (für lokale Entwicklung via NEXT_PUBLIC_DEV_TENANT) bekommt eine Kopie.
+const DATA_TENANTS = [...TENANT_TOKENS, 'dev']
+
+// Seed 5a (k1) und 5b (k2), nicht 7c (k3).
 const SHARED_CLASS_IDS = new Set(['k1', 'k2'])
+// 5b (k2) bleibt eine LEERE Sandbox: Klasse + LP-Zuweisung werden angelegt, aber
+// keine Schüler und keine Themen-Zuweisungen (siehe scripts/empty-5b.sql).
+const POPULATED_CLASS_IDS = new Set(['k1'])
 const classes = SEED_CLASSES.filter((k) => SHARED_CLASS_IDS.has(k.id))
-const students = SEED_STUDENTS.filter((s) => SHARED_CLASS_IDS.has(s.klassId))
+const students = SEED_STUDENTS.filter((s) => POPULATED_CLASS_IDS.has(s.klassId))
+
+// ── ID-Remapping ───────────────────────────────────────────────────────────────
+// Prefixt eine Basis-ID mit dem Tenant. lp-Referenzen bleiben original (shared).
+const rid = (t: string, id: string) => `${t}__${id}`
+const ridArr = (t: string, ids: string[] | undefined) => (ids ?? []).map((id) => rid(t, id))
+// Remappt die KEYS eines Records (z.B. lernzielStatus: { <lzId>: status }).
+const ridKeys = <V>(t: string, obj: Record<string, V> | undefined): Record<string, V> =>
+  Object.fromEntries(Object.entries(obj ?? {}).map(([k, v]) => [rid(t, k), v]))
+// Remappt die Lernziel-Referenzen in den progress_history-Snapshots.
+const ridHistory = (t: string, history: StatusSnapshot[] | undefined): StatusSnapshot[] =>
+  (history ?? []).map((snap) => ({
+    ...snap,
+    lernzielStatus: ridKeys<Status>(t, snap.lernzielStatus),
+    ...(snap.activeLzIds ? { activeLzIds: ridArr(t, snap.activeLzIds) } : {}),
+  }))
+
+// ── Batched upsert ───────────────────────────────────────────────────────────────
+async function upsertBatched(
+  table: string,
+  rows: Record<string, unknown>[],
+  onConflict: string,
+) {
+  const BATCH = 500
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const { error } = await supabase.from(table).upsert(rows.slice(i, i + BATCH), { onConflict })
+    if (error) throw new Error(`${table} batch ${i}: ${error.message}`)
+  }
+  console.log(`  → ${rows.length} rows`)
+}
 
 async function run() {
   // ── 1. Tenants ──────────────────────────────────────────────────────────────
   console.log('Inserting tenants…')
   const { error: eT } = await supabase.from('dim_tenants').upsert(
     [
-      { id: 'shared', name: 'Shared – Klasse 5a & 5b (read-only base data)' },
+      { id: 'shared', name: 'Shared – Lehrpersonen-Referenz' },
       { id: 'dev',    name: 'Development' },
       ...TENANT_TOKENS.map((token, i) => ({ id: token, name: `Tester ${i + 1}` })),
     ],
@@ -41,16 +83,8 @@ async function run() {
   )
   if (eT) throw new Error(`tenants: ${eT.message}`)
 
-  // ── 2. Fächer ───────────────────────────────────────────────────────────────
-  console.log('Inserting dim_faecher…')
-  const { error: eF } = await supabase.from('dim_faecher').upsert(
-    SEED_FAECHER.map((f) => ({ id: f.id, name: f.name, tenant_id: 'shared' })),
-    { onConflict: 'id' }
-  )
-  if (eF) throw new Error(`dim_faecher: ${eF.message}`)
-
-  // ── 3. Lehrpersonen (before Themen — FK autor_lp_id) ────────────────────────
-  console.log('Inserting dim_lehrpersonen…')
+  // ── 2. Lehrpersonen (geteilt unter 'shared', vor Themen wegen FK autor_lp_id) ──
+  console.log('Inserting dim_lehrpersonen (shared)…')
   const { error: eLP } = await supabase.from('dim_lehrpersonen').upsert(
     SEED_LEHRPERSONEN.map((lp) => ({
       id: lp.id, name: lp.name, kuerzel: lp.kuerzel, tenant_id: 'shared',
@@ -59,154 +93,140 @@ async function run() {
   )
   if (eLP) throw new Error(`dim_lehrpersonen: ${eLP.message}`)
 
-  // ── 4. Themen ────────────────────────────────────────────────────────────────
+  // ── 3. Fächer (pro Tenant) ────────────────────────────────────────────────────
+  console.log('Inserting dim_faecher…')
+  await upsertBatched('dim_faecher', DATA_TENANTS.flatMap((t) =>
+    SEED_FAECHER.map((f) => ({ id: rid(t, f.id), name: f.name, tenant_id: t }))
+  ), 'id')
+
+  // ── 4. Themen (pro Tenant) ──────────────────────────────────────────────────
+  // Standard-Themen zuerst (RILZ-Themen referenzieren sie via standard_thema_id).
   console.log('Inserting dim_themen…')
-  // Insert standard themen first (some RILZ themen reference them via standard_thema_id)
   const standardThemen = SEED_THEMEN.filter((t) => t.typ !== 'rilz')
   const rilzThemen = SEED_THEMEN.filter((t) => t.typ === 'rilz')
 
-  const { error: eTS } = await supabase.from('dim_themen').upsert(
-    standardThemen.map((t) => ({
-      id: t.id, fach_id: t.fachId, name: t.name,
-      typ: t.typ ?? 'standard',
-      standard_thema_id: t.standardThemaId ?? null,
-      faellig_am: t.faelligAm ?? null,
-      stufe: t.stufe ?? null,
-      zyklus: t.zyklus ?? null,
-      autor: t.autor ?? null,
-      autor_lp_id: t.autorLpId ?? null,
-      tenant_id: 'shared',
-    })),
-    { onConflict: 'id' }
-  )
-  if (eTS) throw new Error(`dim_themen (standard): ${eTS.message}`)
+  await upsertBatched('dim_themen', DATA_TENANTS.flatMap((t) =>
+    standardThemen.map((th) => ({
+      id: rid(t, th.id), fach_id: rid(t, th.fachId), name: th.name,
+      typ: th.typ ?? 'standard',
+      standard_thema_id: th.standardThemaId ? rid(t, th.standardThemaId) : null,
+      faellig_am: th.faelligAm ?? null,
+      stufe: th.stufe ?? null,
+      zyklus: th.zyklus ?? null,
+      autor: th.autor ?? null,
+      autor_lp_id: th.autorLpId ?? null, // referenziert shared Lehrperson → original
+      tenant_id: t,
+    }))
+  ), 'id')
 
-  const { error: eTR } = await supabase.from('dim_themen').upsert(
-    rilzThemen.map((t) => ({
-      id: t.id, fach_id: t.fachId, name: t.name,
+  await upsertBatched('dim_themen', DATA_TENANTS.flatMap((t) =>
+    rilzThemen.map((th) => ({
+      id: rid(t, th.id), fach_id: rid(t, th.fachId), name: th.name,
       typ: 'rilz',
-      standard_thema_id: t.standardThemaId ?? null,
+      standard_thema_id: th.standardThemaId ? rid(t, th.standardThemaId) : null,
       faellig_am: null, stufe: null, zyklus: null,
       autor: null, autor_lp_id: null,
-      tenant_id: 'shared',
-    })),
-    { onConflict: 'id' }
-  )
-  if (eTR) throw new Error(`dim_themen (rilz): ${eTR.message}`)
+      tenant_id: t,
+    }))
+  ), 'id')
 
-  // ── 4. Lernziele ─────────────────────────────────────────────────────────────
+  // ── 5. Lernziele (pro Tenant) ─────────────────────────────────────────────────
   console.log('Inserting dim_lernziele…')
   const allLernziele = [...SEED_LERNZIELE, ...SEED_LERNZIELE_RILZ]
-  const { error: eLZ } = await supabase.from('dim_lernziele').upsert(
+  await upsertBatched('dim_lernziele', DATA_TENANTS.flatMap((t) =>
     allLernziele.map((l) => ({
-      id: l.id, thema_id: l.themaId, kategorie: l.kategorie, label: l.label,
+      id: rid(t, l.id), thema_id: rid(t, l.themaId), kategorie: l.kategorie, label: l.label,
       kriterien: l.kriterien ?? null,
       stufe: l.stufe ?? null,
       beschreibung: l.beschreibung ?? null,
-      tenant_id: 'shared',
-    })),
-    { onConflict: 'id' }
-  )
-  if (eLZ) throw new Error(`dim_lernziele: ${eLZ.message}`)
+      tenant_id: t,
+    }))
+  ), 'id')
 
-  // ── 6. Klassen (5a + 5b only) ────────────────────────────────────────────────
+  // ── 6. Klassen (5a + 5b, pro Tenant) ────────────────────────────────────────
   console.log('Inserting dim_klassen…')
-  const { error: eK } = await supabase.from('dim_klassen').upsert(
+  await upsertBatched('dim_klassen', DATA_TENANTS.flatMap((t) =>
     classes.map((k) => ({
-      id: k.id, name: k.name, schuljahr: k.schuljahr ?? null,
-      vorgaenger_klasse_id: k.vorgaengerKlasseId ?? null,
-      tenant_id: 'shared',
-    })),
-    { onConflict: 'id' }
-  )
-  if (eK) throw new Error(`dim_klassen: ${eK.message}`)
+      id: rid(t, k.id), name: k.name, schuljahr: k.schuljahr ?? null,
+      vorgaenger_klasse_id: k.vorgaengerKlasseId ? rid(t, k.vorgaengerKlasseId) : null,
+      tenant_id: t,
+    }))
+  ), 'id')
 
-  // ── 7. bridge_klasse_themen ──────────────────────────────────────────────────
+  // ── 7. bridge_klasse_themen (pro Tenant) ──────────────────────────────────────
+  // Constraint uq_thema_per_tenant: ein Thema darf pro Tenant nur EINER Klasse zugewiesen
+  // sein. Das Seed-Data weist manche Themen (z.B. tma1) mehreren Klassen zu → wir behalten
+  // pro Tenant die erste Klasse (k1 < k2), analog zur Bereinigung in Migration 011.
   console.log('Inserting bridge_klasse_themen…')
-  const klasseThemenRows = classes.flatMap((k) =>
-    k.assignedThemaIds.map((themaId) => ({
-      klasse_id: k.id, thema_id: themaId, tenant_id: 'shared',
-    }))
-  )
-  const { error: eKT } = await supabase.from('bridge_klasse_themen').upsert(
-    klasseThemenRows, { onConflict: 'klasse_id,thema_id' }
-  )
-  if (eKT) throw new Error(`bridge_klasse_themen: ${eKT.message}`)
+  await upsertBatched('bridge_klasse_themen', DATA_TENANTS.flatMap((t) => {
+    const seenThemen = new Set<string>()
+    return classes.filter((k) => POPULATED_CLASS_IDS.has(k.id)).flatMap((k) =>
+      k.assignedThemaIds
+        .filter((themaId) => !seenThemen.has(themaId) && seenThemen.add(themaId))
+        .map((themaId) => ({
+          klasse_id: rid(t, k.id), thema_id: rid(t, themaId), tenant_id: t,
+        }))
+    )
+  }), 'klasse_id,thema_id')
 
-  // ── 8. bridge_lp_zuweisungen ─────────────────────────────────────────────────
+  // ── 8. bridge_lp_zuweisungen (pro Tenant; lp_id bleibt original) ──────────────
   console.log('Inserting bridge_lp_zuweisungen…')
-  const lpZuweisungRows = classes.flatMap((k) =>
-    (k.lpZuweisungen ?? []).map((z) => ({
-      klasse_id: k.id, lp_id: z.lpId,
-      fach_ids: z.fachIds, rolle: z.rolle ?? null,
-      tenant_id: 'shared',
-    }))
-  )
-  const { error: eLPZ } = await supabase.from('bridge_lp_zuweisungen').upsert(
-    lpZuweisungRows, { onConflict: 'klasse_id,lp_id' }
-  )
-  if (eLPZ) throw new Error(`bridge_lp_zuweisungen: ${eLPZ.message}`)
+  await upsertBatched('bridge_lp_zuweisungen', DATA_TENANTS.flatMap((t) =>
+    classes.flatMap((k) =>
+      (k.lpZuweisungen ?? []).map((z) => ({
+        klasse_id: rid(t, k.id), lp_id: z.lpId,
+        fach_ids: ridArr(t, z.fachIds), rolle: z.rolle ?? null,
+        tenant_id: t,
+      }))
+    )
+  ), 'klasse_id,lp_id')
 
-  // ── 9. dim_schueler ──────────────────────────────────────────────────────────
+  // ── 9. dim_schueler (pro Tenant) ───────────────────────────────────────────────
   console.log('Inserting dim_schueler…')
-  const { error: eS } = await supabase.from('dim_schueler').upsert(
+  await upsertBatched('dim_schueler', DATA_TENANTS.flatMap((t) =>
     students.map((s) => ({
-      id: s.id, klasse_id: s.klassId,
+      id: rid(t, s.id), klasse_id: rid(t, s.klassId),
       vorname: s.vorname, nachname: s.nachname,
       note: s.note ?? '',
       bvsa: s.bvsa ?? false,
-      rilz_fach_ids: s.rilzFachIds ?? [],
-      rilz_thema_ids: s.rilzThemaIds ?? [],
-      competency_status: s.competencyStatus ?? {},
-      lernziel_versuche: s.lernzielVersuche ?? {},
-      progress_history: s.progressHistory ?? [],
-      tenant_id: 'shared',
-    })),
-    { onConflict: 'id' }
-  )
-  if (eS) throw new Error(`dim_schueler: ${eS.message}`)
+      rilz_fach_ids: ridArr(t, s.rilzFachIds),
+      rilz_thema_ids: ridArr(t, s.rilzThemaIds),
+      competency_status: s.competencyStatus ?? {}, // Kompetenz-Konstanten → nicht remappen
+      lernziel_versuche: ridKeys(t, s.lernzielVersuche), // Keys = Lernziel-IDs
+      progress_history: ridHistory(t, s.progressHistory),
+      tenant_id: t,
+    }))
+  ), 'id')
 
-  // ── 10. fact_lernziel_status ──────────────────────────────────────────────────
+  // ── 10. fact_lernziel_status (pro Tenant) ──────────────────────────────────────
   console.log('Inserting fact_lernziel_status…')
-  const statusRows = students.flatMap((s) =>
-    Object.entries(s.lernzielStatus).map(([lzId, status]) => ({
-      schueler_id: s.id, lernziel_id: lzId, status, tenant_id: 'shared',
-    }))
-  )
-  // Insert in batches to avoid request size limits
-  const BATCH = 500
-  for (let i = 0; i < statusRows.length; i += BATCH) {
-    const batch = statusRows.slice(i, i + BATCH)
-    const { error: eST } = await supabase.from('fact_lernziel_status').upsert(
-      batch, { onConflict: 'schueler_id,lernziel_id' }
+  await upsertBatched('fact_lernziel_status', DATA_TENANTS.flatMap((t) =>
+    students.flatMap((s) =>
+      Object.entries(s.lernzielStatus).map(([lzId, status]) => ({
+        schueler_id: rid(t, s.id), lernziel_id: rid(t, lzId), status, tenant_id: t,
+      }))
     )
-    if (eST) throw new Error(`fact_lernziel_status batch ${i}: ${eST.message}`)
-  }
-  console.log(`  → ${statusRows.length} status rows inserted`)
+  ), 'schueler_id,lernziel_id')
 
-  // ── 11. fact_rilz_lernziele ───────────────────────────────────────────────────
+  // ── 11. fact_rilz_lernziele (pro Tenant) ──────────────────────────────────────
   console.log('Inserting fact_rilz_lernziele…')
-  const rilzRows = students.flatMap((s) =>
-    (s.rilzLernziele ?? []).map((rlz) => ({
-      id: rlz.id, schueler_id: s.id, thema_id: rlz.themaId,
-      label: rlz.label, status: rlz.status, tenant_id: 'shared',
-    }))
-  )
-  if (rilzRows.length > 0) {
-    const { error: eRL } = await supabase.from('fact_rilz_lernziele').upsert(
-      rilzRows, { onConflict: 'id' }
+  const rilzRows = DATA_TENANTS.flatMap((t) =>
+    students.flatMap((s) =>
+      (s.rilzLernziele ?? []).map((rlz) => ({
+        id: rid(t, rlz.id), schueler_id: rid(t, s.id), thema_id: rid(t, rlz.themaId),
+        label: rlz.label, status: rlz.status, tenant_id: t,
+      }))
     )
-    if (eRL) throw new Error(`fact_rilz_lernziele: ${eRL.message}`)
-  }
-  console.log(`  → ${rilzRows.length} RILZ-Lernziel rows inserted`)
+  )
+  if (rilzRows.length > 0) await upsertBatched('fact_rilz_lernziele', rilzRows, 'id')
 
   console.log('\n✅ Seed complete!')
-  console.log(`   Fächer: ${SEED_FAECHER.length}`)
-  console.log(`   Themen: ${SEED_THEMEN.length}`)
-  console.log(`   Lernziele: ${allLernziele.length}`)
-  console.log(`   Klassen: ${classes.length} (5a + 5b)`)
-  console.log(`   Schüler: ${students.length}`)
-  console.log(`   Status-Einträge: ${statusRows.length}`)
+  console.log(`   Tenants mit Daten: ${DATA_TENANTS.length}`)
+  console.log(`   Fächer:    ${SEED_FAECHER.length} × ${DATA_TENANTS.length}`)
+  console.log(`   Themen:    ${SEED_THEMEN.length} × ${DATA_TENANTS.length}`)
+  console.log(`   Lernziele: ${allLernziele.length} × ${DATA_TENANTS.length}`)
+  console.log(`   Klassen:   ${classes.length} × ${DATA_TENANTS.length} (5a + 5b)`)
+  console.log(`   Schüler:   ${students.length} × ${DATA_TENANTS.length}`)
 }
 
 run().catch((err) => {

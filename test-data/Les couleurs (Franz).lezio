@@ -1,0 +1,13 @@
+{
+  "version": "1",
+  "exportedAt": "2026-06-24T10:05:00.000Z",
+  "fachName": "Franz",
+  "thema": { "name": "Les couleurs", "typ": "standard", "stufe": [5] },
+  "lernziele": [
+    { "kategorie": "grundlegend", "label": "Die Grundfarben auf Französisch benennen" },
+    { "kategorie": "grundlegend", "label": "Die Farbe eines Gegenstands erfragen und nennen", "kriterien": ["« De quelle couleur est… ? »", "« C'est… »"] },
+    { "kategorie": "grundlegend", "label": "Farbadjektive an das Nomen anpassen (Genus)" },
+    { "kategorie": "anspruchsvoll", "label": "Farben in kurzen Sätzen zur Beschreibung verwenden" },
+    { "kategorie": "anspruchsvoll", "label": "Unregelmässige Farbadjektive korrekt anwenden", "beschreibung": "z.B. blanc/blanche, vert/verte" }
+  ]
+}

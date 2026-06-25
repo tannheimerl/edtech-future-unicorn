@@ -199,8 +199,18 @@ export async function dbDeleteTagKategorie(id: string) {
 }
 
 export async function dbDeleteThema(id: string) {
+  // dim_lernziele.thema_id und fact_rilz_lernziele.thema_id haben KEIN
+  // ON DELETE CASCADE — diese Kinder müssen zuerst weg, sonst verweigert
+  // Postgres das Löschen des Themas (und es taucht nach Refresh wieder auf).
+  await supabaseAdmin.from('fact_rilz_lernziele').delete().eq('thema_id', id)
+  // RILZ-Themen, die dieses Thema als Standard referenzieren, entkoppeln.
+  await supabaseAdmin.from('dim_themen').update({ standard_thema_id: null }).eq('standard_thema_id', id)
+  // Lernziele löschen — deren fact_lernziel_status/fact_kommentare cascaden via lernziel_id.
+  await supabaseAdmin.from('dim_lernziele').delete().eq('thema_id', id)
+  // Thema selbst — bridge_klasse_themen & fact_thema_kommentare cascaden via thema_id.
   const { error } = await supabaseAdmin.from('dim_themen').delete().eq('id', id)
   log('dbDeleteThema', error)
+  return error
 }
 
 // ── Lernziele ─────────────────────────────────────────────────────────────────

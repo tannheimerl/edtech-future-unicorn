@@ -7,6 +7,7 @@ import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/shared/Modal'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { sv } from '@/lib/utils'
@@ -155,11 +156,12 @@ function KlasseFormModal({ open, onOpenChange, onSubmit }: KlasseFormProps) {
 export default function KlassenPage() {
   const router = useRouter()
   const { classes, currentLpId, getStudentsForClass, getPruefungenForKlasse, getPruefungErgebnisse, createClass, deleteClass } = useData()
-  const myClasses = classes.filter(k => (k.lpZuweisungen ?? []).some(z => z.lpId === currentLpId))
+  const myClasses = classes
+    .filter(k => (k.lpZuweisungen ?? []).some(z => z.lpId === currentLpId))
+    .sort((a, b) => a.name.localeCompare(b.name, 'de', { numeric: true }))
   const [createOpen, setCreateOpen] = useState(false)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
-  const [deleteInput, setDeleteInput] = useState('')
 
   return (
     <div className="mx-auto w-full max-w-7xl px-6 py-8">
@@ -261,43 +263,14 @@ export default function KlassenPage() {
       />
 
       {/* Delete confirmation modal */}
-      <Modal
+      <ConfirmDialog
         open={deleteTarget !== null}
-        onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteInput('') } }}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
         title="Klasse löschen"
-        size="sm"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteInput('') }}>
-              Abbrechen
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deleteInput !== deleteTarget?.name}
-              onClick={() => {
-                if (!deleteTarget) return
-                deleteClass(deleteTarget.id)
-                setDeleteTarget(null)
-                setDeleteInput('')
-              }}
-            >
-              Löschen
-            </Button>
-          </>
-        }
-      >
-        <div className="grid gap-3">
-          <p className="text-sm text-muted-foreground">
-            Tippe <span className="font-semibold text-foreground">„{deleteTarget?.name}"</span> ein, um die Klasse dauerhaft zu löschen. Alle Schüler werden ebenfalls entfernt.
-          </p>
-          <Input
-            value={deleteInput}
-            onChange={(e) => setDeleteInput(e.target.value)}
-            placeholder={deleteTarget?.name ?? ''}
-            autoFocus
-          />
-        </div>
-      </Modal>
+        description="Alle Schüler werden ebenfalls entfernt."
+        confirmLabel="Löschen"
+        onConfirm={() => { if (deleteTarget) deleteClass(deleteTarget.id) }}
+      />
 
     </div>
   )

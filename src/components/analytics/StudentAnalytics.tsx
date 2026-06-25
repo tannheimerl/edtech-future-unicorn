@@ -2,8 +2,10 @@
 
 import React, { useMemo, useState } from 'react'
 import { cn, getFachColor, scoreColor, sv, categoryChipClasses } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
+import { FilterDropdown } from '@/components/shared/FilterDropdown'
+import { SegmentedControl } from '@/components/shared/SegmentedControl'
+import { UnderlineTabs } from '@/components/shared/UnderlineTabs'
 import { StatusCell } from '@/components/shared/StatusCell'
 import { useData } from '@/contexts/DataContext'
 import { computeStudentKpis } from '@/lib/student-kpis'
@@ -35,26 +37,6 @@ const KAT_LABELS: Record<KatFilter, string> = {
   anspruchsvoll: 'Anspruchsvoll',
 }
 
-// ── Chip ───────────────────────────────────────────────────────────────────
-
-function Chip({ label, active, activeClass, onClick }: {
-  label: string
-  active: boolean
-  activeClass?: string
-  onClick: () => void
-}) {
-  return (
-    <Button
-      onClick={onClick}
-      variant={active ? 'default' : 'outline'}
-      size="sm"
-      className={cn('whitespace-nowrap', active && activeClass)}
-    >
-      {label}
-    </Button>
-  )
-}
-
 // ── Filter bar ─────────────────────────────────────────────────────────────
 
 function FilterBar({ katFilter, onKatChange }: {
@@ -62,22 +44,16 @@ function FilterBar({ katFilter, onKatChange }: {
   onKatChange: (k: KatFilter) => void
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 shrink-0">Lernziel-Kategorie</span>
-      {(['all', 'grundlegend', 'anspruchsvoll'] as KatFilter[]).map(k => (
-        <Chip
-          key={k}
-          label={KAT_LABELS[k]}
-          active={katFilter === k}
-          activeClass={
-            k === 'grundlegend' ? 'bg-category-grundlegend text-white hover:bg-category-grundlegend/90'
-            : k === 'anspruchsvoll' ? 'bg-category-anspruchsvoll text-white hover:bg-category-anspruchsvoll/90'
-            : undefined
-          }
-          onClick={() => onKatChange(k)}
-        />
-      ))}
-    </div>
+    <SegmentedControl<KatFilter>
+      label="Lernziel-Kategorie"
+      value={katFilter}
+      onChange={onKatChange}
+      options={[
+        { key: 'all', label: KAT_LABELS.all },
+        { key: 'grundlegend', label: KAT_LABELS.grundlegend, activeClass: 'bg-category-grundlegend text-white hover:bg-category-grundlegend/90' },
+        { key: 'anspruchsvoll', label: KAT_LABELS.anspruchsvoll, activeClass: 'bg-category-anspruchsvoll text-white hover:bg-category-anspruchsvoll/90' },
+      ]}
+    />
   )
 }
 
@@ -188,27 +164,6 @@ const VIEW_OPTIONS: { key: StatView; label: string }[] = [
   { key: 'pruefungen', label: 'Lernzielkontrollen' },
 ]
 
-function ViewSwitcher({ view, onChange }: { view: StatView; onChange: (v: StatView) => void }) {
-  return (
-    <div className="flex border-b border-border -mx-1">
-      {VIEW_OPTIONS.map(o => (
-        <Button
-          key={o.key}
-          onClick={() => onChange(o.key)}
-          variant="ghost"
-          className={cn(
-            'h-auto rounded-none px-4 py-2 border-b-2 -mb-px whitespace-nowrap hover:bg-transparent',
-            view === o.key
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground',
-          )}
-        >
-          {o.label}
-        </Button>
-      ))}
-    </div>
-  )
-}
 
 // ── Main component ─────────────────────────────────────────────────────────
 
@@ -289,14 +244,14 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
     e => e.pruefungId === selectedPruefungId && e.schuelerId === student.id,
   )
 
-  const pruefungLZList = selectedPruefung
-    ? selectedPruefung.lernzielIds
-        .map(id => lernziele.find(lz => lz.id === id))
-        .filter((lz): lz is Lernziel => !!lz)
-    : []
-
   const isStudentEligibleForPruefung = !selectedPruefung?.nurRilz
     || (selectedPruefung.rilzSchuelerIds ?? []).includes(student.id)
+
+  const hasErgebnis = !!studentErgebnis && (
+    selectedPruefung?.punkteEnabled ? studentErgebnis.punkte !== undefined
+      : selectedPruefung?.noteEnabled ? !!studentErgebnis.note
+      : studentErgebnis.status != null
+  )
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -304,7 +259,7 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
     <div className="space-y-4">
 
       {/* Tabs */}
-      <ViewSwitcher view={view} onChange={setView} />
+      <UnderlineTabs options={VIEW_OPTIONS} value={view} onChange={setView} />
 
       {/* ── Filter zone ─────────────────────────────────────────────── */}
       <div className="space-y-2 pb-3 border-b border-border">
@@ -317,50 +272,41 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
           />
         )}
         {view === 'thema' && (
-          <div className="flex items-center gap-2">
-            <label htmlFor="thema-select" className="text-xs text-muted-foreground shrink-0">Thema:</label>
-            <select
-              id="thema-select"
-              value={selectedThemaId}
-              onChange={e => setSelectedThemaId(e.target.value)}
-              className="flex-1 text-sm border border-input rounded-md px-2 py-1.5 bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring"
-            >
-              <option value="">— Thema wählen —</option>
-              {assignedFaecher.map(fach => {
-                const fachThemen = themaOptions.filter(o => o.thema.fachId === fach.id)
-                if (fachThemen.length === 0) return null
-                return (
-                  <optgroup key={fach.id} label={fach.name}>
-                    {fachThemen.map(o => (
-                      <option key={o.thema.id} value={o.thema.id}>{o.thema.name}</option>
-                    ))}
-                  </optgroup>
-                )
-              })}
-            </select>
-          </div>
+          <FilterDropdown
+            label="Thema"
+            allLabel="wählen…"
+            showSearch
+            value={selectedThemaId}
+            onChange={setSelectedThemaId}
+            options={[
+              { value: '', label: 'Kein Thema' },
+              ...assignedFaecher.flatMap(fach => {
+                const dot = getFachColor(fach.id, allFachIds, fach.colorIndex).dot
+                return themaOptions
+                  .filter(o => o.thema.fachId === fach.id)
+                  .map(o => ({ value: o.thema.id, label: o.thema.name, dot }))
+              }),
+            ]}
+          />
         )}
         {view === 'pruefungen' && (
-          <div className="flex items-center gap-2">
-            <label htmlFor="pruefung-select" className="text-xs text-muted-foreground shrink-0">Lernzielkontrolle:</label>
-            <select
-              id="pruefung-select"
-              value={selectedPruefungId}
-              onChange={e => setSelectedPruefungId(e.target.value)}
-              className="flex-1 text-sm border border-input rounded-md px-2 py-1.5 bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring"
-            >
-              <option value="">— Lernzielkontrolle wählen —</option>
-              {klassePruefungen.map(p => {
-                const fach = faecher.find(f => f.id === p.fachId)
+          <FilterDropdown
+            label="Lernzielkontrolle"
+            allLabel="wählen…"
+            showSearch
+            value={selectedPruefungId}
+            onChange={setSelectedPruefungId}
+            options={[
+              { value: '', label: 'Keine Lernzielkontrolle' },
+              ...klassePruefungen.map(p => {
                 const modeTag = p.punkteEnabled ? ' [Punkte]' : p.noteEnabled ? ' [Note]' : ' [Status]'
-                return (
-                  <option key={p.id} value={p.id}>
-                    {p.datum} — {p.name}{fach ? ` (${fach.name})` : ''}{modeTag}
-                  </option>
-                )
-              })}
-            </select>
-          </div>
+                return {
+                  value: p.id,
+                  label: `${p.datum} — ${p.name}${modeTag}`,
+                }
+              }),
+            ]}
+          />
         )}
         {view !== 'pruefungen' && (
           <FilterBar katFilter={katFilter} onKatChange={setKatFilter} />
@@ -582,6 +528,8 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
             <p className="text-sm text-muted-foreground">Wähle eine Lernzielkontrolle um die Statistiken zu sehen.</p>
           ) : !isStudentEligibleForPruefung ? (
             <p className="text-sm text-muted-foreground">Diese Lernzielkontrolle ist nur für bestimmte Schüler.</p>
+          ) : !hasErgebnis ? (
+            <p className="text-sm text-muted-foreground">Noch keine Beurteilung für diese Lernzielkontrolle erfasst.</p>
           ) : (
             <div className="border border-border rounded-2xl overflow-hidden">
               {/* Header */}
@@ -594,10 +542,6 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
                 </div>
                 <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                   <span>{selectedPruefung.datum}</span>
-                  {faecher.find(f => f.id === selectedPruefung.fachId) && (
-                    <span>· {faecher.find(f => f.id === selectedPruefung.fachId)!.name}</span>
-                  )}
-                  <span>· {selectedPruefung.lernzielIds.length} LZ</span>
                 </div>
               </div>
 
@@ -629,23 +573,6 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
                   <StatusCell status={studentErgebnis?.status} readOnly onSelect={() => {}} />
                 )}
               </div>
-
-              {/* LZ breakdown */}
-              {pruefungLZList.length > 0 && (
-                <div className="divide-y divide-border">
-                  <div className="px-4 py-2 bg-muted">
-                    <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Lernziele in dieser Prüfung</p>
-                  </div>
-                  {pruefungLZList.map(lz => (
-                    <LZStudentRow
-                      key={lz.id}
-                      lz={lz}
-                      status={student.lernzielStatus[lz.id]}
-                      skipped={isLZSkipped(lz, student, activeThemen)}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </div>

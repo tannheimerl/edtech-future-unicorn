@@ -16,7 +16,6 @@ export async function getCurrentTenantId(): Promise<string> {
 
 export async function fetchAllData() {
   const tenantId = await getCurrentTenantId()
-  const tenants = ['shared', tenantId]
 
   const [
     { data: dbFaecher,          error: e1 },
@@ -35,18 +34,19 @@ export async function fetchAllData() {
     { data: dbPruefungErg,      error: e14 },
     { data: dbTagKategorien,    error: e15 },
   ] = await Promise.all([
-    supabaseAdmin.from('dim_faecher').select('*').in('tenant_id', tenants),
-    supabaseAdmin.from('dim_themen').select('*').in('tenant_id', tenants),
-    supabaseAdmin.from('dim_lernziele').select('*').in('tenant_id', tenants),
-    supabaseAdmin.from('dim_lehrpersonen').select('*').in('tenant_id', tenants),
-    supabaseAdmin.from('dim_klassen').select('*').in('tenant_id', tenants),
-    supabaseAdmin.from('bridge_klasse_themen').select('*').in('tenant_id', tenants),
-    supabaseAdmin.from('bridge_lp_zuweisungen').select('*').in('tenant_id', tenants),
-    supabaseAdmin.from('dim_schueler').select('*').in('tenant_id', tenants),
-    supabaseAdmin.from('fact_lernziel_status').select('*').in('tenant_id', tenants),
-    supabaseAdmin.from('fact_rilz_lernziele').select('*').in('tenant_id', tenants),
-    supabaseAdmin.from('fact_kommentare').select('*').in('tenant_id', tenants),
-    supabaseAdmin.from('fact_thema_kommentare').select('*').in('tenant_id', tenants),
+    supabaseAdmin.from('dim_faecher').select('*').eq('tenant_id', tenantId),
+    supabaseAdmin.from('dim_themen').select('*').eq('tenant_id', tenantId),
+    supabaseAdmin.from('dim_lernziele').select('*').eq('tenant_id', tenantId),
+    // Lehrpersonen bleiben geteilte Identitäts-Referenz (kein Schreibpfad in der App).
+    supabaseAdmin.from('dim_lehrpersonen').select('*').in('tenant_id', ['shared', tenantId]),
+    supabaseAdmin.from('dim_klassen').select('*').eq('tenant_id', tenantId),
+    supabaseAdmin.from('bridge_klasse_themen').select('*').eq('tenant_id', tenantId),
+    supabaseAdmin.from('bridge_lp_zuweisungen').select('*').eq('tenant_id', tenantId),
+    supabaseAdmin.from('dim_schueler').select('*').eq('tenant_id', tenantId),
+    supabaseAdmin.from('fact_lernziel_status').select('*').eq('tenant_id', tenantId),
+    supabaseAdmin.from('fact_rilz_lernziele').select('*').eq('tenant_id', tenantId),
+    supabaseAdmin.from('fact_kommentare').select('*').eq('tenant_id', tenantId),
+    supabaseAdmin.from('fact_thema_kommentare').select('*').eq('tenant_id', tenantId),
     supabaseAdmin.from('fact_pruefungen').select('*').eq('tenant_id', tenantId),
     supabaseAdmin.from('fact_pruefung_ergebnisse').select('*').eq('tenant_id', tenantId),
     supabaseAdmin.from('dim_tag_kategorien').select('*').eq('tenant_id', tenantId).order('position'),

@@ -1,0 +1,13 @@
+{
+  "version": "1",
+  "exportedAt": "2026-06-24T10:00:00.000Z",
+  "fachName": "Mathe",
+  "thema": { "name": "Bruchrechnen", "typ": "standard", "stufe": [5, 6] },
+  "lernziele": [
+    { "kategorie": "grundlegend", "label": "Brüche erkennen und benennen" },
+    { "kategorie": "grundlegend", "label": "Brüche am Kreis- und Streifenmodell darstellen" },
+    { "kategorie": "grundlegend", "label": "Brüche kürzen und erweitern", "kriterien": ["gemeinsamen Teiler finden", "Zähler und Nenner anpassen"] },
+    { "kategorie": "anspruchsvoll", "label": "Gleichnamige Brüche addieren und subtrahieren" },
+    { "kategorie": "anspruchsvoll", "label": "Ungleichnamige Brüche addieren", "kriterien": ["Hauptnenner finden", "auf Hauptnenner erweitern"], "beschreibung": "Voraussetzung: Erweitern und Kürzen sicher beherrschen" }
+  ]
+}
