@@ -19,18 +19,18 @@ Lehrpersonen-Identitäten (`tenant_id = 'shared'`) sind geteilte Referenz.
 
 | Tester | Link |
 |--------|------|
-| Tester 1  | https://lezio.vercel.app/klassen?t=lz_t01_k4rp9 |
-| Tester 2  | https://lezio.vercel.app/klassen?t=lz_t02_m7xqn |
-| Tester 3  | https://lezio.vercel.app/klassen?t=lz_t03_bj3wv |
-| Tester 4  | https://lezio.vercel.app/klassen?t=lz_t04_fh8yz |
-| Tester 5  | https://lezio.vercel.app/klassen?t=lz_t05_qn2ts |
-| Tester 6  | https://lezio.vercel.app/klassen?t=lz_t06_dv6lx |
-| Tester 7  | https://lezio.vercel.app/klassen?t=lz_t07_rc1mu |
-| Tester 8  | https://lezio.vercel.app/klassen?t=lz_t08_gy5pj |
-| Tester 9  | https://lezio.vercel.app/klassen?t=lz_t09_wk0bz |
-| Tester 10 | https://lezio.vercel.app/klassen?t=lz_t10_nt4ea |
-| Tester 11 | https://lezio.vercel.app/klassen?t=lz_t11_hs8cf |
-| Tester 12 | https://lezio.vercel.app/klassen?t=lz_t12_xu7dk |
-| Tester 13 | https://lezio.vercel.app/klassen?t=lz_t13_pb3mn |
-| Tester 14 | https://lezio.vercel.app/klassen?t=lz_t14_jw6rq |
-| Tester 15 | https://lezio.vercel.app/klassen?t=lz_t15_ez9vl |
+| Tester 1  | https://lezio.vercel.app/klassen?t=lz_t01_k4rp9 | Bettina
+| Tester 2  | https://lezio.vercel.app/klassen?t=lz_t02_m7xqn | Lena
+| Tester 3  | https://lezio.vercel.app/klassen?t=lz_t03_bj3wv | Rebecca
+| Tester 4  | https://lezio.vercel.app/klassen?t=lz_t04_fh8yz | Nicole
+| Tester 5  | https://lezio.vercel.app/klassen?t=lz_t05_qn2ts | Larissa
+| Tester 6  | https://lezio.vercel.app/klassen?t=lz_t06_dv6lx | Maya
+| Tester 7  | https://lezio.vercel.app/klassen?t=lz_t07_rc1mu | Carla
+| Tester 8  | https://lezio.vercel.app/klassen?t=lz_t08_gy5pj | Daniel
+| Tester 9  | https://lezio.vercel.app/klassen?t=lz_t09_wk0bz | Beatrice
+| Tester 10 | https://lezio.vercel.app/klassen?t=lz_t10_nt4ea | Sibylle
+| Tester 11 | https://lezio.vercel.app/klassen?t=lz_t11_hs8cf | Eva 
+| Tester 12 | https://lezio.vercel.app/klassen?t=lz_t12_xu7dk | Fanny
+| Tester 13 | https://lezio.vercel.app/klassen?t=lz_t13_pb3mn | Adrian
+| Tester 14 | https://lezio.vercel.app/klassen?t=lz_t14_jw6rq | Sibylle Inaebnit
+| Tester 15 | https://lezio.vercel.app/klassen?t=lz_t15_ez9vl | Sibylla 
