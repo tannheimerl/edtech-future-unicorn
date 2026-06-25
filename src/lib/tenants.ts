@@ -17,6 +17,11 @@ export const TENANT_TOKENS: string[] = [
   'lz_t13_pb3mn',
   'lz_t14_jw6rq',
   'lz_t15_ez9vl',
+  'lz_t16_a3wmq',
+  'lz_t17_t8kpz',
+  'lz_t18_r5ndx',
+  'lz_t19_c2vhf',
+  'lz_t20_y7bqs',
 ]
 
 export const VALID_TENANT_IDS = new Set<string>([

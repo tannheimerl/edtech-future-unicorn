@@ -31,7 +31,12 @@ const supabase = createClient(
 )
 
 // Jeder Tester + 'dev' (für lokale Entwicklung via NEXT_PUBLIC_DEV_TENANT) bekommt eine Kopie.
-const DATA_TENANTS = [...TENANT_TOKENS, 'dev']
+// Optionaler CLI-Filter: werden Tenant-IDs als Argumente übergeben, werden NUR diese
+// befüllt (z.B. um neue Tester anzulegen, ohne bestehende live-Tester zu überschreiben):
+//   npx tsx --env-file=.env.local scripts/seed.ts lz_t16_a3wmq lz_t17_t8kpz …
+const ONLY = process.argv.slice(2).filter((a) => !a.startsWith('-'))
+const ALL_DATA_TENANTS = [...TENANT_TOKENS, 'dev']
+const DATA_TENANTS = ONLY.length > 0 ? ONLY : ALL_DATA_TENANTS
 
 // Seed 5a (k1) und 5b (k2), nicht 7c (k3).
 const SHARED_CLASS_IDS = new Set(['k1', 'k2'])
