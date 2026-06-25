@@ -171,9 +171,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [tagKategorien, setTagKategorien] = useState<TagKategorie[]>([])
   const competencies = SEED_COMPETENCIES
 
-  // Load all data from Supabase on mount
-  useEffect(() => {
-    fetchAllData()
+  // Reload all data from Supabase into context state. Used on mount and to
+  // resync the optimistic UI with the DB after a failed write.
+  const reloadData = useCallback(() => {
+    return fetchAllData()
       .then((data) => {
         setFaecher(data.faecher)
         setThemen(data.themen)
@@ -188,8 +189,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setTagKategorien(data.tagKategorien)
       })
       .catch((err) => console.error('fetchAllData failed:', err))
-      .finally(() => setIsLoading(false))
   }, [])
+
+  // Load all data from Supabase on mount
+  useEffect(() => {
+    reloadData().finally(() => setIsLoading(false))
+  }, [reloadData])
 
   // ── Queries ──────────────────────────────────────────────────────────
 
@@ -616,8 +621,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       prev.map((c) => ({ ...c, assignedThemaIds: c.assignedThemaIds.filter((tid) => tid !== id) }))
     )
     setThemen((prev) => prev.filter((t) => t.id !== id))
-    dbDeleteThema(id)
-  }, [])
+    dbDeleteThema(id).then((error) => {
+      if (error) {
+        console.error('dbDeleteThema failed, reloading:', error.message)
+        reloadData() // optimistic removal war falsch → DB-Wahrheit wiederherstellen
+      }
+    })
+  }, [reloadData])
 
   // ── Tag-Kategorien ────────────────────────────────────────────────────
 
