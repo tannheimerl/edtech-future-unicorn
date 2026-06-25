@@ -2,8 +2,10 @@
 
 15 individuelle Links für die MVP-Testnutzer. Jeder Link gehört zu einer eigenen
 `tenant_id` (= Token). Daten, die ein Tester anlegt, sieht **nur dieser Tester**.
-Die geteilte Basisklasse 5a/5b (`tenant_id = 'shared'`) ist für alle als
-read-only Referenz sichtbar.
+Jeder Tester startet mit einer **eigenen, vollständigen Kopie** der Basisdaten
+(Klassen 5a/5b samt Bibliothek). Diese Kopien sind voneinander isoliert: Hinzufügen,
+Bearbeiten und Löschen wirkt ausschliesslich im eigenen Tenant. Lediglich die
+Lehrpersonen-Identitäten (`tenant_id = 'shared'`) sind geteilte Referenz.
 
 ## So funktioniert es
 
