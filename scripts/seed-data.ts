@@ -1,13 +1,4 @@
-﻿import type { Klasse, Schueler, Kompetenz, Fach, Thema, Lernziel, Lehrperson, AssessmentKommentar, Status, StatusSnapshot } from '@/types/domain'
-
-export const SEED_COMPETENCIES: Kompetenz[] = [
-  { id: 'c1', label: 'Mathematische Grundlagen' },
-  { id: 'c2', label: 'Leseverstehen' },
-  { id: 'c3', label: 'Problemlösekompetenz' },
-  { id: 'c4', label: 'Mündliche Kommunikation' },
-  { id: 'c5', label: 'Schriftlicher Ausdruck' },
-  { id: 'c6', label: 'Kooperationsfähigkeit' },
-]
+﻿import type { Klasse, Schueler, Fach, Thema, Lernziel, Lehrperson, AssessmentKommentar, Status, StatusSnapshot } from '../src/types/domain'
 
 export const SEED_FAECHER: Fach[] = [
   { id: 'f1', name: 'Deutsch' },

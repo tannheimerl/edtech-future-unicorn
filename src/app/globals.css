@@ -50,6 +50,32 @@
   --color-status-partial: var(--status-partial);
   --color-status-not-reached: var(--status-not-reached);
 
+  /* Soft chip backgrounds + matching foreground per status */
+  --color-status-reached-soft: var(--status-reached-soft);
+  --color-status-reached-fg: var(--status-reached-fg);
+  --color-status-partial-soft: var(--status-partial-soft);
+  --color-status-partial-fg: var(--status-partial-fg);
+  --color-status-not-reached-soft: var(--status-not-reached-soft);
+  --color-status-not-reached-fg: var(--status-not-reached-fg);
+  --color-status-none-soft: var(--status-none-soft);
+  --color-status-none-fg: var(--status-none-fg);
+
+  /* ── RILZ — semantic accent for RILZ students ──────────────── */
+  --color-rilz: var(--rilz);
+  --color-rilz-foreground: var(--rilz-foreground);
+  --color-rilz-soft: var(--rilz-soft);
+  --color-rilz-border: var(--rilz-border);
+
+  /* ── Category accents (Anspruchsniveau / Badges) ───────────── */
+  --color-category-grundlegend: var(--category-grundlegend);
+  --color-category-anspruchsvoll: var(--category-anspruchsvoll);
+  --color-category-grundlegend-soft: var(--category-grundlegend-soft);
+  --color-category-grundlegend-fg: var(--category-grundlegend-fg);
+  --color-category-anspruchsvoll-soft: var(--category-anspruchsvoll-soft);
+  --color-category-anspruchsvoll-fg: var(--category-anspruchsvoll-fg);
+  --color-category-bvsa-soft: var(--category-bvsa-soft);
+  --color-category-bvsa-fg: var(--category-bvsa-fg);
+
   /* ── Radius — friendly rounding ────────────────────────────── */
   --radius-sm: calc(var(--radius) * 0.5);
   --radius-md: var(--radius);
@@ -100,6 +126,32 @@
   --status-partial: oklch(0.769 0.188 70.08);      /* amber */
   --status-not-reached: oklch(0.577 0.245 27.325); /* red */
 
+  /* Status — soft chip backgrounds (~Tailwind -100) + readable fg (~-700) */
+  --status-reached-soft: oklch(0.95 0.045 142.5);
+  --status-reached-fg: oklch(0.52 0.13 142.5);
+  --status-partial-soft: oklch(0.96 0.05 80);
+  --status-partial-fg: oklch(0.55 0.12 70);
+  --status-not-reached-soft: oklch(0.94 0.04 27);
+  --status-not-reached-fg: oklch(0.55 0.20 27);
+  --status-none-soft: oklch(0.95 0.004 265);       /* neutral, "nicht bewertet" */
+  --status-none-fg: oklch(0.55 0.01 265);
+
+  /* RILZ accent (warm orange) */
+  --rilz: oklch(0.70 0.17 55);
+  --rilz-foreground: oklch(0.50 0.13 50);
+  --rilz-soft: oklch(0.96 0.04 70);
+  --rilz-border: oklch(0.90 0.06 62);
+
+  /* Category accents */
+  --category-grundlegend: oklch(0.62 0.02 255);       /* solid (active toggles) */
+  --category-anspruchsvoll: oklch(0.60 0.19 293);
+  --category-grundlegend-soft: oklch(0.96 0.004 255);
+  --category-grundlegend-fg: oklch(0.45 0.02 255);
+  --category-anspruchsvoll-soft: oklch(0.96 0.02 295);
+  --category-anspruchsvoll-fg: oklch(0.49 0.18 293);
+  --category-bvsa-soft: oklch(0.95 0.03 305);
+  --category-bvsa-fg: oklch(0.50 0.20 303);
+
   --border: oklch(0.88 0.004 265);
   --input: oklch(0.90 0.003 265);
   --ring: oklch(0.47 0.15 265);              /* primary color for focus rings */
@@ -136,6 +188,32 @@
   --status-partial: oklch(0.837 0.167 84.429);
   --status-not-reached: oklch(0.704 0.191 22.216);
 
+  /* Status — soft chips: dark muted background, light readable fg */
+  --status-reached-soft: oklch(0.30 0.06 142.5);
+  --status-reached-fg: oklch(0.82 0.16 149.5);
+  --status-partial-soft: oklch(0.32 0.05 80);
+  --status-partial-fg: oklch(0.85 0.14 84);
+  --status-not-reached-soft: oklch(0.32 0.07 27);
+  --status-not-reached-fg: oklch(0.80 0.14 25);
+  --status-none-soft: oklch(0.25 0.01 265);
+  --status-none-fg: oklch(0.65 0.01 265);
+
+  /* RILZ accent (warm orange) */
+  --rilz: oklch(0.72 0.16 58);
+  --rilz-foreground: oklch(0.82 0.13 62);
+  --rilz-soft: oklch(0.30 0.06 55);
+  --rilz-border: oklch(0.42 0.08 55);
+
+  /* Category accents */
+  --category-grundlegend: oklch(0.55 0.02 255);       /* solid (active toggles) */
+  --category-anspruchsvoll: oklch(0.58 0.18 293);
+  --category-grundlegend-soft: oklch(0.26 0.008 255);
+  --category-grundlegend-fg: oklch(0.78 0.02 255);
+  --category-anspruchsvoll-soft: oklch(0.28 0.05 295);
+  --category-anspruchsvoll-fg: oklch(0.80 0.12 295);
+  --category-bvsa-soft: oklch(0.29 0.06 305);
+  --category-bvsa-fg: oklch(0.82 0.13 303);
+
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 14%);
   --ring: oklch(0.65 0.13 265);
@@ -158,6 +236,16 @@
   /* Subtle indigo-tinted shadow on all cards */
   [data-slot="card"] {
     box-shadow: 0 1px 3px 0 oklch(0.47 0.15 265 / 0.07), 0 1px 2px -1px oklch(0.47 0.15 265 / 0.05);
+  }
+
+  /* ── Typography helpers — one source of truth for heading levels ──
+     Use instead of ad-hoc text-2xl / text-sm on headings so every page
+     and section shares the same scale. */
+  .heading-page {
+    @apply text-2xl font-bold tracking-tight;
+  }
+  .heading-section {
+    @apply text-sm font-semibold;
   }
 }
 

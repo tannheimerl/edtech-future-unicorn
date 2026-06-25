@@ -42,7 +42,7 @@ export function Modal({
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
-        {children && <div className="py-1">{children}</div>}
+        {children && <div className="py-1 min-w-0 w-full overflow-hidden">{children}</div>}
         {footer && <DialogFooter>{footer}</DialogFooter>}
       </DialogContent>
     </Dialog>

@@ -2,7 +2,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { getCurrentTenantId } from './db-read'
-import type { Fach, Thema, Lernziel, Klasse, Schueler, AssessmentKommentar, ThemaKommentar, RilzLernziel, Status, Pruefung, PruefungErgebnis, KlasseBeurteilungSettings } from '@/types/domain'
+import type { Fach, Thema, Lernziel, Klasse, Schueler, AssessmentKommentar, ThemaKommentar, RilzLernziel, Status, Pruefung, PruefungErgebnis, KlasseBeurteilungSettings, TagKategorie } from '@/types/domain'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -153,7 +153,8 @@ export async function dbDeleteThemaKommentar(studentId: string, themaId: string)
 export async function dbSaveFach(f: Fach) {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_faecher').upsert(
-    { id: f.id, name: f.name, tenant_id: tenantId }, { onConflict: 'id' }
+    { id: f.id, name: f.name, color_index: f.colorIndex ?? null, tenant_id: tenantId },
+    { onConflict: 'id' }
   )
   log('dbSaveFach', error)
 }
@@ -176,9 +177,25 @@ export async function dbSaveThema(t: Thema) {
     zyklus: t.zyklus ?? null,
     autor: t.autor ?? null,
     autor_lp_id: t.autorLpId ?? null,
+    tags: t.tags ?? {},
     tenant_id: tenantId,
   }, { onConflict: 'id' })
   log('dbSaveThema', error)
+}
+
+// ── Tag-Kategorien ────────────────────────────────────────────────────────────
+
+export async function dbSaveTagKategorie(kat: TagKategorie) {
+  const tenantId = await getCurrentTenantId()
+  const { error } = await supabaseAdmin.from('dim_tag_kategorien').upsert({
+    id: kat.id, name: kat.name, lp_id: kat.lpId ?? null, tenant_id: tenantId,
+  }, { onConflict: 'id' })
+  log('dbSaveTagKategorie', error)
+}
+
+export async function dbDeleteTagKategorie(id: string) {
+  const { error } = await supabaseAdmin.from('dim_tag_kategorien').delete().eq('id', id)
+  log('dbDeleteTagKategorie', error)
 }
 
 export async function dbDeleteThema(id: string) {

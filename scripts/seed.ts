@@ -14,7 +14,7 @@ import {
   SEED_LEHRPERSONEN,
   SEED_CLASSES,
   SEED_STUDENTS,
-} from '../src/lib/mock-data'
+} from './seed-data'
 import { TENANT_TOKENS } from '../src/lib/tenants'
 
 const supabase = createClient(

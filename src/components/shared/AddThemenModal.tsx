@@ -14,7 +14,7 @@ type Step = 'picker' | 'browse' | 'upload'
 
 const STEP_TITLE: Record<Step, string> = {
   picker: 'Thema hinzufügen',
-  browse: 'Aus Lernzielsammlung',
+  browse: 'Aus deiner Lernzielsammlung',
   upload: 'Thema hochladen',
 }
 const STEP_SIZE: Record<Step, 'xs' | 'sm' | 'md' | 'lg'> = {
@@ -28,12 +28,14 @@ function ThemaRow({
   lzCount,
   selected,
   disabled,
+  disabledLabel,
   onToggle,
 }: {
   thema: Thema
   lzCount: number
   selected: boolean
   disabled: boolean
+  disabledLabel?: string
   onToggle?: () => void
 }) {
   const today = new Date().toISOString().slice(0, 10)
@@ -51,12 +53,12 @@ function ThemaRow({
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-xl border-2 p-3 transition-all',
+        'flex items-center gap-3 rounded-2xl border p-3 transition-all',
         disabled
           ? 'border-border/50 opacity-50 cursor-default'
           : selected
             ? 'cursor-pointer border-primary bg-primary/5'
-            : 'cursor-pointer border-border hover:border-primary/40 hover:bg-accent/30',
+            : 'cursor-pointer border-border hover:border-primary/40 hover:bg-accent',
       )}
       onClick={disabled ? undefined : onToggle}
     >
@@ -71,7 +73,7 @@ function ThemaRow({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{thema.name}</p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          {disabled ? 'Bereits zugewiesen' : `${lzCount} Lernziel${lzCount !== 1 ? 'e' : ''}`}
+          {disabled ? (disabledLabel ?? 'Bereits zugewiesen') : `${lzCount} Lernziel${lzCount !== 1 ? 'e' : ''}`}
         </p>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
@@ -84,9 +86,9 @@ function ThemaRow({
           <span className={cn(
             'rounded px-1.5 py-0.5 text-[10px] tabular-nums',
             isOverdue
-              ? 'bg-rose-100 text-rose-600 font-medium'
+              ? 'bg-status-not-reached-soft text-status-not-reached-fg font-medium'
               : isNearDeadline
-                ? 'bg-amber-100 text-amber-600'
+                ? 'bg-status-partial-soft text-status-partial-fg'
                 : 'bg-muted text-muted-foreground',
           )}>
             {new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
@@ -110,7 +112,7 @@ export function AddThemenModal({
   onCreateNew?: () => void
 }) {
   const {
-    faecher, themen, lernziele, currentLpId,
+    faecher, themen, lernziele, currentLpId, classes,
     getClass, createThema, updateThema, createLernziel,
   } = useData()
 
@@ -156,7 +158,21 @@ export function AddThemenModal({
     return true
   })
 
-  const browseAvailable = filteredThemen.filter(t => !assignedThemaIds.includes(t.id))
+  // Map: themaId → Klassenname für Themen in anderen Klassen
+  const themaInOtherKlasse = new Map<string, string>()
+  for (const c of classes) {
+    if (c.id === klassId) continue
+    for (const tId of c.assignedThemaIds) {
+      themaInOtherKlasse.set(tId, c.name)
+    }
+  }
+
+  const browseAvailable = filteredThemen.filter(
+    t => !assignedThemaIds.includes(t.id) && !themaInOtherKlasse.has(t.id)
+  )
+  const browseInOtherKlasse = filteredThemen.filter(
+    t => !assignedThemaIds.includes(t.id) && themaInOtherKlasse.has(t.id)
+  )
   const browseAlready = baseThemen.filter(t =>
     assignedThemaIds.includes(t.id) &&
     (browseFach === 'alle' || t.fachId === browseFach)
@@ -234,7 +250,7 @@ export function AddThemenModal({
       {step === 'picker' && (
         <div className="grid gap-2 pt-1 pb-2">
           {([
-            { s: 'browse' as Step | 'create', Icon: BookOpen, label: 'Aus Lernzielsammlung', desc: 'Bestehendes Thema zuweisen' },
+            { s: 'browse' as Step | 'create', Icon: BookOpen, label: 'Aus deiner Lernzielsammlung', desc: 'Bestehendes Thema zuweisen' },
             { s: 'create', Icon: Plus, label: 'Neu erstellen', desc: 'Eigenes Thema mit Lernzielen' },
             { s: 'upload' as Step | 'create', Icon: Upload, label: 'Hochladen', desc: '.lezio-Datei importieren' },
           ] as { s: Step | 'create'; Icon: React.FC<{ className?: string }>; label: string; desc: string }[]).map(({ s, Icon, label, desc }) => (
@@ -244,7 +260,7 @@ export function AddThemenModal({
                 if (s === 'create') { onCreateNew?.(); onOpenChange(false) }
                 else setStep(s)
               }}
-              className="flex items-center gap-3 rounded-xl border-2 border-border p-3.5 text-left hover:border-primary/40 hover:bg-accent/20 transition-all"
+              className="flex items-center gap-3 rounded-2xl border border-border p-3.5 text-left hover:border-primary/40 hover:bg-accent transition-all"
             >
               <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
                 <Icon className="size-4 text-muted-foreground" />
@@ -319,6 +335,25 @@ export function AddThemenModal({
                 <div className="space-y-1.5">
                   {browseAlready.map(t => (
                     <ThemaRow key={t.id} thema={t} lzCount={browseLzCount(t.id)} selected={false} disabled onToggle={undefined} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {browseInOtherKlasse.length > 0 && (
+              <div className="pt-2 border-t border-border/60">
+                <p className="text-xs text-muted-foreground mb-1.5">In anderer Klasse</p>
+                <div className="space-y-1.5">
+                  {browseInOtherKlasse.map(t => (
+                    <ThemaRow
+                      key={t.id}
+                      thema={t}
+                      lzCount={browseLzCount(t.id)}
+                      selected={false}
+                      disabled
+                      disabledLabel={`In ${themaInOtherKlasse.get(t.id)}`}
+                      onToggle={undefined}
+                    />
                   ))}
                 </div>
               </div>

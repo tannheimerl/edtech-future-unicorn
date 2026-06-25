@@ -1,12 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Plus, Trash2, X } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal } from '@/components/shared/Modal'
+import { ModalRow } from '@/components/shared/ModalRow'
+import { InputModal } from '@/components/shared/InputModal'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import type { LernzielKategorie } from '@/types/domain'
 
@@ -16,26 +19,88 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
   fachId: string
   onCreated?: (themaId: string) => void
 }) {
-  const { createThema, updateThema, createLernziel } = useData()
+  const {
+    faecher, tagKategorien, getTagWerte, createTagKategorie, deleteTagKategorie,
+    createThema, updateThema, createLernziel,
+  } = useData()
+
+  const [step, setStep] = useState<'meta' | 'lernziele'>('meta')
+
+  // Meta state
   const [name, setName] = useState('')
+  const [localFachId, setLocalFachId] = useState(fachId)
   const [typ, setTyp] = useState<'standard' | 'rilz'>('standard')
-  const [stufe, setStufe] = useState<number | ''>('')
-  const [faelligAm, setFaelligAm] = useState('')
+  const [stufe, setStufe] = useState<number | undefined>()
+  const [localTagValues, setLocalTagValues] = useState<Record<string, string>>({})
+  const [openRowId, setOpenRowId] = useState<string | null>(null)
+  const [deleteKatId, setDeleteKatId] = useState<string | null>(null)
+  const [addValueKatId, setAddValueKatId] = useState<string | null>(null)
+  const [newKatOpen, setNewKatOpen] = useState(false)
+
+  // Lernziele state
   const [lernziele, setLernziele] = useState<{ id: string; label: string; kategorie: LernzielKategorie }[]>([])
   const [newLzG, setNewLzG] = useState('')
   const [newLzA, setNewLzA] = useState('')
 
   useEffect(() => {
     if (open) {
+      setStep('meta')
       setName('')
+      setLocalFachId(fachId)
       setTyp('standard')
-      setStufe('')
-      setFaelligAm('')
+      setStufe(undefined)
+      setLocalTagValues({})
+      setOpenRowId(null)
       setLernziele([])
       setNewLzG('')
       setNewLzA('')
     }
-  }, [open])
+  }, [open, fachId])
+
+  function openRow(id: string, isOpen: boolean) {
+    setOpenRowId(isOpen ? id : null)
+  }
+
+  function setTagValue(katId: string, value: string) {
+    setLocalTagValues(prev => ({ ...prev, [katId]: prev[katId] === value ? '' : value }))
+    setOpenRowId(null)
+  }
+
+  function renderSimpleOptions(
+    opts: { value: string; label: string }[],
+    current: string,
+    onSelect: (v: string) => void,
+    clearLabel?: string
+  ) {
+    return (
+      <div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto">
+        {clearLabel && current && (
+          <button
+            onClick={() => { onSelect(''); setOpenRowId(null) }}
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 text-left"
+          >
+            <X className="size-3 shrink-0" />{clearLabel}
+          </button>
+        )}
+        {opts.map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => { onSelect(opt.value); setOpenRowId(null) }}
+            className={cn(
+              'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors text-left',
+              opt.value === current ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted/60 text-foreground'
+            )}
+          >
+            {opt.value === current
+              ? <Check className="size-3 shrink-0" />
+              : <span className="size-3 shrink-0" />
+            }
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    )
+  }
 
   function addLzG() {
     if (!newLzG.trim()) return
@@ -49,13 +114,16 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
     setNewLzA('')
   }
 
-  function submit(e?: React.FormEvent) {
-    e?.preventDefault()
+  function submit() {
     if (!name.trim()) return
-    const id = createThema(fachId, name.trim(), typ)
+    const id = createThema(localFachId, name.trim(), typ)
     updateThema(id, {
-      stufe: stufe !== '' ? [stufe as number] : undefined,
-      faelligAm: faelligAm || undefined,
+      stufe: stufe ? [stufe] : undefined,
+      tags: Object.fromEntries(
+        Object.entries(localTagValues)
+          .filter(([, v]) => v.trim())
+          .map(([k, v]) => [k, [v]])
+      ),
     })
     for (const lz of lernziele) {
       createLernziel(id, lz.label, lz.kategorie)
@@ -64,75 +132,163 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
     onOpenChange(false)
   }
 
+  const grundlegendLZ = lernziele.filter(lz => lz.kategorie === 'grundlegend')
+  const anspruchsvollLZ = lernziele.filter(lz => lz.kategorie === 'anspruchsvoll')
+
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title="Neues Thema" size="md"
-      footer={
-        <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
-          <Button onClick={() => submit()} disabled={!name.trim()}>Erstellen</Button>
-        </>
-      }
-    >
-      <form onSubmit={submit} className="grid gap-3">
-        <div className="grid gap-1.5">
-          <Label>Themabezeichnung</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="z. B. Zahlen & Rechnen" autoFocus />
-        </div>
-
-        {/* Typ-Toggle */}
-        <div className="grid gap-1.5">
-          <Label>Typ</Label>
-          <div className="flex rounded-lg border overflow-hidden h-8">
-            {(['standard', 'rilz'] as const).map(t => (
-              <button key={t} type="button" onClick={() => setTyp(t)}
-                className={cn(
-                  'flex-1 text-xs font-medium transition-colors',
-                  typ === t
-                    ? t === 'rilz' ? 'bg-orange-500 text-white' : 'bg-primary text-primary-foreground'
-                    : 'bg-background text-muted-foreground hover:bg-muted',
-                )}>
-                {t === 'standard' ? 'Standard' : 'RILZ'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Schulstufe | Fällig am */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="grid gap-1.5">
-            <Label>Schulstufe</Label>
-            <select
-              value={stufe}
-              onChange={(e) => setStufe(e.target.value ? Number(e.target.value) : '')}
-              className="h-8 text-xs rounded-lg border border-border bg-background px-2 focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="">— keine —</option>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
-                <option key={n} value={n}>Klasse {n}</option>
-              ))}
-            </select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label>Fällig am <span className="font-normal text-muted-foreground">(opt.)</span></Label>
-            <Input type="date" lang="de" value={faelligAm} onChange={e => setFaelligAm(e.target.value)} />
-          </div>
-        </div>
-
-        {/* Lernziele */}
-        <div className="grid gap-1.5">
-          <Label>Lernziele</Label>
-          <div className="rounded-lg border border-border overflow-hidden divide-y divide-border/40">
-            {/* Grundlegend */}
-            <div>
-              <div className="px-2 py-1 bg-muted/30">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Grundlegend</span>
+    <>
+      <Modal
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Neues Thema"
+        size="md"
+        footer={
+          step === 'meta' ? (
+            <div className="flex items-center justify-end gap-2 w-full">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
+              <Button onClick={() => setStep('lernziele')} disabled={!name.trim()}>
+                Weiter <ChevronRight className="size-3.5 ml-0.5" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between w-full gap-2">
+              <Button variant="ghost" onClick={() => setStep('meta')} className="text-muted-foreground">
+                <ChevronLeft className="size-3.5 mr-0.5" /> Zurück
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
+                <Button onClick={submit} disabled={!name.trim()}>Erstellen</Button>
               </div>
-              {lernziele.filter(lz => lz.kategorie === 'grundlegend').map(lz => (
-                <div key={lz.id} className="flex items-center gap-2 px-2 py-1.5 border-t border-border/30">
+            </div>
+          )
+        }
+      >
+        {/* Step 1: Meta */}
+        {step === 'meta' && (
+          <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Bezeichnung</Label>
+              <Input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="z. B. Zahlen & Rechnen"
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-1 border-t border-border/40 pt-2">
+              {/* Fach — only if multiple Fächer exist */}
+              {faecher.length > 1 && (
+                <ModalRow
+                  label="Fach"
+                  displayValue={faecher.find(f => f.id === localFachId)?.name}
+                  open={openRowId === 'fach'}
+                  onOpenChange={v => openRow('fach', v)}
+                >
+                  {renderSimpleOptions(
+                    faecher.map(f => ({ value: f.id, label: f.name })),
+                    localFachId,
+                    setLocalFachId
+                  )}
+                </ModalRow>
+              )}
+
+              {/* Typ */}
+              <ModalRow
+                label="Typ"
+                displayValue={typ === 'rilz' ? 'RILZ' : 'Standard'}
+                open={openRowId === 'typ'}
+                onOpenChange={v => openRow('typ', v)}
+              >
+                {renderSimpleOptions(
+                  [{ value: 'standard', label: 'Standard' }, { value: 'rilz', label: 'RILZ' }],
+                  typ,
+                  v => setTyp(v as 'standard' | 'rilz')
+                )}
+              </ModalRow>
+
+              {/* Schulstufe */}
+              <ModalRow
+                label="Schulstufe"
+                displayValue={stufe ? `Kl. ${stufe}` : undefined}
+                placeholder="keine"
+                open={openRowId === 'stufe'}
+                onOpenChange={v => openRow('stufe', v)}
+              >
+                {renderSimpleOptions(
+                  [1,2,3,4,5,6,7,8,9].map(n => ({ value: String(n), label: `Kl. ${n}` })),
+                  stufe ? String(stufe) : '',
+                  v => setStufe(v ? Number(v) : undefined),
+                  'Keine Auswahl'
+                )}
+              </ModalRow>
+
+              {/* Tag categories */}
+              {tagKategorien.map(kat => {
+                const currentVal = localTagValues[kat.id] ?? ''
+                const allVals = getTagWerte(kat.id)
+
+                return (
+                  <ModalRow
+                    key={kat.id}
+                    label={kat.name}
+                    displayValue={currentVal || undefined}
+                    open={openRowId === kat.id}
+                    onOpenChange={v => openRow(kat.id, v)}
+                  >
+                    {renderSimpleOptions(
+                      allVals.map(v => ({ value: v, label: v })),
+                      currentVal,
+                      v => setTagValue(kat.id, v),
+                      'Auswahl aufheben',
+                    )}
+                    <div className="border-t border-border/40 mt-0.5 pt-0.5">
+                      <button
+                        onClick={() => setAddValueKatId(kat.id)}
+                        className="flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-md text-xs text-primary hover:bg-primary/5 transition-colors"
+                      >
+                        <Plus className="size-3 shrink-0" />
+                        Wert hinzufügen
+                      </button>
+                      <button
+                        onClick={() => { setDeleteKatId(kat.id); setOpenRowId(null) }}
+                        className="flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
+                      >
+                        <Trash2 className="size-3 shrink-0" />
+                        Kategorie löschen
+                      </button>
+                    </div>
+                  </ModalRow>
+                )
+              })}
+
+              {/* Add category */}
+              <button
+                onClick={() => setNewKatOpen(true)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-3 py-1.5 w-full"
+              >
+                <Plus className="size-3" />
+                Kategorie hinzufügen
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Lernziele */}
+        {step === 'lernziele' && (
+          <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
+            {/* Grundlegend */}
+            <div className="border-b border-border/40">
+              <div className="px-1 py-1 bg-muted/20">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
+              </div>
+              {grundlegendLZ.length === 0 && (
+                <p className="px-1 py-1.5 text-[10px] text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
+              )}
+              {grundlegendLZ.map(lz => (
+                <div key={lz.id} className="flex items-center gap-2 px-1 py-1.5 border-t border-border/30">
                   <span className="flex-1 text-xs leading-snug">{lz.label}</span>
                   <button
-                    type="button"
                     onClick={() => setLernziele(prev => prev.filter(x => x.id !== lz.id))}
                     className="shrink-0 text-muted-foreground/40 hover:text-destructive transition-colors"
                     aria-label="Entfernen"
@@ -141,29 +297,28 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
                   </button>
                 </div>
               ))}
-              <div className="flex items-center gap-1.5 px-2 py-1.5 bg-muted/10 border-t border-border/30">
-                <Input
-                  value={newLzG}
-                  onChange={e => setNewLzG(e.target.value)}
+              <div className="flex items-center gap-1.5 px-1 py-1.5 border-t border-border/30">
+                <Input value={newLzG} onChange={e => setNewLzG(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLzG() } }}
-                  placeholder="Grundlegendes Lernziel…"
-                  className="h-6 text-xs flex-1"
-                />
-                <Button type="button" size="icon-sm" variant="outline" onClick={addLzG} disabled={!newLzG.trim()}>
+                  placeholder="Grundlegendes Lernziel…" className="h-6 text-xs flex-1" />
+                <Button size="icon-sm" variant="outline" onClick={addLzG} disabled={!newLzG.trim()}>
                   <Plus className="size-3" />
                 </Button>
               </div>
             </div>
+
             {/* Anspruchsvoll */}
             <div>
-              <div className="px-2 py-1 bg-muted/30">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-500">Anspruchsvoll</span>
+              <div className="px-1 py-1 bg-muted/20">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
               </div>
-              {lernziele.filter(lz => lz.kategorie === 'anspruchsvoll').map(lz => (
-                <div key={lz.id} className="flex items-center gap-2 px-2 py-1.5 border-t border-border/30">
+              {anspruchsvollLZ.length === 0 && (
+                <p className="px-1 py-1.5 text-[10px] text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
+              )}
+              {anspruchsvollLZ.map(lz => (
+                <div key={lz.id} className="flex items-center gap-2 px-1 py-1.5 border-t border-border/30">
                   <span className="flex-1 text-xs leading-snug">{lz.label}</span>
                   <button
-                    type="button"
                     onClick={() => setLernziele(prev => prev.filter(x => x.id !== lz.id))}
                     className="shrink-0 text-muted-foreground/40 hover:text-destructive transition-colors"
                     aria-label="Entfernen"
@@ -172,22 +327,45 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
                   </button>
                 </div>
               ))}
-              <div className="flex items-center gap-1.5 px-2 py-1.5 bg-muted/10 border-t border-border/30">
-                <Input
-                  value={newLzA}
-                  onChange={e => setNewLzA(e.target.value)}
+              <div className="flex items-center gap-1.5 px-1 py-1.5 border-t border-border/30">
+                <Input value={newLzA} onChange={e => setNewLzA(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLzA() } }}
-                  placeholder="Anspruchsvolles Lernziel…"
-                  className="h-6 text-xs flex-1"
-                />
-                <Button type="button" size="icon-sm" variant="outline" onClick={addLzA} disabled={!newLzA.trim()}>
+                  placeholder="Anspruchsvolles Lernziel…" className="h-6 text-xs flex-1" />
+                <Button size="icon-sm" variant="outline" onClick={addLzA} disabled={!newLzA.trim()}>
                   <Plus className="size-3" />
                 </Button>
               </div>
             </div>
           </div>
-        </div>
-      </form>
-    </Modal>
+        )}
+
+        <ConfirmDialog
+          open={!!deleteKatId}
+          onOpenChange={(o) => { if (!o) setDeleteKatId(null) }}
+          title="Kategorie löschen"
+          description="Soll diese Tag-Kategorie wirklich gelöscht werden? Alle zugewiesenen Werte in den Themen bleiben erhalten, sind aber nicht mehr filterbar."
+          confirmLabel="Löschen"
+          onConfirm={() => { if (deleteKatId) { deleteTagKategorie(deleteKatId); setDeleteKatId(null) } }}
+        />
+      </Modal>
+
+      <InputModal
+        open={newKatOpen}
+        onOpenChange={setNewKatOpen}
+        title="Neue Tag-Kategorie"
+        label="Bezeichnung"
+        placeholder="z. B. Semester, Lerngruppe …"
+        onSubmit={(name) => { createTagKategorie(name) }}
+      />
+
+      <InputModal
+        open={!!addValueKatId}
+        onOpenChange={(o) => { if (!o) setAddValueKatId(null) }}
+        title="Wert hinzufügen"
+        label="Wert"
+        placeholder="z. B. 1"
+        onSubmit={(v) => { if (addValueKatId) setTagValue(addValueKatId, v) }}
+      />
+    </>
   )
 }

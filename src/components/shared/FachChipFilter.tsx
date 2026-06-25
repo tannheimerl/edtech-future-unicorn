@@ -36,7 +36,7 @@ export function FachChipFilter({ faecher, allFachIds, selectedIds, onChange }: F
         Alle
       </button>
       {faecher.map((f) => {
-        const fc = getFachColor(f.id, allFachIds)
+        const fc = getFachColor(f.id, allFachIds, f.colorIndex)
         const isActive = selectedIds.includes(f.id)
         return (
           <button

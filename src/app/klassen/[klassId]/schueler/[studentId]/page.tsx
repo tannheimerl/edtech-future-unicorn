@@ -1,24 +1,19 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
-import { StudentVerlauf } from '@/components/analytics/StudentVerlauf'
-import { LernzielStatusDonut } from '@/components/analytics/LernzielStatusDonut'
-import { StudentKpiTiles } from '@/components/student/StudentKpiTiles'
+import { StudentAnalytics } from '@/components/analytics/StudentAnalytics'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
 import { SectionBlock } from '@/components/shared/SectionBlock'
+import { StatusCell } from '@/components/shared/StatusCell'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Breadcrumb } from '@/components/shared/Breadcrumb'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 import { computeStudentKpis } from '@/lib/student-kpis'
-import { cn, getFachColor, scoreColor } from '@/lib/utils'
-import type { Status } from '@/types/domain'
-import { STATUS_LABELS, STATUS_CYCLE } from '@/types/domain'
+import { cn, getFachColor, scoreColor, statusChipClasses, categoryChipClasses } from '@/lib/utils'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -34,52 +29,15 @@ function StackedBar({ reached, partial, total }: { reached: number; partial: num
   )
 }
 
-// ── Status selector ───────────────────────────────────────────────────────
-
-const STATUS_ACTIVE_CLASS: Record<Status, string> = {
-  reached:           'bg-emerald-500 text-white border-transparent shadow-sm',
-  partially_reached: 'bg-amber-400 text-white border-transparent shadow-sm',
-  not_reached:       'bg-red-400 text-white border-transparent shadow-sm',
-}
-
-function StatusSelector({ studentId, itemId, current, onUpdate }: {
-  studentId: string
-  itemId: string
-  current: Status
-  onUpdate: (studentId: string, itemId: string, status: Status) => void
-}) {
-  return (
-    <div className="flex flex-wrap gap-1">
-      {STATUS_CYCLE.map((status) => (
-        <button
-          key={status}
-          onClick={() => onUpdate(studentId, itemId, status)}
-          className={cn(
-            'whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium transition-all',
-            status === current
-              ? STATUS_ACTIVE_CLASS[status]
-              : 'border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-          )}
-        >
-          {STATUS_LABELS[status]}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────
 
 export default function SchuelerDetailPage() {
   const { klassId, studentId } = useParams<{ klassId: string; studentId: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const {
     getClass,
     getStudent,
-    updateStudent,
-    updateLernzielStatus,
-    setRilzFach,
-    setBvsa,
     getThemenForKlasse,
     getLernzieleForThema,
     faecher,
@@ -93,27 +51,20 @@ export default function SchuelerDetailPage() {
   const student = getStudent(studentId)
   const assignedThemen = getThemenForKlasse(klassId)
 
-  const [note, setNote] = useState(student?.note ?? '')
-  const [noteSaved, setNoteSaved] = useState(true)
   const [lzKatFilter, setLzKatFilter] = useState<'all' | 'grundlegend' | 'anspruchsvoll'>('all')
   const [selectedFachIds, setSelectedFachIds] = useState<string[]>([])
   const [expandedThemaIds, setExpandedThemaIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    setNote(student?.note ?? '')
-    setNoteSaved(true)
-  }, [studentId, student?.note])
+    const ids = searchParams.get('fachIds')?.split(',').filter(Boolean) ?? []
+    if (ids.length > 0) setSelectedFachIds(ids)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const kpis = useMemo(() => {
     if (!student) return null
     return computeStudentKpis(student, assignedThemen, lernziele, faecher)
   }, [student, assignedThemen, lernziele, faecher])
-
-  const handleNoteSave = () => {
-    if (!student) return
-    updateStudent(student.id, { note })
-    setNoteSaved(true)
-  }
 
   if (!student || !klasse || !kpis) {
     return (
@@ -129,10 +80,6 @@ export default function SchuelerDetailPage() {
   const allFachIds = faecher.map(f => f.id)
   const assignedFaecher = faecher.filter(f => assignedThemen.some(t => t.fachId === f.id))
   const showFachContext = assignedFaecher.length > 1 && selectedFachIds.length !== 1
-
-  const filteredFachKpis = selectedFachIds.length === 0
-    ? kpis.fachKpis
-    : kpis.fachKpis.filter(fk => selectedFachIds.includes(fk.fach.id))
 
   const filteredThemaKpis = selectedFachIds.length === 0
     ? kpis.themaKpis
@@ -170,16 +117,16 @@ export default function SchuelerDetailPage() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{fullName}</h1>
+            <h1 className="heading-page">{fullName}</h1>
             <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
               <span className="text-sm text-muted-foreground">{klasse.name}</span>
               {student.bvsa && (
-                <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-purple-100 text-purple-700">BVSA</span>
+                <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg">BVSA</span>
               )}
               {(student.rilzFachIds ?? []).map((fachId) => {
                 const fach = faecher.find((f) => f.id === fachId)
                 return fach ? (
-                  <span key={fachId} className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-orange-100 text-orange-700">
+                  <span key={fachId} className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-rilz-soft text-rilz-foreground">
                     RILZ {fach.name}
                   </span>
                 ) : null
@@ -197,25 +144,14 @@ export default function SchuelerDetailPage() {
 
       <div className="space-y-5">
 
-        {/* Zone B: General KPIs — always full/unfiltered */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_180px_210px] items-start">
-          <SectionBlock title="Verlauf" description="Fortschritt über die Zeit">
-            <StudentVerlauf
-              student={student}
-              assignedThemen={assignedThemen}
-              lernziele={lernziele}
-              faecher={faecher}
-              showGesamt
-            />
-          </SectionBlock>
-          <LernzielStatusDonut
-            reached={kpis.reached}
-            partial={kpis.partial}
-            notReached={kpis.notReached}
-            gesamtPct={kpis.gesamtPct}
-          />
-          <StudentKpiTiles kpis={kpis} />
-        </div>
+        {/* Zone B: Analytics */}
+        <StudentAnalytics
+          student={student}
+          themen={assignedThemen}
+          lernziele={lernziele}
+          faecher={faecher}
+          klassId={klassId}
+        />
 
         {/* Zone C: Fach chip filter */}
         {assignedFaecher.length > 1 && (
@@ -225,43 +161,6 @@ export default function SchuelerDetailPage() {
             selectedIds={selectedFachIds}
             onChange={setSelectedFachIds}
           />
-        )}
-
-        {/* Zone D: Per-Fach KPI cards */}
-        {filteredFachKpis.length > 0 && (
-          <div className={cn(
-            'grid gap-3',
-            filteredFachKpis.length === 1 ? 'grid-cols-1 max-w-xs'
-            : filteredFachKpis.length === 2 ? 'grid-cols-2'
-            : 'grid-cols-2 lg:grid-cols-4',
-          )}>
-            {filteredFachKpis.map(fk => {
-              const fc = getFachColor(fk.fach.id, allFachIds)
-              return (
-                <div key={fk.fach.id} className={cn('rounded-xl border border-border bg-card px-4 py-3 border-l-4', fc.border)}>
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
-                    <span className="text-xs font-semibold">{fk.fach.name}</span>
-                  </div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className={cn('text-xl font-bold tabular-nums', scoreColor(fk.pct))}>{fk.pct}%</span>
-                    {fk.gTotal > 0 && (
-                      <span className="text-[10px] text-muted-foreground">
-                        G <span className="font-semibold text-foreground">{fk.gPct}%</span>
-                      </span>
-                    )}
-                    {fk.aTotal > 0 && (
-                      <span className="text-[10px] text-muted-foreground">
-                        A <span className="font-semibold text-foreground">{fk.aPct}%</span>
-                      </span>
-                    )}
-                  </div>
-                  <StackedBar reached={fk.reached} partial={fk.partial} total={fk.total} />
-                  <p className="text-[10px] text-muted-foreground mt-1.5">{fk.total} Lernziele</p>
-                </div>
-              )
-            })}
-          </div>
         )}
 
         {/* Zone E: Thema list with expandable LZs */}
@@ -285,8 +184,8 @@ export default function SchuelerDetailPage() {
                     className={cn(
                       'px-2.5 py-1 text-xs font-medium transition-colors',
                       lzKatFilter === k
-                        ? k === 'grundlegend' ? 'bg-slate-500 text-white'
-                          : k === 'anspruchsvoll' ? 'bg-violet-500 text-white'
+                        ? k === 'grundlegend' ? 'bg-category-grundlegend text-white'
+                          : k === 'anspruchsvoll' ? 'bg-category-anspruchsvoll text-white'
                           : 'bg-primary text-primary-foreground'
                         : 'bg-card text-muted-foreground hover:bg-muted',
                     )}
@@ -311,11 +210,11 @@ export default function SchuelerDetailPage() {
                   const visibleLZ = lzKatFilter === 'all'
                     ? applicableLZ
                     : applicableLZ.filter(lz => lz.kategorie === lzKatFilter)
-                  const fc = getFachColor(tk.fachId, allFachIds)
+                  const fc = getFachColor(tk.fachId, allFachIds, faecher.find(f => f.id === tk.fachId)?.colorIndex)
                   const fachName = faecher.find(f => f.id === tk.fachId)?.name
 
                   return (
-                    <div key={tk.thema.id} className="rounded-xl border border-border overflow-hidden">
+                    <div key={tk.thema.id} className="rounded-2xl border border-border overflow-hidden">
                       <button
                         className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
                         onClick={() => toggleThema(tk.thema.id)}
@@ -336,7 +235,7 @@ export default function SchuelerDetailPage() {
                             )}
                             <span className="text-sm font-medium">{tk.thema.name}</span>
                             {hasRilz && (
-                              <span className="rounded px-1 text-[9px] font-semibold bg-orange-100 text-orange-700">RILZ</span>
+                              <span className="rounded px-1 text-[9px] font-semibold bg-rilz-soft text-rilz-foreground">RILZ</span>
                             )}
                           </div>
                         </div>
@@ -376,20 +275,13 @@ export default function SchuelerDetailPage() {
                                     <div className="flex items-center gap-1.5 min-w-0">
                                       <span className={cn(
                                         'shrink-0 rounded px-1 text-[9px] font-semibold',
-                                        lz.kategorie === 'grundlegend'
-                                          ? 'bg-slate-100 text-slate-700'
-                                          : 'bg-violet-100 text-violet-700',
+                                        categoryChipClasses(lz.kategorie),
                                       )}>
                                         {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                                       </span>
                                       <span className="text-sm leading-snug">{lz.label}</span>
                                     </div>
-                                    <StatusSelector
-                                      studentId={student.id}
-                                      itemId={lz.id}
-                                      current={current}
-                                      onUpdate={updateLernzielStatus}
-                                    />
+                                    <StatusCell status={current} readOnly onSelect={() => {}} />
                                   </div>
                                 )
                               })}
@@ -404,88 +296,6 @@ export default function SchuelerDetailPage() {
             )}
           </div>
         )}
-
-        {/* Zone F: Notiz + RILZ/BVSA */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start">
-          <SectionBlock title="Notiz">
-            <div className="grid gap-2">
-              <Textarea
-                id="student-note"
-                rows={4}
-                placeholder="Beobachtungen, Besonderheiten, Förderbedarf …"
-                value={note}
-                onChange={(e) => { setNote(e.target.value); setNoteSaved(false) }}
-              />
-              <div className="flex items-center gap-3">
-                <Button size="sm" onClick={handleNoteSave} disabled={noteSaved}>Speichern</Button>
-                {noteSaved && note !== '' && (
-                  <span className="text-xs text-muted-foreground">Gespeichert</span>
-                )}
-              </div>
-            </div>
-          </SectionBlock>
-
-          <details className="group rounded-2xl border border-border bg-card shadow-sm">
-            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 select-none">
-              <div>
-                <span className="text-sm font-semibold">RILZ &amp; BVSA</span>
-                <p className="text-xs text-muted-foreground">Besondere Förderung</p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="group-open:hidden flex flex-wrap gap-1">
-                  {student.bvsa && (
-                    <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-purple-100 text-purple-700">BVSA</span>
-                  )}
-                  {(student.rilzFachIds ?? []).map((fachId) => {
-                    const fach = faecher.find((f) => f.id === fachId)
-                    return fach ? (
-                      <span key={fachId} className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-orange-100 text-orange-700">
-                        RILZ {fach.name}
-                      </span>
-                    ) : null
-                  })}
-                </span>
-                <svg className="size-4 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            </summary>
-            <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={student.bvsa ?? false}
-                  onChange={(e) => setBvsa(student.id, e.target.checked)}
-                  className="rounded border-border h-3.5 w-3.5 accent-purple-600"
-                />
-                <div>
-                  <span className="text-xs font-medium">BVSA</span>
-                  <p className="text-[10px] text-muted-foreground">Bericht auch ohne Noten in einzelnen Fächern</p>
-                </div>
-              </label>
-              <div className="border-t border-border pt-2.5 space-y-2">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Reduzierte Lernziele (RILZ)</p>
-                {faecher.map((fach) => {
-                  const active = (student.rilzFachIds ?? []).includes(fach.id)
-                  return (
-                    <label key={fach.id} className="flex items-center gap-2.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={active}
-                        onChange={(e) => setRilzFach(student.id, fach.id, e.target.checked)}
-                        className="rounded border-border h-3.5 w-3.5 accent-orange-500"
-                      />
-                      <span className="text-xs">{fach.name}</span>
-                      {active && (
-                        <span className="rounded px-1 py-0 text-[9px] font-semibold bg-orange-100 text-orange-700">RILZ</span>
-                      )}
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
-          </details>
-        </div>
 
         {/* Zone G: Kommentare (conditional) */}
         {studentKommentare.length > 0 && (
@@ -527,9 +337,7 @@ export default function SchuelerDetailPage() {
                       {versuche.map((v, i) => (
                         <span key={i} className={cn(
                           'rounded px-1.5 py-0.5 text-[9px] font-semibold',
-                          v.status === 'reached' ? 'bg-emerald-100 text-emerald-700'
-                          : v.status === 'partially_reached' ? 'bg-amber-100 text-amber-700'
-                          : 'bg-red-100 text-red-700',
+                          statusChipClasses(v.status),
                         )}>
                           {i + 1}. {v.status === 'reached' ? 'Erreicht' : v.status === 'partially_reached' ? 'Teilweise' : 'Nicht err.'} {v.date}
                         </span>

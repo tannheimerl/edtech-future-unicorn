@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { Check, ChevronDown, ChevronRight, Download, FileText, Loader2, User, Users } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
-import { cn } from '@/lib/utils'
+import { cn, categoryChipClasses } from '@/lib/utils'
 import { generatePdfBlob, downloadZip, triggerDownload } from '@/lib/berichtUtils'
 import type { SchuelerBerichtPDFProps } from '@/components/berichte/SchuelerBerichtPDF'
 import { BerichtPreviewModal } from '@/components/berichte/BerichtPreviewModal'
+import { Button } from '@/components/ui/button'
 
 export function BerichteTab({ klassId }: { klassId: string }) {
   const {
@@ -260,7 +261,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
       </p>
 
       {/* Basis selector */}
-      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
         <p className="text-sm font-semibold">Berichtsbasis</p>
         <div className="flex gap-3">
           <label className="flex items-start gap-3 cursor-pointer group">
@@ -289,8 +290,8 @@ export function BerichteTab({ klassId }: { klassId: string }) {
               {basis === 'pruefung' && <div className="size-1.5 rounded-full bg-primary-foreground" />}
             </div>
             <div>
-              <p className="text-sm font-medium">Prüfungs-Basis</p>
-              <p className="text-xs text-muted-foreground">Bericht zu einer Prüfung mit Ergebnis</p>
+              <p className="text-sm font-medium">Lernzielkontrolle-Basis</p>
+              <p className="text-xs text-muted-foreground">Bericht zu einer Lernzielkontrolle mit Ergebnis</p>
             </div>
           </label>
         </div>
@@ -301,14 +302,14 @@ export function BerichteTab({ klassId }: { klassId: string }) {
         <>
           {pruefungen.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
-              <p className="text-sm text-muted-foreground">Noch keine Prüfungen vorhanden.</p>
+              <p className="text-sm text-muted-foreground">Noch keine Lernzielkontrollen vorhanden.</p>
             </div>
           ) : (
             <>
               {/* P-Step 1: Prüfung */}
               <StepCard
                 step={1}
-                title="Prüfung"
+                title="Lernzielkontrolle"
                 summary={pPruefung ? `${pPruefung.name} (${new Date(pPruefung.datum).toLocaleDateString('de-CH')})` : undefined}
                 isOpen={pOpenStep === 1}
                 onToggle={() => setPOpenStep(prev => prev === 1 ? null : 1)}
@@ -317,19 +318,15 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                   {pruefungen.map(p => {
                     const fach = faecher.find(f => f.id === p.fachId)
                     return (
-                      <button
+                      <Button
                         key={p.id}
+                        variant={pSelectedPruefungId === p.id ? 'default' : 'outline'}
                         onClick={() => { setPSelectedPruefungId(p.id); setPStudentMode(null); setPSelectedStudentIds(new Set()); setPOpenStep(2) }}
-                        className={cn(
-                          'rounded-md border px-4 py-1.5 text-sm transition-all text-left',
-                          pSelectedPruefungId === p.id
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
-                        )}
+                        className="px-4 py-1.5 text-left"
                       >
                         <span className="font-medium">{p.name}</span>
                         <span className="ml-2 text-xs opacity-70">{fach?.name} · {new Date(p.datum).toLocaleDateString('de-CH')}</span>
-                      </button>
+                      </Button>
                     )
                   })}
                 </div>
@@ -350,34 +347,27 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                 >
                   <div className="space-y-3">
                     <div className="flex gap-2">
-                      <button
+                      <Button
+                        variant={pStudentMode === 'all' ? 'default' : 'outline'}
                         onClick={() => { setPStudentMode('all'); setPOpenStep(3) }}
-                        className={cn(
-                          'flex items-center gap-1.5 rounded-md border px-4 py-1.5 text-sm font-medium transition-all',
-                          pStudentMode === 'all'
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
-                        )}
+                        className="px-4 py-1.5"
                       >
                         <Users className="size-3.5" /> Alle ({students.length})
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant={pStudentMode === 'individual' ? 'default' : 'outline'}
                         onClick={() => { setPStudentMode('individual'); setPSelectedStudentIds(new Set()) }}
-                        className={cn(
-                          'flex items-center gap-1.5 rounded-md border px-4 py-1.5 text-sm font-medium transition-all',
-                          pStudentMode === 'individual'
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
-                        )}
+                        className="px-4 py-1.5"
                       >
                         <User className="size-3.5" /> Einzelne
-                      </button>
+                      </Button>
                     </div>
                     {pStudentMode === 'individual' && (
                       <div className="flex flex-wrap gap-2">
                         {students.map(s => (
-                          <button
+                          <Button
                             key={s.id}
+                            variant={pSelectedStudentIds.has(s.id) ? 'default' : 'outline'}
                             onClick={() => {
                               setPSelectedStudentIds(prev => {
                                 const next = new Set(prev)
@@ -385,15 +375,10 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                                 return next
                               })
                             }}
-                            className={cn(
-                              'rounded-md border px-3 py-1.5 text-sm transition-all',
-                              pSelectedStudentIds.has(s.id)
-                                ? 'border-primary bg-primary text-primary-foreground'
-                                : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
-                            )}
+                            className="px-3 py-1.5"
                           >
                             {s.vorname} {s.nachname}
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     )}
@@ -420,7 +405,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                             pIncludePunkte ? 'bg-primary border-primary' : 'border-border',
                           )}
                         >
-                          {pIncludePunkte && <Check className="size-2.5 text-white stroke-[3]" />}
+                          {pIncludePunkte && <Check className="size-2.5 text-primary-foreground stroke-[3]" />}
                         </div>
                         Punkte
                       </label>
@@ -432,7 +417,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                             pIncludeNote ? 'bg-primary border-primary' : 'border-border',
                           )}
                         >
-                          {pIncludeNote && <Check className="size-2.5 text-white stroke-[3]" />}
+                          {pIncludeNote && <Check className="size-2.5 text-primary-foreground stroke-[3]" />}
                         </div>
                         Note
                       </label>
@@ -453,32 +438,24 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                                 {snapshots.length > 0 && (
                                   <>
                                     {snapshots.map(snap => (
-                                      <button
+                                      <Button
                                         key={snap.nr}
                                         type="button"
+                                        size="sm"
+                                        variant={chosenNr === snap.nr ? 'default' : 'outline'}
                                         onClick={() => setPSelectedVersuchNr(prev => ({ ...prev, [s.id]: snap.nr }))}
-                                        className={cn(
-                                          'rounded border px-2 py-0.5 text-xs transition-colors',
-                                          chosenNr === snap.nr
-                                            ? 'border-primary bg-primary text-primary-foreground'
-                                            : 'border-border bg-background text-foreground hover:bg-accent',
-                                        )}
                                       >
                                         {snap.nr}. Versuch
-                                      </button>
+                                      </Button>
                                     ))}
-                                    <button
+                                    <Button
                                       type="button"
+                                      size="sm"
+                                      variant={chosenNr === latestNr ? 'default' : 'outline'}
                                       onClick={() => setPSelectedVersuchNr(prev => ({ ...prev, [s.id]: latestNr }))}
-                                      className={cn(
-                                        'rounded border px-2 py-0.5 text-xs transition-colors',
-                                        chosenNr === latestNr
-                                          ? 'border-primary bg-primary text-primary-foreground'
-                                          : 'border-border bg-background text-foreground hover:bg-accent',
-                                      )}
                                     >
                                       {latestNr}. Versuch (aktuell)
-                                    </button>
+                                    </Button>
                                   </>
                                 )}
                               </div>
@@ -522,15 +499,10 @@ export function BerichteTab({ klassId }: { klassId: string }) {
               {/* P-Download button */}
               {pSelectedPruefungId && pStudentMode !== null && (
                 <div className="pt-1">
-                  <button
+                  <Button
                     onClick={handlePruefungDownload}
                     disabled={!pCanDownload}
-                    className={cn(
-                      'flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all',
-                      pCanDownload
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98]'
-                        : 'bg-muted text-muted-foreground cursor-not-allowed',
-                    )}
+                    className="gap-2 px-5 py-2.5"
                   >
                     {pIsGenerating ? (
                       <Loader2 className="size-4 animate-spin" />
@@ -544,7 +516,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                       : pTargetStudents.length === 1
                         ? 'PDF herunterladen'
                         : `ZIP herunterladen (${pTargetStudents.length} PDFs)`}
-                  </button>
+                  </Button>
                   {pStudentMode === 'individual' && pTargetStudents.length === 0 && (
                     <p className="text-xs text-muted-foreground mt-2">Bitte mindestens eine/n Schüler/in wählen.</p>
                   )}
@@ -568,18 +540,14 @@ export function BerichteTab({ klassId }: { klassId: string }) {
       >
         <div className="flex flex-wrap gap-2">
           {fachWithThemen.map(({ fach: f }) => (
-            <button
+            <Button
               key={f.id}
+              variant={selectedFachId === f.id ? 'default' : 'outline'}
               onClick={() => selectFach(f.id)}
-              className={cn(
-                'rounded-md border px-4 py-1.5 text-sm transition-all',
-                selectedFachId === f.id
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
-              )}
+              className="px-4 py-1.5"
             >
               {f.name}
-            </button>
+            </Button>
           ))}
         </div>
       </StepCard>
@@ -595,18 +563,14 @@ export function BerichteTab({ klassId }: { klassId: string }) {
         >
           <div className="flex flex-wrap gap-2">
             {themenForFach.map(t => (
-              <button
+              <Button
                 key={t.id}
+                variant={selectedThemaId === t.id ? 'default' : 'outline'}
                 onClick={() => selectThema(t.id)}
-                className={cn(
-                  'rounded-md border px-4 py-1.5 text-sm transition-all',
-                  selectedThemaId === t.id
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
-                )}
+                className="px-4 py-1.5"
               >
                 {t.name}
-              </button>
+              </Button>
             ))}
           </div>
         </StepCard>
@@ -614,27 +578,29 @@ export function BerichteTab({ klassId }: { klassId: string }) {
 
       {/* LZ sub-accordion (optional, persistent after Thema selected) */}
       {selectedThemaId && (
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <button
+        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <Button
+            variant="ghost"
             onClick={() => setLzOpen(v => !v)}
-            className="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-accent/20 transition-colors"
+            className="flex w-full h-auto justify-start rounded-none gap-2 px-4 py-2 text-left hover:bg-accent/20"
           >
             {lzOpen
               ? <ChevronDown className="size-4 text-muted-foreground shrink-0" />
               : <ChevronRight className="size-4 text-muted-foreground shrink-0" />}
             <span className="text-sm font-medium">Lernziele anpassen</span>
             <span className="ml-auto text-xs text-muted-foreground">{activeLz.length} / {allLz.length}</span>
-          </button>
+          </Button>
           {lzOpen && (
             <div className="border-t border-border divide-y divide-border/40">
               {allLz.map(lz => {
                 const isIncluded = !excludedLzIds.has(lz.id)
                 return (
-                  <button
+                  <Button
                     key={lz.id}
+                    variant="ghost"
                     onClick={() => toggleLz(lz.id)}
                     className={cn(
-                      'flex items-center gap-3 w-full px-4 py-2 text-left transition-colors hover:bg-accent/20',
+                      'flex items-center gap-3 w-full h-auto justify-start rounded-none px-4 py-2 text-left hover:bg-accent/20',
                       !isIncluded && 'opacity-40',
                     )}
                   >
@@ -642,16 +608,16 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                       'flex size-4 shrink-0 items-center justify-center rounded-sm border-2 transition-all',
                       isIncluded ? 'border-primary bg-primary' : 'border-muted-foreground/30 bg-background',
                     )}>
-                      {isIncluded && <Check className="size-2.5 text-white stroke-[3]" />}
+                      {isIncluded && <Check className="size-2.5 text-primary-foreground stroke-[3]" />}
                     </div>
                     <span className="flex-1 text-sm">{lz.label}</span>
                     <span className={cn(
                       'text-xs px-1.5 py-0.5 rounded font-medium shrink-0',
-                      lz.kategorie === 'grundlegend' ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'
+                      categoryChipClasses(lz.kategorie)
                     )}>
                       {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                     </span>
-                  </button>
+                  </Button>
                 )
               })}
             </div>
@@ -670,48 +636,36 @@ export function BerichteTab({ klassId }: { klassId: string }) {
         >
           <div className="space-y-3">
             <div className="flex gap-2">
-              <button
+              <Button
+                variant={studentMode === 'all' ? 'default' : 'outline'}
                 onClick={() => selectStudentMode('all')}
-                className={cn(
-                  'flex items-center gap-1.5 rounded-md border px-4 py-1.5 text-sm font-medium transition-all',
-                  studentMode === 'all'
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
-                )}
+                className="px-4 py-1.5"
               >
                 <Users className="size-3.5" />
                 Alle ({students.length})
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={studentMode === 'individual' ? 'default' : 'outline'}
                 onClick={() => selectStudentMode('individual')}
-                className={cn(
-                  'flex items-center gap-1.5 rounded-md border px-4 py-1.5 text-sm font-medium transition-all',
-                  studentMode === 'individual'
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
-                )}
+                className="px-4 py-1.5"
               >
                 <User className="size-3.5" />
                 Einzelne
-              </button>
+              </Button>
             </div>
             {studentMode === 'individual' && (
               <div className="flex flex-wrap gap-2">
                 {students.map(s => {
                   const isSelected = selectedStudentIds.has(s.id)
                   return (
-                    <button
+                    <Button
                       key={s.id}
+                      variant={isSelected ? 'default' : 'outline'}
                       onClick={() => toggleStudent(s.id)}
-                      className={cn(
-                        'rounded-md border px-3 py-1.5 text-sm transition-all',
-                        isSelected
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border bg-card hover:border-primary/40 hover:bg-accent/40'
-                      )}
+                      className="px-3 py-1.5"
                     >
                       {s.vorname} {s.nachname}
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
@@ -798,15 +752,10 @@ export function BerichteTab({ klassId }: { klassId: string }) {
       {/* Download button */}
       {selectedThemaId && studentMode !== null && (
         <div className="pt-1">
-          <button
+          <Button
             onClick={handleDownload}
             disabled={!canDownload}
-            className={cn(
-              'flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all',
-              canDownload
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98]'
-                : 'bg-muted text-muted-foreground cursor-not-allowed',
-            )}
+            className="gap-2 px-5 py-2.5"
           >
             {isGenerating ? (
               <Loader2 className="size-4 animate-spin" />
@@ -820,7 +769,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
               : targetStudents.length === 1
                 ? 'PDF herunterladen'
                 : `ZIP herunterladen (${targetStudents.length} PDFs)`}
-          </button>
+          </Button>
           {activeLz.length === 0 && allLz.length > 0 && (
             <p className="text-xs text-muted-foreground mt-2">Bitte mindestens ein Lernziel einschliessen.</p>
           )}
@@ -854,10 +803,11 @@ function StepCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <button
+    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <Button
+        variant="ghost"
         onClick={onToggle}
-        className="flex w-full items-center gap-2 px-4 py-2.5 text-left hover:bg-accent/20 transition-colors"
+        className="flex w-full h-auto justify-start rounded-none gap-2 px-4 py-2.5 text-left hover:bg-accent/20"
       >
         {step !== undefined && (
           <span className={cn(
@@ -876,7 +826,7 @@ function StepCard({
         )}
         {step && isOpen && <ChevronDown className="size-4 text-muted-foreground shrink-0 ml-auto" />}
         {step && !isOpen && !summary && <ChevronRight className="size-4 text-muted-foreground shrink-0 ml-auto" />}
-      </button>
+      </Button>
       {isOpen && (
         <div className="px-4 pb-4 pt-3 border-t border-border">
           {children}

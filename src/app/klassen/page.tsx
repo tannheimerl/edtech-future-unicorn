@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Users, TrendingUp, AlertTriangle, MoreHorizontal, Trash2, Pencil, RotateCcw } from 'lucide-react'
+import { Plus, Users, TrendingUp, AlertTriangle, MoreHorizontal, Trash2, RotateCcw } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Modal } from '@/components/shared/Modal'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -106,31 +105,23 @@ function KlasseStats({ klassId }: { klassId: string }) {
 
 // ── Klasse form ───────────────────────────────────────────────────────────
 
-const SCHULJAHR_OPTIONS = (() => {
-  const y = new Date().getFullYear()
-  return [-1, 0, 1, 2].map(d => `${y + d}/${String(y + d + 1).slice(2)}`)
-})()
-
 interface KlasseFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  initialName?: string
-  initialSchuljahr?: string
-  onSubmit: (name: string, schuljahr: string) => void
+  onSubmit: (name: string) => void
 }
 
-function KlasseFormModal({ open, onOpenChange, initialName = '', initialSchuljahr = '', onSubmit }: KlasseFormProps) {
-  const [name, setName] = useState(initialName)
-  const [schuljahr, setSchuljahr] = useState(initialSchuljahr)
+function KlasseFormModal({ open, onOpenChange, onSubmit }: KlasseFormProps) {
+  const [name, setName] = useState('')
 
   useEffect(() => {
-    if (open) { setName(initialName); setSchuljahr(initialSchuljahr) }
-  }, [open, initialName, initialSchuljahr])
+    if (open) setName('')
+  }, [open])
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault()
     if (!name.trim()) return
-    onSubmit(name.trim(), schuljahr.trim())
+    onSubmit(name.trim())
     onOpenChange(false)
   }
 
@@ -138,7 +129,7 @@ function KlasseFormModal({ open, onOpenChange, initialName = '', initialSchuljah
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title={initialName ? 'Klasse bearbeiten' : 'Neue Klasse'}
+      title="Neue Klasse"
       size="sm"
       footer={
         <>
@@ -147,42 +138,13 @@ function KlasseFormModal({ open, onOpenChange, initialName = '', initialSchuljah
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="grid gap-3">
-        <div className="grid gap-1.5">
-          <Label htmlFor="klasse-name">Klassenname</Label>
-          <Input
-            id="klasse-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="z. B. 5a"
-            autoFocus
-          />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>Schuljahr</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {SCHULJAHR_OPTIONS.map(j => (
-              <button
-                key={j}
-                type="button"
-                onClick={() => setSchuljahr(j)}
-                className={`rounded-full px-2.5 py-1 text-xs font-medium border transition-all ${
-                  schuljahr === j
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
-                }`}
-              >
-                {j}
-              </button>
-            ))}
-          </div>
-          <Input
-            value={schuljahr}
-            onChange={(e) => setSchuljahr(e.target.value)}
-            placeholder="z. B. 2025/26"
-            className="text-sm"
-          />
-        </div>
+      <form onSubmit={handleSubmit}>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="z. B. 5a"
+          autoFocus
+        />
       </form>
     </Modal>
   )
@@ -192,11 +154,10 @@ function KlasseFormModal({ open, onOpenChange, initialName = '', initialSchuljah
 
 export default function KlassenPage() {
   const router = useRouter()
-  const { classes, currentLpId, getStudentsForClass, getPruefungenForKlasse, getPruefungErgebnisse, createClass, updateClass, deleteClass } = useData()
+  const { classes, currentLpId, getStudentsForClass, getPruefungenForKlasse, getPruefungErgebnisse, createClass, deleteClass } = useData()
   const myClasses = classes.filter(k => (k.lpZuweisungen ?? []).some(z => z.lpId === currentLpId))
   const [createOpen, setCreateOpen] = useState(false)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
-  const [editTarget, setEditTarget] = useState<{ id: string; name: string; schuljahr?: string } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [deleteInput, setDeleteInput] = useState('')
 
@@ -225,16 +186,13 @@ export default function KlassenPage() {
           return (
             <div
               key={klasse.id}
-              className="group cursor-pointer rounded-lg border border-border bg-card p-4 transition-all duration-150 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5"
+              className="group cursor-pointer rounded-2xl border border-border bg-card p-4 transition-all duration-150 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5"
               onClick={() => router.push(`/klassen/${klasse.id}`)}
             >
               {/* Card header */}
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div>
                   <h2 className="text-base font-bold tracking-tight">{klasse.name}</h2>
-                  {klasse.schuljahr && (
-                    <p className="text-[10px] font-mono text-muted-foreground mt-0.5">{klasse.schuljahr}</p>
-                  )}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <div className="flex items-center gap-1 text-xs font-semibold text-primary/70 bg-accent rounded-md px-2 py-1">
@@ -253,19 +211,10 @@ export default function KlassenPage() {
                         <MoreHorizontal className="size-4" />
                       </PopoverTrigger>
                       <PopoverContent align="end" side="bottom" className="w-44 p-1">
-                        <button
-                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-muted transition-colors"
-                          onClick={() => {
-                            setOpenMenuId(null)
-                            setEditTarget({ id: klasse.id, name: klasse.name, schuljahr: klasse.schuljahr })
-                          }}
-                        >
-                          <Pencil className="size-3.5" />
-                          Bearbeiten
-                        </button>
-                        <hr className="my-1 border-border" />
-                        <button
-                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="w-full justify-start"
                           onClick={() => {
                             setOpenMenuId(null)
                             setDeleteTarget({ id: klasse.id, name: klasse.name })
@@ -273,7 +222,7 @@ export default function KlassenPage() {
                         >
                           <Trash2 className="size-3.5" />
                           Klasse löschen
-                        </button>
+                        </Button>
                       </PopoverContent>
                     </Popover>
                   </div>
@@ -284,7 +233,7 @@ export default function KlassenPage() {
               {/* Stats */}
               <KlasseStats klassId={klasse.id} />
               {offeneNachpruefungen.length > 0 && (
-                <div className="mt-3 flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-800">
+                <div className="mt-3 flex items-center gap-1.5 rounded-md bg-status-partial-soft px-2.5 py-1.5 text-xs font-medium text-status-partial-fg">
                   <RotateCcw className="size-3 shrink-0" />
                   <span>{offeneNachpruefungen.length} offene{offeneNachpruefungen.length === 1 ? 'r' : ''} 2. Versuch</span>
                 </div>
@@ -294,12 +243,14 @@ export default function KlassenPage() {
         })}
 
         {/* Add new class card */}
-        <button
+        <Button
+          variant="secondary"
+          size="icon"
           onClick={() => setCreateOpen(true)}
-          className="flex items-center justify-center size-10 rounded-md bg-muted/80 hover:bg-muted transition-colors"
+          className="size-10 text-muted-foreground"
         >
-          <Plus className="size-5 text-muted-foreground" />
-        </button>
+          <Plus className="size-5" />
+        </Button>
       </div>
 
       {/* Create modal */}
@@ -307,19 +258,6 @@ export default function KlassenPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         onSubmit={(name) => { const id = createClass(name); router.push(`/klassen/${id}`) }}
-      />
-
-      {/* Edit modal */}
-      <KlasseFormModal
-        open={editTarget !== null}
-        onOpenChange={(open) => { if (!open) setEditTarget(null) }}
-        initialName={editTarget?.name}
-        initialSchuljahr={editTarget?.schuljahr}
-        onSubmit={(name, schuljahr) => {
-          if (!editTarget) return
-          updateClass(editTarget.id, name, schuljahr || undefined)
-          setEditTarget(null)
-        }}
       />
 
       {/* Delete confirmation modal */}

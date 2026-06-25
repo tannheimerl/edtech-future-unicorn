@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { useData } from '@/contexts/DataContext'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { cn, getFachColor } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { Plus, Pencil, Trash2, Check } from 'lucide-react'
 import type { Schueler, Thema, Status, RilzLernziel } from '@/types/domain'
 import { STATUS_CYCLE } from '@/types/domain'
@@ -20,7 +21,7 @@ function StatusDot({ status, onClick }: { status: Status; onClick: () => void })
       onClick={onClick}
       title={cfg.label}
       className={cn(
-        'size-6 rounded-full shrink-0 border-2 border-white shadow-sm transition-transform hover:scale-110 active:scale-95',
+        'size-6 rounded-full shrink-0 border-2 border-card shadow-sm transition-transform hover:scale-110 active:scale-95',
         cfg.bg,
       )}
     />
@@ -42,13 +43,15 @@ export function AddLzRow({
 
   if (!editing) {
     return (
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => setEditing(true)}
-        className="flex items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors w-full text-left"
+        className="gap-1.5 px-3 py-2 h-auto text-muted-foreground hover:text-foreground w-full justify-start"
       >
         <Plus className="size-3.5" />
         Lernziel hinzufügen
-      </button>
+      </Button>
     )
   }
 
@@ -68,12 +71,14 @@ export function AddLzRow({
         onChange={e => setLabel(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') confirm(); if (e.key === 'Escape') { setEditing(false); setLabel('') } }}
       />
-      <button
+      <Button
+        variant="default"
+        size="icon-sm"
         onClick={confirm}
-        className="size-7 rounded flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shrink-0"
+        className="size-7 shrink-0"
       >
         <Check className="size-3.5" />
-      </button>
+      </Button>
     </div>
   )
 }
@@ -117,18 +122,22 @@ export function LzRow({
         )}
       </div>
       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={() => { setDraft(lz.label); setEditing(true) }}
-          className="size-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="size-6 text-muted-foreground hover:text-foreground"
         >
           <Pencil className="size-3" />
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={() => deleteRilzLernziel(studentId, lz.id)}
-          className="size-6 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
+          className="size-6 text-muted-foreground hover:text-destructive"
         >
           <Trash2 className="size-3" />
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -164,9 +173,9 @@ function StudentCard({
       {themenMitLz.map(thema => {
         const fach = getFachForThema(thema.id)
         const themaLz = rilzLernziele.filter(lz => lz.themaId === thema.id)
-        const fachColor = fach ? getFachColor(fach.id, allFachIds) : null
+        const fachColor = fach ? getFachColor(fach.id, allFachIds, fach.colorIndex) : null
         return (
-          <div key={thema.id} className="rounded-xl border border-border bg-card overflow-hidden">
+          <div key={thema.id} className="rounded-2xl border border-border bg-card overflow-hidden">
             <div className={cn('flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border border-l-4', fachColor?.border ?? 'border-l-transparent')}>
               {fach && (
                 <span className={cn('text-[10px] font-semibold uppercase tracking-wide', fachColor?.text ?? 'text-muted-foreground')}>{fach.name}</span>
@@ -225,12 +234,12 @@ export function RilzBeurteilungView({
               <p className="text-sm font-semibold">{student.vorname} {student.nachname}</p>
               <div className="flex gap-1 flex-wrap">
                 {student.bvsa && (
-                  <span className="rounded px-1 py-0 text-[9px] font-semibold bg-purple-100 text-purple-700">BVSA</span>
+                  <span className="rounded px-1 py-0 text-[9px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg">BVSA</span>
                 )}
                 {(student.rilzFachIds ?? []).map(fachId => {
                   const fach = faecher.find(f => f.id === fachId)
                   return fach ? (
-                    <span key={fachId} className="rounded px-1 py-0 text-[9px] font-semibold bg-orange-100 text-orange-700">
+                    <span key={fachId} className="rounded px-1 py-0 text-[9px] font-semibold bg-rilz-soft text-rilz-foreground">
                       RILZ {fach.name}
                     </span>
                   ) : null
