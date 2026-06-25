@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ChevronRight } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { StudentAnalytics } from '@/components/analytics/StudentAnalytics'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
+import { FilterDropdown } from '@/components/shared/FilterDropdown'
 import { SectionBlock } from '@/components/shared/SectionBlock'
 import { StatusCell } from '@/components/shared/StatusCell'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -52,7 +52,7 @@ export default function SchuelerDetailPage() {
 
   const [lzKatFilter, setLzKatFilter] = useState<'all' | 'grundlegend' | 'anspruchsvoll'>('all')
   const [selectedFachIds, setSelectedFachIds] = useState<string[]>([])
-  const [expandedThemaIds, setExpandedThemaIds] = useState<Set<string>>(new Set())
+  const [selectedLzThemaId, setSelectedLzThemaId] = useState<string>('')
 
   useEffect(() => {
     const ids = searchParams.get('fachIds')?.split(',').filter(Boolean) ?? []
@@ -88,13 +88,7 @@ export default function SchuelerDetailPage() {
   const studentKommentare = kommentare.filter((k) => k.studentId === student.id)
   const lzWithMultipleVersuche = lernziele.filter((lz) => getVersuche(student, lz.id).length >= 2)
 
-  function toggleThema(id: string) {
-    setExpandedThemaIds(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
+  const selectedThemaKpi = filteredThemaKpis.find(tk => tk.thema.id === selectedLzThemaId)
 
   return (
     <div className="mx-auto w-full max-w-7xl px-6 py-5">
@@ -189,104 +183,112 @@ export default function SchuelerDetailPage() {
               </div>
             </div>
 
+            <div className="mb-3">
+              <FilterDropdown
+                label="Thema"
+                allLabel="wählen…"
+                showSearch
+                value={selectedLzThemaId}
+                onChange={setSelectedLzThemaId}
+                options={[
+                  { value: '', label: 'Kein Thema' },
+                  ...assignedFaecher.flatMap((fach) => {
+                    const dot = getFachColor(fach.id, allFachIds, fach.colorIndex).dot
+                    return filteredThemaKpis
+                      .filter((tk) => tk.fachId === fach.id)
+                      .map((tk) => ({ value: tk.thema.id, label: tk.thema.name, dot }))
+                  }),
+                ]}
+              />
+            </div>
+
             {filteredThemaKpis.length === 0 ? (
               <p className="text-sm text-muted-foreground">Keine Themen in der aktuellen Auswahl.</p>
-            ) : (
-              <div className="space-y-2">
-                {filteredThemaKpis.map((tk) => {
-                  const isExpanded = expandedThemaIds.has(tk.thema.id)
-                  const allThemaLZ = getLernzieleForThema(tk.thema.id)
-                  const hasRilz = (student.rilzFachIds ?? []).includes(tk.fachId)
-                  const applicableLZ = hasRilz
-                    ? allThemaLZ.filter(lz => lz.kategorie === 'grundlegend')
-                    : allThemaLZ
-                  const visibleLZ = lzKatFilter === 'all'
-                    ? applicableLZ
-                    : applicableLZ.filter(lz => lz.kategorie === lzKatFilter)
-                  const fc = getFachColor(tk.fachId, allFachIds, faecher.find(f => f.id === tk.fachId)?.colorIndex)
-                  const fachName = faecher.find(f => f.id === tk.fachId)?.name
+            ) : !selectedThemaKpi ? (
+              <p className="text-sm text-muted-foreground">Wähle ein Thema um die Lernziele zu sehen.</p>
+            ) : (() => {
+              const tk = selectedThemaKpi
+              const allThemaLZ = getLernzieleForThema(tk.thema.id)
+              const hasRilz = (student.rilzFachIds ?? []).includes(tk.fachId)
+              const applicableLZ = hasRilz
+                ? allThemaLZ.filter(lz => lz.kategorie === 'grundlegend')
+                : allThemaLZ
+              const visibleLZ = lzKatFilter === 'all'
+                ? applicableLZ
+                : applicableLZ.filter(lz => lz.kategorie === lzKatFilter)
+              const fc = getFachColor(tk.fachId, allFachIds, faecher.find(f => f.id === tk.fachId)?.colorIndex)
+              const fachName = faecher.find(f => f.id === tk.fachId)?.name
 
-                  return (
-                    <div key={tk.thema.id} className="rounded-2xl border border-border overflow-hidden">
-                      <button
-                        className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
-                        onClick={() => toggleThema(tk.thema.id)}
-                      >
-                        <ChevronRight className={cn(
-                          'size-3.5 text-muted-foreground shrink-0 transition-transform',
-                          isExpanded && 'rotate-90',
-                        )} />
-                        {showFachContext && (
-                          <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {showFachContext && fachName && (
-                              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide shrink-0">
-                                {fachName}
-                              </span>
-                            )}
-                            <span className="text-sm font-medium">{tk.thema.name}</span>
-                            {hasRilz && (
-                              <span className="rounded px-1 text-[9px] font-semibold bg-rilz-soft text-rilz-foreground">RILZ</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          {tk.gTotal > 0 && (
-                            <span className="text-[10px] text-muted-foreground hidden sm:block">
-                              G <span className="font-medium text-foreground">{tk.gPct}%</span>
-                            </span>
-                          )}
-                          {tk.aTotal > 0 && (
-                            <span className="text-[10px] text-muted-foreground hidden sm:block">
-                              A <span className="font-medium text-foreground">{tk.aPct}%</span>
-                            </span>
-                          )}
-                          <span className="text-[10px] text-muted-foreground">{tk.total} LZ</span>
-                          <div className="w-14 shrink-0">
-                            <StackedBar reached={tk.reached} partial={tk.partial} total={tk.total} />
-                          </div>
-                          <span className={cn('text-sm font-bold tabular-nums w-9 text-right shrink-0', scoreColor(tk.pct))}>
-                            {tk.pct}%
+              return (
+                <div className="rounded-2xl border border-border overflow-hidden">
+                  <div className="w-full flex items-center gap-2.5 px-4 py-3 text-left">
+                    {showFachContext && (
+                      <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {showFachContext && fachName && (
+                          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide shrink-0">
+                            {fachName}
                           </span>
-                        </div>
-                      </button>
-
-                      {isExpanded && (
-                        <div className="border-t border-border bg-muted/10">
-                          {visibleLZ.length === 0 ? (
-                            <p className="px-4 py-3 text-xs text-muted-foreground">
-                              Keine Lernziele in dieser Kategorie.
-                            </p>
-                          ) : (
-                            <div className="divide-y divide-border">
-                              {visibleLZ.map((lz) => {
-                                const current = student.lernzielStatus[lz.id] ?? 'not_reached'
-                                return (
-                                  <div key={lz.id} className="flex items-center justify-between gap-4 px-4 py-2.5">
-                                    <div className="flex items-center gap-1.5 min-w-0">
-                                      <span className={cn(
-                                        'shrink-0 rounded px-1 text-[9px] font-semibold',
-                                        categoryChipClasses(lz.kategorie),
-                                      )}>
-                                        {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
-                                      </span>
-                                      <span className="text-sm leading-snug">{lz.label}</span>
-                                    </div>
-                                    <StatusCell status={current} readOnly onSelect={() => {}} />
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        )}
+                        <span className="text-sm font-medium">{tk.thema.name}</span>
+                        {hasRilz && (
+                          <span className="rounded px-1 text-[9px] font-semibold bg-rilz-soft text-rilz-foreground">RILZ</span>
+                        )}
+                      </div>
                     </div>
-                  )
-                })}
-              </div>
-            )}
+                    <div className="flex items-center gap-3 shrink-0">
+                      {tk.gTotal > 0 && (
+                        <span className="text-[10px] text-muted-foreground hidden sm:block">
+                          G <span className="font-medium text-foreground">{tk.gPct}%</span>
+                        </span>
+                      )}
+                      {tk.aTotal > 0 && (
+                        <span className="text-[10px] text-muted-foreground hidden sm:block">
+                          A <span className="font-medium text-foreground">{tk.aPct}%</span>
+                        </span>
+                      )}
+                      <span className="text-[10px] text-muted-foreground">{tk.total} LZ</span>
+                      <div className="w-14 shrink-0">
+                        <StackedBar reached={tk.reached} partial={tk.partial} total={tk.total} />
+                      </div>
+                      <span className={cn('text-sm font-bold tabular-nums w-9 text-right shrink-0', scoreColor(tk.pct))}>
+                        {tk.pct}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-border bg-muted/10">
+                    {visibleLZ.length === 0 ? (
+                      <p className="px-4 py-3 text-xs text-muted-foreground">
+                        Keine Lernziele in dieser Kategorie.
+                      </p>
+                    ) : (
+                      <div className="divide-y divide-border">
+                        {visibleLZ.map((lz) => {
+                          const current = student.lernzielStatus[lz.id] ?? 'not_reached'
+                          return (
+                            <div key={lz.id} className="flex items-center justify-between gap-4 px-4 py-2.5">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className={cn(
+                                  'shrink-0 rounded px-1 text-[9px] font-semibold',
+                                  categoryChipClasses(lz.kategorie),
+                                )}>
+                                  {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
+                                </span>
+                                <span className="text-sm leading-snug">{lz.label}</span>
+                              </div>
+                              <StatusCell status={current} readOnly onSelect={() => {}} />
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         )}
 

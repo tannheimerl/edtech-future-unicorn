@@ -244,14 +244,14 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
     e => e.pruefungId === selectedPruefungId && e.schuelerId === student.id,
   )
 
-  const pruefungLZList = selectedPruefung
-    ? selectedPruefung.lernzielIds
-        .map(id => lernziele.find(lz => lz.id === id))
-        .filter((lz): lz is Lernziel => !!lz)
-    : []
-
   const isStudentEligibleForPruefung = !selectedPruefung?.nurRilz
     || (selectedPruefung.rilzSchuelerIds ?? []).includes(student.id)
+
+  const hasErgebnis = !!studentErgebnis && (
+    selectedPruefung?.punkteEnabled ? studentErgebnis.punkte !== undefined
+      : selectedPruefung?.noteEnabled ? !!studentErgebnis.note
+      : studentErgebnis.status != null
+  )
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -299,11 +299,10 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
             options={[
               { value: '', label: 'Keine Lernzielkontrolle' },
               ...klassePruefungen.map(p => {
-                const fach = faecher.find(f => f.id === p.fachId)
                 const modeTag = p.punkteEnabled ? ' [Punkte]' : p.noteEnabled ? ' [Note]' : ' [Status]'
                 return {
                   value: p.id,
-                  label: `${p.datum} — ${p.name}${fach ? ` (${fach.name})` : ''}${modeTag}`,
+                  label: `${p.datum} — ${p.name}${modeTag}`,
                 }
               }),
             ]}
@@ -529,6 +528,8 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
             <p className="text-sm text-muted-foreground">Wähle eine Lernzielkontrolle um die Statistiken zu sehen.</p>
           ) : !isStudentEligibleForPruefung ? (
             <p className="text-sm text-muted-foreground">Diese Lernzielkontrolle ist nur für bestimmte Schüler.</p>
+          ) : !hasErgebnis ? (
+            <p className="text-sm text-muted-foreground">Noch keine Beurteilung für diese Lernzielkontrolle erfasst.</p>
           ) : (
             <div className="border border-border rounded-2xl overflow-hidden">
               {/* Header */}
@@ -541,10 +542,6 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
                 </div>
                 <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                   <span>{selectedPruefung.datum}</span>
-                  {faecher.find(f => f.id === selectedPruefung.fachId) && (
-                    <span>· {faecher.find(f => f.id === selectedPruefung.fachId)!.name}</span>
-                  )}
-                  <span>· {selectedPruefung.lernzielIds.length} LZ</span>
                 </div>
               </div>
 
@@ -576,23 +573,6 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
                   <StatusCell status={studentErgebnis?.status} readOnly onSelect={() => {}} />
                 )}
               </div>
-
-              {/* LZ breakdown */}
-              {pruefungLZList.length > 0 && (
-                <div className="divide-y divide-border">
-                  <div className="px-4 py-2 bg-muted">
-                    <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Lernziele in dieser Prüfung</p>
-                  </div>
-                  {pruefungLZList.map(lz => (
-                    <LZStudentRow
-                      key={lz.id}
-                      lz={lz}
-                      status={student.lernzielStatus[lz.id]}
-                      skipped={isLZSkipped(lz, student, activeThemen)}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </div>
