@@ -11,6 +11,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { sv } from '@/lib/utils'
+import { themaCountsInStats } from '@/lib/student-kpis'
 import type { Status } from '@/types/domain'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -36,9 +37,7 @@ function KlasseStats({ klassId }: { klassId: string }) {
   }
 
   const today = new Date().toISOString().slice(0, 10)
-  const classThemen = getThemenForKlasse(klassId).filter(t =>
-    !t.faelligAm || t.faelligAm <= today
-  )
+  const classThemen = getThemenForKlasse(klassId).filter(t => themaCountsInStats(t, today))
   const allLZ = classThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
   const allLZIds = allLZ.map(lz => lz.id)
 

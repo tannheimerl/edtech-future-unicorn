@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from 'react'
 import {
-  ArrowRight, BookOpen, ChevronDown, ChevronLeft, ChevronRight, Download, PencilLine, Plus,
+  BookOpen, ChevronDown, ChevronLeft, ChevronRight, Download, PencilLine, Plus,
   Upload, X, Check, Trash2,
 } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
@@ -16,6 +16,7 @@ import { InputModal } from '@/components/shared/InputModal'
 import { Modal } from '@/components/shared/Modal'
 import { ModalRow } from '@/components/shared/ModalRow'
 import { ThemaAddPickerModal } from '@/components/shared/ThemaAddPickerModal'
+import { FachZuordnenRow } from '@/components/shared/FachZuordnenRow'
 import { SearchBar } from '@/components/shared/SearchBar'
 import {
   Popover, PopoverContent, PopoverTrigger,
@@ -25,18 +26,8 @@ import {
 } from '@/components/ui/command'
 import { cn, getFachColor } from '@/lib/utils'
 import { findExactFachMatch, normalizeFachName, rankFachSuggestions, SUGGEST_THRESHOLD } from '@/lib/fachMatch'
-import { readLezioFiles } from '@/lib/lezioImport'
-import type { Fach, LernzielKategorie, LezioExport, TagKategorie, Thema } from '@/types/domain'
-
-// Sentinel: in der Fächer-Zuordnung „neues Fach anlegen" wählen
-const NEW_FACH = '__new__'
-
-function importDoneMsg(themen: number, neueFaecher: number, errors: number): string {
-  const teile = [`${themen} ${themen === 1 ? 'Thema' : 'Themen'} importiert`]
-  if (neueFaecher > 0) teile.push(`${neueFaecher} ${neueFaecher === 1 ? 'neues Fach' : 'neue Fächer'} angelegt`)
-  if (errors > 0) teile.push(`${errors} übersprungen`)
-  return teile.join(' · ')
-}
+import { readLezioFiles, NEW_FACH, importDoneMsg } from '@/lib/lezioImport'
+import type { LernzielKategorie, LezioExport, TagKategorie, Thema } from '@/types/domain'
 
 const BUILTIN_KOLONNEN = [
   { id: 'fach',  label: 'Fach' },
@@ -617,79 +608,6 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
         onSubmit={(v) => { if (addValueKatId) setTagValue(addValueKatId, v) }}
       />
     </>
-  )
-}
-
-// ── Fächer-Zuordnung beim Import ──────────────────────────────────────────
-
-function FachZuordnenRow({ importName, count, faecher, value, onChange }: {
-  importName: string
-  count: number
-  faecher: Fach[]
-  value: string  // fachId oder NEW_FACH
-  onChange: (v: string) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const ranked = rankFachSuggestions(importName, faecher)
-  const selectedFach = value === NEW_FACH ? null : faecher.find(f => f.id === value)
-
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto_13rem] items-center gap-3 py-2.5">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold">{importName}</p>
-        <p className="text-[11px] text-muted-foreground">{count} {count === 1 ? 'Thema' : 'Themen'}</p>
-      </div>
-      <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-accent/30 transition-colors">
-          {selectedFach ? (
-            <>
-              <span className={cn('size-2 rounded-full shrink-0', getFachColor(selectedFach.id, faecher.map(f => f.id), selectedFach.colorIndex).dot)} />
-              <span className="flex-1 truncate text-left">{selectedFach.name}</span>
-            </>
-          ) : (
-            <span className="flex-1 truncate text-left text-muted-foreground">Neues Fach anlegen</span>
-          )}
-          <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-        </PopoverTrigger>
-        <PopoverContent className="w-56 p-1.5" align="end">
-          <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto">
-            {ranked.map(({ fach: f, score }, idx) => {
-              const isSuggested = idx === 0 && score >= SUGGEST_THRESHOLD
-              return (
-                <button
-                  key={f.id}
-                  onClick={() => { onChange(f.id); setOpen(false) }}
-                  className={cn(
-                    'flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-left transition-colors',
-                    value === f.id ? 'bg-primary/10 text-primary' : 'hover:bg-muted/60',
-                  )}
-                >
-                  <span className={cn('size-2 rounded-full shrink-0', getFachColor(f.id, faecher.map(fx => fx.id), f.colorIndex).dot)} />
-                  <span className="flex-1 truncate">{f.name}</span>
-                  {isSuggested && (
-                    <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">Vorschlag</span>
-                  )}
-                  {value === f.id && <Check className="size-3 shrink-0 text-primary" />}
-                </button>
-              )
-            })}
-            <div className="my-0.5 border-t border-border/40" />
-            <button
-              onClick={() => { onChange(NEW_FACH); setOpen(false) }}
-              className={cn(
-                'flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-left transition-colors',
-                value === NEW_FACH ? 'bg-primary/10 text-primary' : 'hover:bg-muted/60',
-              )}
-            >
-              <Plus className="size-3.5 shrink-0" />
-              <span className="flex-1 truncate">Neues Fach „{importName}“ anlegen</span>
-              {value === NEW_FACH && <Check className="size-3 shrink-0 text-primary" />}
-            </button>
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
   )
 }
 

@@ -150,7 +150,7 @@ export function RilzStudentCard({
   student: Schueler
   selectedThemen: Thema[]
   grundlegendLernziele: Lernziel[]
-  faecher: { id: string; name: string }[]
+  faecher: { id: string; name: string; colorIndex?: number }[]
   rilzLibraryThemen?: Thema[]
 }) {
   const {
@@ -234,14 +234,16 @@ export function RilzStudentCard({
           <div className="flex gap-1 flex-wrap">
             {(student.rilzFachIds ?? []).map(fachId => {
               const fach = faecher.find(f => f.id === fachId)
-              return fach ? (
-                <span key={fachId} className="rounded px-1 py-px text-[9px] font-semibold bg-rilz-soft text-rilz-foreground">
+              if (!fach) return null
+              const fc = getFachColor(fach.id, faecher.map(f => f.id), fach.colorIndex)
+              return (
+                <span key={fachId} className={cn('rounded px-1 py-px text-[9px] font-semibold', fc.bg, fc.text)}>
                   RILZ {fach.name}
                 </span>
-              ) : null
+              )
             })}
             {student.bvsa && (
-              <span className="rounded px-1 py-px text-[9px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg">BVSA</span>
+              <span className="rounded px-1 py-px text-[9px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg">bVSA</span>
             )}
           </div>
         </div>
