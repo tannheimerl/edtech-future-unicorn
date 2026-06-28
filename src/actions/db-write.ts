@@ -49,14 +49,16 @@ export async function dbSaveKlasse(klasse: Klasse) {
 }
 
 export async function dbSaveBeurteilungSettings(klassId: string, settings: KlasseBeurteilungSettings) {
+  const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_klassen')
     .update({ settings })
-    .eq('id', klassId)
+    .eq('id', klassId).eq('tenant_id', tenantId)
   log('dbSaveBeurteilungSettings', error)
 }
 
 export async function dbDeleteKlasse(id: string) {
-  const { error } = await supabaseAdmin.from('dim_klassen').delete().eq('id', id)
+  const tenantId = await getCurrentTenantId()
+  const { error } = await supabaseAdmin.from('dim_klassen').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteKlasse', error)
 }
 
@@ -79,7 +81,8 @@ export async function dbSaveSchueler(s: Schueler) {
 }
 
 export async function dbDeleteSchueler(id: string) {
-  const { error } = await supabaseAdmin.from('dim_schueler').delete().eq('id', id)
+  const tenantId = await getCurrentTenantId()
+  const { error } = await supabaseAdmin.from('dim_schueler').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteSchueler', error)
 }
 
@@ -95,8 +98,9 @@ export async function dbSaveLernzielStatus(schueler_id: string, lernziel_id: str
 }
 
 export async function dbDeleteLernzielStatus(schueler_id: string, lernziel_id: string) {
+  const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_lernziel_status')
-    .delete().eq('schueler_id', schueler_id).eq('lernziel_id', lernziel_id)
+    .delete().eq('schueler_id', schueler_id).eq('lernziel_id', lernziel_id).eq('tenant_id', tenantId)
   log('dbDeleteLernzielStatus', error)
 }
 
@@ -112,7 +116,8 @@ export async function dbSaveRilzLernziel(schueler_id: string, rlz: RilzLernziel)
 }
 
 export async function dbDeleteRilzLernziel(id: string) {
-  const { error } = await supabaseAdmin.from('fact_rilz_lernziele').delete().eq('id', id)
+  const tenantId = await getCurrentTenantId()
+  const { error } = await supabaseAdmin.from('fact_rilz_lernziele').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteRilzLernziel', error)
 }
 
@@ -128,8 +133,9 @@ export async function dbSaveKommentar(k: AssessmentKommentar) {
 }
 
 export async function dbDeleteKommentar(studentId: string, lernzielId: string) {
+  const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_kommentare')
-    .delete().eq('schueler_id', studentId).eq('lernziel_id', lernzielId)
+    .delete().eq('schueler_id', studentId).eq('lernziel_id', lernzielId).eq('tenant_id', tenantId)
   log('dbDeleteKommentar', error)
 }
 
@@ -143,8 +149,9 @@ export async function dbSaveThemaKommentar(k: ThemaKommentar) {
 }
 
 export async function dbDeleteThemaKommentar(studentId: string, themaId: string) {
+  const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_thema_kommentare')
-    .delete().eq('schueler_id', studentId).eq('thema_id', themaId)
+    .delete().eq('schueler_id', studentId).eq('thema_id', themaId).eq('tenant_id', tenantId)
   log('dbDeleteThemaKommentar', error)
 }
 
@@ -160,7 +167,8 @@ export async function dbSaveFach(f: Fach) {
 }
 
 export async function dbDeleteFach(id: string) {
-  const { error } = await supabaseAdmin.from('dim_faecher').delete().eq('id', id)
+  const tenantId = await getCurrentTenantId()
+  const { error } = await supabaseAdmin.from('dim_faecher').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteFach', error)
 }
 
@@ -194,21 +202,23 @@ export async function dbSaveTagKategorie(kat: TagKategorie) {
 }
 
 export async function dbDeleteTagKategorie(id: string) {
-  const { error } = await supabaseAdmin.from('dim_tag_kategorien').delete().eq('id', id)
+  const tenantId = await getCurrentTenantId()
+  const { error } = await supabaseAdmin.from('dim_tag_kategorien').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteTagKategorie', error)
 }
 
 export async function dbDeleteThema(id: string) {
+  const tenantId = await getCurrentTenantId()
   // dim_lernziele.thema_id und fact_rilz_lernziele.thema_id haben KEIN
   // ON DELETE CASCADE — diese Kinder müssen zuerst weg, sonst verweigert
   // Postgres das Löschen des Themas (und es taucht nach Refresh wieder auf).
-  await supabaseAdmin.from('fact_rilz_lernziele').delete().eq('thema_id', id)
+  await supabaseAdmin.from('fact_rilz_lernziele').delete().eq('thema_id', id).eq('tenant_id', tenantId)
   // RILZ-Themen, die dieses Thema als Standard referenzieren, entkoppeln.
-  await supabaseAdmin.from('dim_themen').update({ standard_thema_id: null }).eq('standard_thema_id', id)
+  await supabaseAdmin.from('dim_themen').update({ standard_thema_id: null }).eq('standard_thema_id', id).eq('tenant_id', tenantId)
   // Lernziele löschen — deren fact_lernziel_status/fact_kommentare cascaden via lernziel_id.
-  await supabaseAdmin.from('dim_lernziele').delete().eq('thema_id', id)
+  await supabaseAdmin.from('dim_lernziele').delete().eq('thema_id', id).eq('tenant_id', tenantId)
   // Thema selbst — bridge_klasse_themen & fact_thema_kommentare cascaden via thema_id.
-  const { error } = await supabaseAdmin.from('dim_themen').delete().eq('id', id)
+  const { error } = await supabaseAdmin.from('dim_themen').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteThema', error)
   return error
 }
@@ -228,7 +238,8 @@ export async function dbSaveLernziel(l: Lernziel) {
 }
 
 export async function dbDeleteLernziel(id: string) {
-  const { error } = await supabaseAdmin.from('dim_lernziele').delete().eq('id', id)
+  const tenantId = await getCurrentTenantId()
+  const { error } = await supabaseAdmin.from('dim_lernziele').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteLernziel', error)
 }
 
@@ -256,7 +267,8 @@ export async function dbSavePruefung(p: Pruefung) {
 }
 
 export async function dbDeletePruefung(id: string) {
-  const { error } = await supabaseAdmin.from('fact_pruefungen').delete().eq('id', id)
+  const tenantId = await getCurrentTenantId()
+  const { error } = await supabaseAdmin.from('fact_pruefungen').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeletePruefung', error)
 }
 

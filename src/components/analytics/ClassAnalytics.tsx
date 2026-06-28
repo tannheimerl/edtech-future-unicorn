@@ -10,6 +10,7 @@ import { SegmentedControl } from '@/components/shared/SegmentedControl'
 import { UnderlineTabs } from '@/components/shared/UnderlineTabs'
 import { DistributionBars } from '@/components/analytics/DistributionBars'
 import { useData } from '@/contexts/DataContext'
+import { themaCountsInStats } from '@/lib/student-kpis'
 import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach } from '@/types/domain'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -269,7 +270,7 @@ function StudentRankingTable({
                       ? <span className="text-[9px] font-bold bg-rilz-soft text-rilz-foreground rounded px-1 py-0.5">RILZ</span>
                       : null}
                     {s.bvsa
-                      ? <span className="text-[9px] font-bold bg-primary/10 text-primary rounded px-1 py-0.5">BVSA</span>
+                      ? <span className="text-[9px] font-bold bg-primary/10 text-primary rounded px-1 py-0.5">bVSA</span>
                       : null}
                   </div>
                 </td>
@@ -363,7 +364,7 @@ export function ClassAnalytics({
   }
 
   const today = new Date().toISOString().slice(0, 10)
-  const activeThemen = themen.filter(t => !t.faelligAm || t.faelligAm <= today)
+  const activeThemen = themen.filter(t => themaCountsInStats(t, today))
 
   const assignedFachIds = [...new Set(themen.map(t => t.fachId))]
   const assignedFaecher = faecher.filter(f => assignedFachIds.includes(f.id))

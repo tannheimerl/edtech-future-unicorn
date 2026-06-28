@@ -149,7 +149,7 @@ function StudentCard({
 }: {
   student: Schueler
   themen: Thema[]
-  faecher: { id: string; name: string }[]
+  faecher: { id: string; name: string; colorIndex?: number }[]
 }) {
   const { addRilzLernziel, getFachForThema, faecher } = useData()
   const allFachIds = faecher.map(f => f.id)
@@ -206,7 +206,7 @@ export function RilzBeurteilungView({
 }: {
   rilzStudents: Schueler[]
   themen: Thema[]
-  faecher: { id: string; name: string }[]
+  faecher: { id: string; name: string; colorIndex?: number }[]
 }) {
   if (rilzStudents.length === 0) {
     return (
@@ -234,15 +234,17 @@ export function RilzBeurteilungView({
               <p className="text-sm font-semibold">{student.vorname} {student.nachname}</p>
               <div className="flex gap-1 flex-wrap">
                 {student.bvsa && (
-                  <span className="rounded px-1 py-0 text-[9px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg">BVSA</span>
+                  <span className="rounded px-1 py-0 text-[9px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg">bVSA</span>
                 )}
                 {(student.rilzFachIds ?? []).map(fachId => {
                   const fach = faecher.find(f => f.id === fachId)
-                  return fach ? (
-                    <span key={fachId} className="rounded px-1 py-0 text-[9px] font-semibold bg-rilz-soft text-rilz-foreground">
+                  if (!fach) return null
+                  const fc = getFachColor(fach.id, faecher.map(f => f.id), fach.colorIndex)
+                  return (
+                    <span key={fachId} className={cn('rounded px-1 py-0 text-[9px] font-semibold', fc.bg, fc.text)}>
                       RILZ {fach.name}
                     </span>
-                  ) : null
+                  )
                 })}
               </div>
             </div>

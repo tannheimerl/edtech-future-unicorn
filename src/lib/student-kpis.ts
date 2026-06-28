@@ -1,5 +1,15 @@
 import type { Schueler, Thema, Lernziel, Fach } from '@/types/domain'
 
+/**
+ * Ein Thema zählt erst in Statistiken, wenn ein Fälligkeitsdatum gesetzt ist
+ * und bereits erreicht/überschritten wurde. So fließen weder undatierte noch
+ * zukünftig fällige (i. d. R. noch unbewertete) Themen in die Auswertung ein.
+ * @param today aktuelles Datum im Format `YYYY-MM-DD`
+ */
+export function themaCountsInStats(t: Thema, today: string): boolean {
+  return !!t.faelligAm && t.faelligAm <= today
+}
+
 export interface ThemaKpi {
   thema: Thema
   fachId: string

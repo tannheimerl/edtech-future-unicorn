@@ -597,7 +597,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                               colSpan={totalCols}
                               className="sticky left-0 bg-rilz-soft px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-rilz-foreground"
                             >
-                              Schülerinnen und Schüler mit BVSA
+                              Schülerinnen und Schüler mit bVSA
                             </td>
                           </tr>
                         )}

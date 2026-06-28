@@ -139,7 +139,7 @@ interface DataContextValue {
   exportThema: (themaId: string) => void
   exportFach: (fachId: string) => void
   importThema: (file: File, targetFachId?: string) => Promise<void>
-  importThemaData: (data: LezioExport, fachId: string) => void
+  importThemaData: (data: LezioExport, fachId: string) => string
 
   // Prüfungen
   getPruefungenForKlasse: (klassId: string) => Pruefung[]
@@ -255,11 +255,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     []
   )
 
+  const CURRENT_LP_ID = 'lp1'
+
   // ── Class mutations ───────────────────────────────────────────────────
 
   const createClass = useCallback((name: string): string => {
     const id = crypto.randomUUID()
-    const newKlasse: Klasse = { id, name, assignedThemaIds: [], lpZuweisungen: [] }
+    const newKlasse: Klasse = {
+      id, name, assignedThemaIds: [],
+      // Ersteller direkt als Klassenlehrperson zuweisen, sonst fällt die neue
+      // Klasse durch den `myClasses`-Filter (klassen/page.tsx) und bleibt unsichtbar.
+      lpZuweisungen: [{ lpId: CURRENT_LP_ID, fachIds: [], rolle: 'klassenlehrperson' }],
+    }
     setClasses((prev) => [...prev, newKlasse])
     dbSaveKlasse(newKlasse)
     return id
@@ -818,8 +825,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     []
   )
 
-  const CURRENT_LP_ID = 'lp1'
-
   const exportThema = useCallback((themaId: string): void => {
     const thema = themen.find((t) => t.id === themaId)
     if (!thema) return
@@ -878,7 +883,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // Legt aus bereits geparsten Importdaten ein Thema + Lernziele unter dem aufgelösten Fach an.
   // Kein Matching – die fachId muss vom Aufrufer aufgelöst sein (Einzel- und Batch-Import).
-  const importThemaData = useCallback((data: LezioExport, fachId: string): void => {
+  // Gibt die ID des neu angelegten Themas zurück (z. B. um es direkt einer Klasse zuzuweisen).
+  const importThemaData = useCallback((data: LezioExport, fachId: string): string => {
     const themaId = crypto.randomUUID()
     const newThema: Thema = {
       id: themaId, fachId, name: data.thema.name,
@@ -897,6 +903,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setLernziele((prev) => [...prev, ...newLZ])
       for (const lz of newLZ) dbSaveLernziel(lz)
     }
+    return themaId
   }, [])
 
   const importThema = useCallback(async (file: File, targetFachId?: string): Promise<void> => {

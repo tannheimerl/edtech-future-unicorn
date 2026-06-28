@@ -9,7 +9,6 @@ import { FilterDropdown } from '@/components/shared/FilterDropdown'
 import { SectionBlock } from '@/components/shared/SectionBlock'
 import { StatusCell } from '@/components/shared/StatusCell'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Breadcrumb } from '@/components/shared/Breadcrumb'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 import { computeStudentKpis } from '@/lib/student-kpis'
 import { cn, getFachColor, scoreColor, statusChipClasses, categoryChipClasses } from '@/lib/utils'
@@ -92,15 +91,6 @@ export default function SchuelerDetailPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-6 py-5">
-      <Breadcrumb
-        className="mb-4"
-        items={[
-          { label: 'Klassen', href: '/klassen' },
-          { label: klasse.name, href: `/klassen/${klassId}` },
-          { label: fullName },
-        ]}
-      />
-
       {/* Zone A: Header */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-4">
@@ -114,15 +104,17 @@ export default function SchuelerDetailPage() {
             <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
               <span className="text-sm text-muted-foreground">{klasse.name}</span>
               {student.bvsa && (
-                <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg">BVSA</span>
+                <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg">bVSA</span>
               )}
               {(student.rilzFachIds ?? []).map((fachId) => {
                 const fach = faecher.find((f) => f.id === fachId)
-                return fach ? (
-                  <span key={fachId} className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-rilz-soft text-rilz-foreground">
+                if (!fach) return null
+                const fc = getFachColor(fach.id, faecher.map((f) => f.id), fach.colorIndex)
+                return (
+                  <span key={fachId} className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', fc.bg, fc.text)}>
                     RILZ {fach.name}
                   </span>
-                ) : null
+                )
               })}
             </div>
           </div>

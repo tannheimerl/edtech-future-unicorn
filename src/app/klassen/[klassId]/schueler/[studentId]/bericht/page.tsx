@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Printer, ArrowLeft } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
-import { Breadcrumb } from '@/components/shared/Breadcrumb'
 import { Button } from '@/components/ui/button'
 import { cn, categoryChipClasses } from '@/lib/utils'
 import type { Status } from '@/types/domain'
@@ -86,16 +85,6 @@ export default function BerichtPage() {
     <div className="mx-auto w-full max-w-7xl px-6 py-5">
       {/* Non-print: breadcrumb + controls */}
       <div className="print:hidden">
-        <Breadcrumb
-          className="mb-4"
-          items={[
-            { label: 'Klassen', href: '/klassen' },
-            { label: klasse.name, href: `/klassen/${klassId}` },
-            { label: `${student.vorname} ${student.nachname}`, href: `/klassen/${klassId}/schueler/${studentId}` },
-            { label: 'Bericht' },
-          ]}
-        />
-
         <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Bericht erstellen</h1>

@@ -8,7 +8,7 @@ import { SegmentedControl } from '@/components/shared/SegmentedControl'
 import { UnderlineTabs } from '@/components/shared/UnderlineTabs'
 import { StatusCell } from '@/components/shared/StatusCell'
 import { useData } from '@/contexts/DataContext'
-import { computeStudentKpis } from '@/lib/student-kpis'
+import { computeStudentKpis, themaCountsInStats } from '@/lib/student-kpis'
 import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach, Status } from '@/types/domain'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -187,7 +187,7 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
   const today = new Date().toISOString().slice(0, 10)
 
   const activeThemen = useMemo(
-    () => themen.filter(t => !t.faelligAm || t.faelligAm <= today),
+    () => themen.filter(t => themaCountsInStats(t, today)),
     [themen, today],
   )
 

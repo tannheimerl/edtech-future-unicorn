@@ -66,3 +66,14 @@ export async function readLezioFiles(
 
   return { items, errors }
 }
+
+/** Sentinel: in der Fächer-Zuordnung „neues Fach anlegen“ wählen. */
+export const NEW_FACH = '__new__'
+
+/** Baut die Erfolgsmeldung nach einem Import zusammen. */
+export function importDoneMsg(themen: number, neueFaecher: number, errors: number): string {
+  const teile = [`${themen} ${themen === 1 ? 'Thema' : 'Themen'} importiert`]
+  if (neueFaecher > 0) teile.push(`${neueFaecher} ${neueFaecher === 1 ? 'neues Fach' : 'neue Fächer'} angelegt`)
+  if (errors > 0) teile.push(`${errors} übersprungen`)
+  return teile.join(' · ')
+}

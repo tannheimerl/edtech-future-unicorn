@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   SquarePen, Plus, UserRound,
-  ChevronDown, ChevronRight, Trash2,
+  ChevronDown, ChevronLeft, ChevronRight, Trash2,
   Info, Pencil, PencilLine, Calendar, BookMarked, BarChart2,
+  Download, Upload, Check, X,
 } from 'lucide-react'
 import { useData } from '@/contexts/DataContext'
 import { ClassAnalytics } from '@/components/analytics/ClassAnalytics'
@@ -15,18 +16,23 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Breadcrumb } from '@/components/shared/Breadcrumb'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { AddThemenModal } from '@/components/shared/AddThemenModal'
 import { CreateThemaModal } from '@/components/shared/CreateThemaModal'
 import { Modal } from '@/components/shared/Modal'
+import { ModalRow } from '@/components/shared/ModalRow'
+import { InputModal } from '@/components/shared/InputModal'
+import { FachZuordnenRow } from '@/components/shared/FachZuordnenRow'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PillTabs } from '@/components/shared/PillTabs'
 import { SearchBar } from '@/components/shared/SearchBar'
 import { cn, getFachColor, scoreColor, categoryChipClasses } from '@/lib/utils'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
+import { readLezioFiles, NEW_FACH, importDoneMsg } from '@/lib/lezioImport'
+import { findExactFachMatch, normalizeFachName, rankFachSuggestions, SUGGEST_THRESHOLD } from '@/lib/fachMatch'
+import { themaCountsInStats } from '@/lib/student-kpis'
 
-import type { Schueler, Lernziel as LernzielType, Fach, Thema, RilzLernziel } from '@/types/domain'
+import type { Schueler, Lernziel as LernzielType, LernzielKategorie, Fach, Thema, LezioExport, RilzLernziel } from '@/types/domain'
 
 
 function compPct(student: Schueler, comps: { id: string }[]): number {
@@ -255,44 +261,50 @@ function SchuelerBearbeitenModal({
             </div>
           </div>
 
-          {/* Toggles card */}
-          <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border/60 bg-muted/20">
-            {/* BVSA */}
+          {/* bVSA card */}
+          <div className="rounded-2xl border border-border overflow-hidden bg-muted/20">
             <div
               className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-accent/30 transition-colors"
               onClick={() => setBvsa(student.id, !student.bvsa)}
             >
               <div className="min-w-0">
-                <p className="text-sm font-medium leading-tight">BVSA</p>
+                <p className="text-sm font-medium leading-tight">bVSA</p>
                 <p className="text-[11px] text-muted-foreground leading-tight">Bericht ohne Noten</p>
               </div>
               <Toggle on={!!student.bvsa} color="bg-category-bvsa-fg" />
             </div>
+          </div>
 
-            {/* RILZ divider label */}
-            {faecher.length > 0 && (
+          {/* RILZ card */}
+          {faecher.length > 0 && (
+            <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border/60 bg-muted/20">
+              {/* RILZ divider label */}
               <div className="px-3 py-1 bg-muted/40">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   RILZ — Reduzierte Lernziele
                 </p>
               </div>
-            )}
 
-            {/* RILZ per Fach */}
-            {faecher.map(fach => {
-              const hasRilz = (student.rilzFachIds ?? []).includes(fach.id)
-              return (
-                <div
-                  key={fach.id}
-                  className="flex items-center justify-between px-3 py-1.5 cursor-pointer hover:bg-accent/30 transition-colors"
-                  onClick={() => setRilzFach(student.id, fach.id, !hasRilz)}
-                >
-                  <span className="text-sm">{fach.name}</span>
-                  <Toggle on={hasRilz} color="bg-rilz" />
-                </div>
-              )
-            })}
-          </div>
+              {/* RILZ per Fach */}
+              {faecher.map(fach => {
+                const hasRilz = (student.rilzFachIds ?? []).includes(fach.id)
+                const fc = getFachColor(fach.id, faecher.map(f => f.id), fach.colorIndex)
+                return (
+                  <div
+                    key={fach.id}
+                    className="flex items-center justify-between px-3 py-1.5 cursor-pointer hover:bg-accent/30 transition-colors"
+                    onClick={() => setRilzFach(student.id, fach.id, !hasRilz)}
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
+                      <span className="text-sm truncate">{fach.name}</span>
+                    </span>
+                    <Toggle on={hasRilz} color="bg-rilz" />
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </Modal>
 
@@ -342,16 +354,48 @@ function LernzielPopup({ lz, onClose }: { lz: LernzielType; onClose: () => void 
   )
 }
 
+// Bearbeiten-Popup im Klassen-Tab — Format wie die Lernzielsammlung (2 Schritte),
+// jedoch ohne Filter-Tags und mit dem klassenspezifischen Feld „Fällig am".
 function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
   themaId: string; klassId: string; allowRemove: boolean; onClose: () => void
 }) {
-  const { themen, updateThema, removeThemaFromKlasse } = useData()
-  const thema = themen.find(t => t.id === themaId)!
-  const [name, setName] = useState(thema.name)
-  const [faelligAm, setFaelligAm] = useState(thema.faelligAm ?? '')
+  const {
+    themen, faecher, lernziele, updateThema, removeThemaFromKlasse, exportThema,
+    createLernziel, updateLernziel, deleteLernziel,
+  } = useData()
+  const thema = themen.find(t => t.id === themaId)
+  const themaLZ = lernziele.filter(lz => lz.themaId === themaId)
+
+  // Step
+  const [editStep, setEditStep] = useState<'meta' | 'lernziele'>('meta')
+
+  // Meta state
+  const [localName, setLocalName] = useState(thema?.name ?? '')
+  const [faelligAm, setFaelligAm] = useState(thema?.faelligAm ?? '')
+  const [localFachId, setLocalFachId] = useState(thema?.fachId ?? '')
+  const [localTyp, setLocalTyp] = useState<'standard' | 'rilz'>(thema?.typ ?? 'standard')
+  const [stufe, setStufe] = useState<number | undefined>(thema?.stufe?.[0])
+  const [openRowId, setOpenRowId] = useState<string | null>(null)
+
+  // Lernziele state
+  const [newLZG, setNewLZG] = useState('')
+  const [newLZA, setNewLZA] = useState('')
+  const [editLzId, setEditLzId] = useState<string | null>(null)
+  const [editLzLabel, setEditLzLabel] = useState('')
+  const [editLzKategorie, setEditLzKategorie] = useState<LernzielKategorie>('grundlegend')
+  const [deleteLzId, setDeleteLzId] = useState<string | null>(null)
+
+  if (!thema) return null
 
   function save() {
-    updateThema(themaId, { name: name.trim() || thema.name, faelligAm: faelligAm || undefined })
+    if (!localName.trim()) return
+    updateThema(themaId, {
+      name: localName.trim(),
+      fachId: localFachId,
+      typ: localTyp,
+      stufe: stufe ? [stufe] : undefined,
+      faelligAm: faelligAm || undefined,
+    })
     onClose()
   }
   function remove() {
@@ -359,39 +403,292 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
     onClose()
   }
 
-  return (
-    <Modal open onOpenChange={v => !v && onClose()} title="Thema bearbeiten" size="sm"
-      footer={
-        <div className="flex w-full items-center gap-2">
-          {allowRemove && (
-            <Button variant="outline" className="text-destructive hover:text-destructive border-destructive/30" onClick={remove}>
-              Aus Klasse entfernen
+  function openRow(id: string, isOpen: boolean) {
+    setOpenRowId(isOpen ? id : null)
+  }
+
+  function renderSimpleOptions(
+    opts: { value: string; label: string }[],
+    current: string,
+    onSelect: (v: string) => void,
+    clearLabel?: string
+  ) {
+    return (
+      <div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto">
+        {clearLabel && current && (
+          <button
+            onClick={() => { onSelect(''); setOpenRowId(null) }}
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 text-left"
+          >
+            <X className="size-3 shrink-0" />{clearLabel}
+          </button>
+        )}
+        {opts.map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => { onSelect(opt.value); setOpenRowId(null) }}
+            className={cn(
+              'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors text-left',
+              opt.value === current ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted/60 text-foreground'
+            )}
+          >
+            {opt.value === current
+              ? <Check className="size-3 shrink-0" />
+              : <span className="size-3 shrink-0" />
+            }
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
+  // Lernziele helpers
+  const grundlegendLZ = themaLZ.filter(lz => lz.kategorie === 'grundlegend')
+  const anspruchsvollLZ = themaLZ.filter(lz => lz.kategorie === 'anspruchsvoll')
+
+  function addLZG() {
+    if (!newLZG.trim()) return
+    createLernziel(themaId, newLZG.trim(), 'grundlegend')
+    setNewLZG('')
+  }
+  function addLZA() {
+    if (!newLZA.trim()) return
+    createLernziel(themaId, newLZA.trim(), 'anspruchsvoll')
+    setNewLZA('')
+  }
+  function saveLZ(id: string) {
+    if (!editLzLabel.trim()) return
+    updateLernziel(id, { label: editLzLabel.trim(), kategorie: editLzKategorie })
+    setEditLzId(null)
+  }
+
+  function renderLZRow(lz: (typeof themaLZ)[number], idx: number) {
+    return (
+      <div key={lz.id} className="group flex items-center gap-2 py-1.5 hover:bg-accent/20 transition-colors px-1">
+        <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">{idx + 1}</span>
+        {editLzId === lz.id ? (
+          <>
+            <div className="flex rounded border overflow-hidden shrink-0 h-6">
+              {(['grundlegend', 'anspruchsvoll'] as LernzielKategorie[]).map(k => (
+                <button key={k} onClick={() => setEditLzKategorie(k)}
+                  className={cn(
+                    'px-1.5 text-[9px] font-medium transition-colors',
+                    editLzKategorie === k
+                      ? k === 'grundlegend' ? 'bg-category-grundlegend text-white' : 'bg-category-anspruchsvoll text-white'
+                      : 'bg-background text-muted-foreground hover:bg-muted',
+                  )}>
+                  {k === 'grundlegend' ? 'G' : 'A'}
+                </button>
+              ))}
+            </div>
+            <Input value={editLzLabel}
+              onChange={e => setEditLzLabel(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') saveLZ(lz.id); if (e.key === 'Escape') setEditLzId(null) }}
+              className="h-6 text-xs flex-1 px-1.5" autoFocus />
+            <Button size="icon-sm" variant="ghost" onClick={() => saveLZ(lz.id)}>
+              <Check className="size-3 text-status-reached" />
             </Button>
-          )}
-          <div className="flex-1" />
-          <Button variant="outline" onClick={onClose}>Abbrechen</Button>
-          <Button onClick={save} disabled={!name.trim()}>Speichern</Button>
-        </div>
+            <Button size="icon-sm" variant="ghost" onClick={() => setEditLzId(null)}>
+              <X className="size-3" />
+            </Button>
+          </>
+        ) : (
+          <>
+            <span className="flex-1 text-xs leading-snug">{lz.label}</span>
+            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              <Button size="icon-sm" variant="ghost"
+                onClick={() => { setEditLzId(lz.id); setEditLzLabel(lz.label); setEditLzKategorie(lz.kategorie) }}
+                aria-label="Bearbeiten">
+                <PencilLine className="size-3" />
+              </Button>
+              <Button size="icon-sm" variant="ghost"
+                className="text-destructive/70 hover:text-destructive"
+                onClick={() => setDeleteLzId(lz.id)} aria-label="Löschen">
+                <Trash2 className="size-3" />
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <Modal
+      open
+      onOpenChange={v => { if (!v) onClose() }}
+      title={thema.name}
+      size="md"
+      footer={
+        editStep === 'meta' ? (
+          <div className="flex items-center justify-between w-full gap-2">
+            {allowRemove ? (
+              <button
+                onClick={remove}
+                className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded-lg hover:bg-destructive/8"
+              >
+                <Trash2 className="size-3.5" />
+                Aus Klasse entfernen
+              </button>
+            ) : <div />}
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="ghost" onClick={() => exportThema(themaId)} aria-label="Exportieren" className="text-muted-foreground">
+                <Download className="size-3.5" />
+              </Button>
+              <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
+              <Button size="sm" onClick={() => setEditStep('lernziele')} disabled={!localName.trim()}>
+                Weiter <ChevronRight className="size-3.5 ml-0.5" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between w-full gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setEditStep('meta')} className="text-muted-foreground">
+              <ChevronLeft className="size-3.5 mr-0.5" /> Zurück
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
+              <Button size="sm" onClick={save} disabled={!localName.trim()}>Fertig</Button>
+            </div>
+          </div>
+        )
       }
     >
-      <div className="grid gap-3">
-        <div className="grid gap-1.5">
-          <Label>Themabezeichnung</Label>
-          <Input value={name} onChange={e => setName(e.target.value)} autoFocus />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>Fällig am <span className="font-normal text-muted-foreground">(opt.)</span></Label>
-          <div className="relative">
+      {/* Step 1: Meta */}
+      {editStep === 'meta' && (
+        <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden space-y-3">
+          {/* Name */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Bezeichnung</Label>
             <Input
-              type="date"
-              value={faelligAm}
-              onChange={e => setFaelligAm(e.target.value)}
-              className="pr-8 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              value={localName}
+              onChange={e => setLocalName(e.target.value)}
+              placeholder="Themabezeichnung"
             />
-            <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+          </div>
+
+          {/* Fällig am — klassenspezifisch */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Fällig am <span className="font-normal">(opt.)</span></Label>
+            <div className="relative">
+              <Input
+                type="date"
+                value={faelligAm}
+                onChange={e => setFaelligAm(e.target.value)}
+                className="pr-8 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              />
+              <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Dropdown rows */}
+          <div className="space-y-1 border-t border-border/40 pt-2">
+
+            {/* Fach — only if multiple Fächer exist */}
+            {faecher.length > 1 && (
+              <ModalRow
+                label="Fach"
+                displayValue={faecher.find(f => f.id === localFachId)?.name}
+                open={openRowId === 'fach'}
+                onOpenChange={v => openRow('fach', v)}
+              >
+                {renderSimpleOptions(
+                  faecher.map(f => ({ value: f.id, label: f.name })),
+                  localFachId,
+                  setLocalFachId
+                )}
+              </ModalRow>
+            )}
+
+            {/* Typ */}
+            <ModalRow
+              label="Typ"
+              displayValue={localTyp === 'rilz' ? 'RILZ' : 'Standard'}
+              open={openRowId === 'typ'}
+              onOpenChange={v => openRow('typ', v)}
+            >
+              {renderSimpleOptions(
+                [{ value: 'standard', label: 'Standard' }, { value: 'rilz', label: 'RILZ' }],
+                localTyp,
+                v => setLocalTyp(v as 'standard' | 'rilz')
+              )}
+            </ModalRow>
+
+            {/* Schulstufe */}
+            <ModalRow
+              label="Schulstufe"
+              displayValue={stufe ? `Kl. ${stufe}` : undefined}
+              placeholder="keine"
+              open={openRowId === 'stufe'}
+              onOpenChange={v => openRow('stufe', v)}
+            >
+              {renderSimpleOptions(
+                [1,2,3,4,5,6,7,8,9].map(n => ({ value: String(n), label: `Kl. ${n}` })),
+                stufe ? String(stufe) : '',
+                v => setStufe(v ? Number(v) : undefined),
+                'Keine Auswahl'
+              )}
+            </ModalRow>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Step 2: Lernziele */}
+      {editStep === 'lernziele' && (
+        <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
+          {/* Grundlegend */}
+          <div className="border-b border-border/40">
+            <div className="py-1 bg-muted/20 px-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
+            </div>
+            <div className="divide-y divide-border/30">
+              {grundlegendLZ.length === 0 && (
+                <p className="py-1.5 px-1 text-[10px] text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
+              )}
+              {grundlegendLZ.map((lz, i) => renderLZRow(lz, i))}
+            </div>
+            <div className="py-1.5 px-1 flex items-center gap-1.5 border-t border-border/30">
+              <Input value={newLZG} onChange={e => setNewLZG(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addLZG()}
+                placeholder="Grundlegendes Lernziel…" className="h-6 text-xs flex-1" />
+              <Button size="icon-sm" variant="outline" onClick={addLZG} disabled={!newLZG.trim()}>
+                <Plus className="size-3" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Anspruchsvoll */}
+          <div>
+            <div className="py-1 bg-muted/20 px-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
+            </div>
+            <div className="divide-y divide-border/30">
+              {anspruchsvollLZ.length === 0 && (
+                <p className="py-1.5 px-1 text-[10px] text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
+              )}
+              {anspruchsvollLZ.map((lz, i) => renderLZRow(lz, i))}
+            </div>
+            <div className="py-1.5 px-1 flex items-center gap-1.5 border-t border-border/30">
+              <Input value={newLZA} onChange={e => setNewLZA(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addLZA()}
+                placeholder="Anspruchsvolles Lernziel…" className="h-6 text-xs flex-1" />
+              <Button size="icon-sm" variant="outline" onClick={addLZA} disabled={!newLZA.trim()}>
+                <Plus className="size-3" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={!!deleteLzId}
+        onOpenChange={o => { if (!o) setDeleteLzId(null) }}
+        title="Lernziel löschen"
+        description="Soll dieses Lernziel wirklich dauerhaft gelöscht werden?"
+        confirmLabel="Löschen"
+        onConfirm={() => { if (deleteLzId) deleteLernziel(deleteLzId) }}
+      />
     </Modal>
   )
 }
@@ -401,11 +698,13 @@ function LernzieleTab({ klassId }: { klassId: string }) {
     getClass,
     faecher, themen, lernziele,
     assignThemaToKlasse, removeThemaFromKlasse,
+    createFach, deleteFach, exportThema, exportFach, importThemaData,
     getStudentsForClass,
   } = useData()
 
   const klasse = getClass(klassId)!
   const klasseGrade = parseInt(klasse.name)
+  const today = new Date().toISOString().slice(0, 10)
 
   const [collapsedFaecher, setCollapsedFaecher] = useState<Set<string>>(new Set())
   const [expandedThemen, setExpandedThemen] = useState<Set<string>>(new Set())
@@ -417,8 +716,103 @@ function LernzieleTab({ klassId }: { klassId: string }) {
   const [editThema, setEditThema] = useState<{ id: string; allowRemove: boolean } | null>(null)
   const [statsThemaId, setStatsThemaId] = useState<string | null>(null)
 
+  // Fach anlegen / aus Klasse entfernen / leeres Fach löschen
+  const [fachCreateOpen, setFachCreateOpen] = useState(false)
+  const [removeFachId, setRemoveFachId] = useState<string | null>(null)
+  const [deleteEmptyFachId, setDeleteEmptyFachId] = useState<string | null>(null)
+
+  // Import (Fächer-Zuordnungs-Maske wie in der Lernzielsammlung)
+  const [importItems, setImportItems] = useState<{ source: string; data: LezioExport }[]>([])
+  const [distinctFaecher, setDistinctFaecher] = useState<{ name: string; count: number }[]>([])
+  const [fachChoice, setFachChoice] = useState<Record<string, string>>({})
+  const [fachZuordnenOpen, setFachZuordnenOpen] = useState(false)
+  const [importFeedback, setImportFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   function toggleThema(themaId: string) {
     setExpandedThemen(prev => { const n = new Set(prev); n.has(themaId) ? n.delete(themaId) : n.add(themaId); return n })
+  }
+
+  function showImportFeedback(ok: boolean, msg: string) {
+    setImportFeedback({ ok, msg })
+    setTimeout(() => setImportFeedback(null), 4000)
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    e.target.value = ''
+    if (files.length === 0) return
+
+    const { items, errors } = await readLezioFiles(files)
+    if (items.length === 0) {
+      showImportFeedback(false, 'Keine gültigen Lernziel-Dateien gefunden.')
+      return
+    }
+
+    // Distinkte Fächernamen (normalisierter Schlüssel → Anzeigename + Anzahl Themen).
+    const distinctMap = new Map<string, { name: string; count: number }>()
+    for (const { data } of items) {
+      const key = normalizeFachName(data.fachName)
+      const entry = distinctMap.get(key)
+      if (entry) entry.count++
+      else distinctMap.set(key, { name: data.fachName, count: 1 })
+    }
+    const distinct = [...distinctMap.values()]
+
+    // Vorbelegung: exakter Treffer → dessen Fach; sonst guter Vorschlag; sonst „neu anlegen"
+    const choice: Record<string, string> = {}
+    for (const { name } of distinct) {
+      const key = normalizeFachName(name)
+      const exact = findExactFachMatch(name, faecher)
+      if (exact) { choice[key] = exact.id; continue }
+      const [best] = rankFachSuggestions(name, faecher)
+      choice[key] = best && best.score >= SUGGEST_THRESHOLD ? best.fach.id : NEW_FACH
+    }
+
+    setImportItems(items)
+    setDistinctFaecher(distinct)
+    setFachChoice(choice)
+    setFachZuordnenOpen(true)
+    if (errors > 0) showImportFeedback(false, `${errors} Datei(en) konnten nicht gelesen werden.`)
+  }
+
+  function handleZuordnenConfirm() {
+    const fachByKey: Record<string, string> = {}
+    let neueFaecher = 0
+    for (const { name } of distinctFaecher) {
+      const key = normalizeFachName(name)
+      const sel = fachChoice[key]
+      if (sel === NEW_FACH) {
+        fachByKey[key] = createFach(name)
+        neueFaecher++
+      } else if (sel) {
+        fachByKey[key] = sel
+      }
+    }
+    // Themen importieren und direkt dieser Klasse zuweisen.
+    for (const { data } of importItems) {
+      const fachId = fachByKey[normalizeFachName(data.fachName)]
+      if (!fachId) continue
+      const themaId = importThemaData(data, fachId)
+      assignThemaToKlasse(klassId, themaId)
+    }
+    const count = importItems.length
+    closeZuordnen()
+    showImportFeedback(true, importDoneMsg(count, neueFaecher, 0))
+  }
+
+  function closeZuordnen() {
+    setFachZuordnenOpen(false)
+    setImportItems([])
+    setDistinctFaecher([])
+    setFachChoice({})
+  }
+
+  // Alle Standard-Themen eines Fachs aus dieser Klasse abmelden (kein globales Löschen).
+  function removeFachFromKlasse(fachId: string) {
+    themen
+      .filter(t => t.fachId === fachId && klasse.assignedThemaIds.includes(t.id))
+      .forEach(t => removeThemaFromKlasse(klassId, t.id))
   }
 
   const q = search.trim().toLowerCase()
@@ -513,11 +907,19 @@ function LernzieleTab({ klassId }: { klassId: string }) {
           value={search}
           onChange={setSearch}
           placeholder="Lernziele, Themen oder Fächer suchen…"
-          right={
+          right={<>
+            {importFeedback && (
+              <span className={cn('self-center text-xs', importFeedback.ok ? 'text-status-reached' : 'text-status-not-reached')}>
+                {importFeedback.msg}
+              </span>
+            )}
             <span className="self-center text-xs text-muted-foreground tabular-nums shrink-0">
               {`${klasse.assignedThemaIds.length} Themen · ${assignedLzIds.size} Lernziele`}
             </span>
-          }
+            <Button size="sm" className="h-auto shrink-0" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="size-3.5" /> Importieren
+            </Button>
+          </>}
         />
 
         {!catalogHasThemen ? (
@@ -543,7 +945,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
               if (fachThemen.length === 0 && rilzFachThemen.length === 0) return null
 
               const fachCollapsed = !q && collapsedFaecher.has(fach.id)
-              const fachLZCount = fachThemen.reduce((s, { lz }) => s + lz.length, 0)
+              const fachThemenCount = fachThemen.length + rilzFachThemen.length
               const fachColor = getFachColor(fach.id, faecher.map(f => f.id), fach.colorIndex)
               const hasUnassignedInFach = themen.some(t =>
                 t.fachId === fach.id &&
@@ -560,7 +962,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                   fachColor.border,
                 )}>
                   {/* Fach header */}
-                  <div className={cn('flex items-center gap-2 px-3 py-1.5 select-none', fachColor.bg)}>
+                  <div className={cn('group flex items-center gap-2 px-3 py-1.5 select-none', fachColor.bg)}>
                     <button
                       onClick={() => toggleFach(fach.id)}
                       className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
@@ -572,8 +974,26 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                       <span className="text-xs font-semibold uppercase tracking-wider text-foreground flex-1 text-left">
                         <Highlight text={fach.name} query={q} />
                       </span>
-                      <span className="text-xs text-muted-foreground tabular-nums">{fachLZCount} LZ</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">{fachThemenCount} {fachThemenCount === 1 ? 'Thema' : 'Themen'}</span>
                     </button>
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={e => { e.stopPropagation(); void exportFach(fach.id) }}
+                      aria-label={`${fach.name} exportieren`}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground"
+                    >
+                      <Download className="size-3.5" />
+                    </Button>
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={e => { e.stopPropagation(); setRemoveFachId(fach.id) }}
+                      aria-label={`${fach.name} aus Klasse entfernen`}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-destructive"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
                   </div>
 
                   {!fachCollapsed && (
@@ -594,10 +1014,27 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                 <span className="text-sm font-medium truncate"><Highlight text={thema.name} query={q} /></span>
                               </button>
 
-                              {thema.faelligAm && (
-                                <span className="inline-flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5 bg-muted text-muted-foreground">
+                              {thema.faelligAm ? (() => {
+                                const active = themaCountsInStats(thema, today)
+                                return (
+                                  <span
+                                    title={active ? undefined : 'Fließt ab dem Fälligkeitsdatum in die Statistik ein'}
+                                    className={cn(
+                                      'inline-flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5',
+                                      active ? 'bg-muted text-foreground' : 'bg-muted/50 text-muted-foreground',
+                                    )}
+                                  >
+                                    <Calendar className="size-3" />
+                                    {new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
+                                  </span>
+                                )
+                              })() : (
+                                <span
+                                  title="Fließt erst mit gesetztem Fälligkeitsdatum in die Statistik ein"
+                                  className="inline-flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5 border border-dashed border-border text-muted-foreground/60"
+                                >
                                   <Calendar className="size-3" />
-                                  {new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
+                                  kein Datum
                                 </span>
                               )}
                               <button
@@ -618,6 +1055,13 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                 aria-label="Thema bearbeiten"
                               >
                                 <PencilLine className="size-3.5" />
+                              </button>
+                              <button
+                                onClick={e => { e.stopPropagation(); exportThema(thema.id) }}
+                                className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                aria-label="Thema herunterladen"
+                              >
+                                <Download className="size-3.5" />
                               </button>
                             </div>
 
@@ -775,38 +1219,69 @@ function LernzieleTab({ klassId }: { klassId: string }) {
           </div>
         )}
 
-        {/* Faecher with standard themen (grade-filtered) but none assigned yet */}
+        {/* Faecher ohne der Klasse zugewiesene Themen:
+            - mit grade-passenden Katalog-Themen → „Themen hinzufügen"
+            - komplett leer (frisch angelegt) → Platzhalter-Karte im Sammlungs-Layout */}
         {(() => {
           const assignedFachIds = new Set(assignedData.map(d => d.fach.id))
           const unrepresentedFaecher = faecher.filter(f =>
             !assignedFachIds.has(f.id) &&
-            themen.some(t =>
-              t.fachId === f.id &&
-              (!t.typ || t.typ === 'standard') &&
-              (!t.stufe || t.stufe.includes(klasseGrade))
+            (
+              themen.some(t =>
+                t.fachId === f.id &&
+                (!t.typ || t.typ === 'standard') &&
+                (!t.stufe || t.stufe.includes(klasseGrade))
+              ) ||
+              // komplett leeres Fach (kein einziges Thema) → als Platzhalter zeigen
+              !themen.some(t => t.fachId === f.id)
             )
           )
           if (unrepresentedFaecher.length === 0) return null
           return (
-            <div className="rounded-2xl border border-dashed border-border bg-card overflow-hidden">
-              {unrepresentedFaecher.map((fach, fi) => (
-                <div key={fach.id} className={cn('flex items-center gap-2 px-3 py-2', fi > 0 && 'border-t border-border/60')}>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">{fach.name}</span>
-                  <span className="text-xs text-muted-foreground mr-1">Keine Themen</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setAddFachId(fach.id)}
-                    className="text-muted-foreground hover:text-primary hover:bg-primary/10"
-                    aria-label={`Themen in ${fach.name} hinzufügen`}
-                  >
-                    <Plus className="size-3.5" />
-                  </Button>
-                </div>
-              ))}
+            <div className="space-y-3">
+              {unrepresentedFaecher.map(fach => {
+                const fachColor = getFachColor(fach.id, faecher.map(f => f.id), fach.colorIndex)
+                const isEmpty = !themen.some(t => t.fachId === fach.id)
+                return (
+                  <div key={fach.id} className={cn(
+                    'rounded-2xl border bg-card overflow-hidden shadow-sm border-l-4',
+                    fachColor.border,
+                  )}>
+                    <div className={cn('group flex items-center gap-2 px-3 py-1.5 select-none', fachColor.bg)}>
+                      <span className="text-xs font-semibold uppercase tracking-wider text-foreground flex-1">{fach.name}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">Keine Themen</span>
+                      {isEmpty && (
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          onClick={e => { e.stopPropagation(); setDeleteEmptyFachId(fach.id) }}
+                          aria-label={`${fach.name} löschen`}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-destructive"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setAddFachId(fach.id)}
+                      className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-accent/20 transition-colors"
+                    >
+                      <Plus className="size-3" /> Thema hinzufügen
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           )
         })()}
+
+        {/* Neues Fach — ganz unten (wie in der Lernzielsammlung) */}
+        <button
+          onClick={() => setFachCreateOpen(true)}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border py-2.5 text-xs text-muted-foreground hover:text-primary hover:bg-accent/20 transition-colors"
+        >
+          <Plus className="size-3" /> Neues Fach
+        </button>
 
         {/* Add-Themen modal for a fach */}
         {addFachId && (
@@ -839,6 +1314,71 @@ function LernzieleTab({ klassId }: { klassId: string }) {
             onClose={() => setEditThema(null)}
           />
         )}
+
+        {/* Neues Fach anlegen */}
+        <InputModal
+          open={fachCreateOpen} onOpenChange={setFachCreateOpen}
+          title="Neues Fach" label="Fachbezeichnung" placeholder="z. B. Mathematik"
+          onSubmit={(name) => { createFach(name); setFachCreateOpen(false) }}
+        />
+
+        {/* Fach aus Klasse entfernen */}
+        <ConfirmDialog
+          open={!!removeFachId}
+          onOpenChange={(o) => { if (!o) setRemoveFachId(null) }}
+          title="Fach aus Klasse entfernen"
+          description="Alle Themen dieses Fachs werden aus dieser Klasse abgemeldet. Fach, Themen und Lernziele bleiben im Katalog und in anderen Klassen erhalten."
+          confirmLabel="Entfernen"
+          onConfirm={() => { if (removeFachId) { removeFachFromKlasse(removeFachId); setRemoveFachId(null) } }}
+        />
+
+        {/* Leeres Fach löschen (datenlos → global) */}
+        <ConfirmDialog
+          open={!!deleteEmptyFachId}
+          onOpenChange={(o) => { if (!o) setDeleteEmptyFachId(null) }}
+          title="Fach löschen"
+          description="Dieses leere Fach dauerhaft löschen?"
+          confirmLabel="Löschen"
+          onConfirm={() => { if (deleteEmptyFachId) { deleteFach(deleteEmptyFachId); setDeleteEmptyFachId(null) } }}
+        />
+
+        {/* Fächer-Zuordnung beim Import */}
+        <Modal
+          open={fachZuordnenOpen}
+          onOpenChange={(o) => { if (!o) closeZuordnen() }}
+          title="Fächer zuordnen"
+          description={`${distinctFaecher.length} ${distinctFaecher.length === 1 ? 'Fach' : 'Fächer'} · ${importItems.length} ${importItems.length === 1 ? 'Thema' : 'Themen'} importieren. Ordne jedes Fach einem deiner Fächer zu oder lege es neu an:`}
+          size="md"
+        >
+          <div className="flex flex-col divide-y divide-border/40">
+            {distinctFaecher.map(({ name, count }) => {
+              const key = normalizeFachName(name)
+              return (
+                <FachZuordnenRow
+                  key={key}
+                  importName={name}
+                  count={count}
+                  faecher={faecher}
+                  value={fachChoice[key] ?? NEW_FACH}
+                  onChange={(v) => setFachChoice(prev => ({ ...prev, [key]: v }))}
+                />
+              )
+            })}
+          </div>
+          <div className="mt-4 flex justify-end gap-2 border-t pt-3">
+            <Button variant="outline" size="sm" onClick={closeZuordnen}>Abbrechen</Button>
+            <Button size="sm" onClick={handleZuordnenConfirm}>Importieren</Button>
+          </div>
+        </Modal>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".lezio,.json,.zip"
+          multiple
+          className="hidden"
+          onChange={handleImportFile}
+        />
 
       </div>
 
@@ -918,13 +1458,6 @@ export default function KlasseDetailPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-6 py-3">
-      <div>
-        <Breadcrumb
-          className="mb-2"
-          items={[{ label: 'Klassen', href: '/klassen' }, { label: klasse.name }]}
-        />
-      </div>
-
       <div>
         <TabBar
           active={tab}
@@ -1059,10 +1592,13 @@ export default function KlasseDetailPage() {
                           <div className="flex-1 flex items-center gap-1.5 py-0.5 min-w-0 overflow-hidden">
                             {(() => {
                               const badges: { key: string; node: React.ReactNode }[] = []
-                              if (student.bvsa) badges.push({ key: 'bvsa', node: <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg shrink-0">BVSA</span> })
+                              if (student.bvsa) badges.push({ key: 'bvsa', node: <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg shrink-0">bVSA</span> })
                               for (const fachId of student.rilzFachIds ?? []) {
                                 const fach = faecher.find(f => f.id === fachId)
-                                if (fach) badges.push({ key: fachId, node: <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-rilz-soft text-rilz-foreground shrink-0">RILZ {fach.name}</span> })
+                                if (fach) {
+                                  const fc = getFachColor(fach.id, faecher.map(f => f.id), fach.colorIndex)
+                                  badges.push({ key: fachId, node: <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold shrink-0', fc.bg, fc.text)}>RILZ {fach.name}</span> })
+                                }
                               }
                               if (badges.length === 0) return null
                               const MAX = 4
