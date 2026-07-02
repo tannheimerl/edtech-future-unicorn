@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
-interface PillTabsProps<T extends string> {
+type PillTabsProps<T extends string> = {
   options: { key: T; label: string }[]
   value: T
   onChange: (v: T) => void
@@ -11,7 +11,7 @@ interface PillTabsProps<T extends string> {
   leading?: ReactNode
 }
 
-export function PillTabs<T extends string>({ options, value, onChange, size = 'default', leading }: PillTabsProps<T>) {
+export const PillTabs = <T extends string,>({ options, value, onChange, size = 'default', leading }: PillTabsProps<T>) => {
   const sm = size === 'sm'
   return (
     <div

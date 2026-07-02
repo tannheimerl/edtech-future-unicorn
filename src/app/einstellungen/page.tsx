@@ -1,13 +1,13 @@
 'use client'
 
-import { Check } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { FACH_COLORS, getFachColor, cn } from '@/lib/utils'
 import Link from 'next/link'
 
 const COLOR_LABELS = ['Blau', 'Violett', 'Grün', 'Rot', 'Gelb', 'Türkis', 'Pink', 'Indigo']
 
-export default function EinstellungenPage() {
+const EinstellungenPage = () => {
   const { faecher, updateFachColor } = useData()
   const allFachIds = faecher.map(f => f.id)
 
@@ -53,7 +53,7 @@ export default function EinstellungenPage() {
                           )}
                         >
                           {isActive && (
-                            <Check className="absolute inset-0 m-auto size-3 text-white drop-shadow" strokeWidth={3} />
+                            <Icon name="check" size={12} weight={700} className="absolute inset-0 m-auto text-white drop-shadow" />
                           )}
                         </button>
                       )
@@ -68,3 +68,5 @@ export default function EinstellungenPage() {
     </div>
   )
 }
+
+export default EinstellungenPage

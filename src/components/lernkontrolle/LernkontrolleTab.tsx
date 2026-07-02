@@ -1,23 +1,24 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { ClipboardList, Plus, ChevronDown, Search, X } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { StatusCell, nextStatus } from '@/components/shared/StatusCell'
 import { Tooltip } from '@/components/ui/tooltip'
 import { cn, getFachColor, categoryChipClasses } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import { RilzStudentCard } from './RilzStudentCard'
 import type { Status, Thema } from '@/types/domain'
 
-function InlineKommentarCell({
+const InlineKommentarCell = ({
   studentId,
   themaId,
 }: {
   studentId: string
   themaId: string
-}) {
+}) => {
   const { getThemaKommentar, upsertThemaKommentar, deleteThemaKommentar } = useData()
   const kommentar = getThemaKommentar(studentId, themaId)
   const [editing, setEditing] = useState(false)
@@ -46,14 +47,14 @@ function InlineKommentarCell({
 
   if (editing) {
     return (
-      <textarea
+      <Textarea
         ref={taRef}
         value={draft}
         onChange={e => setDraft(e.target.value)}
         onBlur={save}
         onKeyDown={handleKeyDown}
         rows={2}
-        className="w-full resize-none rounded-md border border-ring bg-background px-2 py-1 text-xs leading-snug focus:outline-none"
+        className="min-h-0 field-sizing-fixed resize-none border-ring px-2 py-1 text-xs leading-snug"
         placeholder="Kommentar zur Prüfung …"
       />
     )
@@ -63,7 +64,7 @@ function InlineKommentarCell({
     <button
       onClick={() => setEditing(true)}
       className={cn(
-        'w-full text-left rounded-md px-2 py-0.5 text-xs leading-snug transition-colors min-h-[1.75rem]',
+        'w-full text-left rounded-md px-2 py-0.5 text-xs leading-snug transition-colors min-h-8',
         kommentar
           ? 'text-foreground hover:bg-muted/60'
           : 'text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/40 italic',
@@ -74,7 +75,7 @@ function InlineKommentarCell({
   )
 }
 
-function ThemaSelect({
+const ThemaSelect = ({
   value,
   onChange,
   placeholder,
@@ -90,7 +91,7 @@ function ThemaSelect({
   themenByFach: { fach: { id: string; name: string; colorIndex?: number }; themen: { id: string; name: string }[] }[]
   themaIds: (string | null)[]
   getLernzieleForThema: (id: string) => unknown[]
-}) {
+}) => {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
@@ -137,20 +138,20 @@ function ThemaSelect({
         onClick={() => setOpen(v => !v)}
         className={cn(
           'h-7 min-w-44 rounded-md border border-border bg-card px-2 pr-6 text-xs font-medium shadow-sm flex items-center cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring overflow-hidden',
-          selectedFachColor && 'border-l-[3px]',
+          selectedFachColor && 'border-l-4',
           selectedFachColor?.border,
         )}
       >
         <span className={cn('truncate flex-1 text-left', selectedName ? 'text-foreground' : 'text-muted-foreground')}>
           {selectedName ?? placeholder}
         </span>
-        <ChevronDown className="size-3 shrink-0 absolute right-1.5 text-muted-foreground" />
+        <Icon name="expand_more" size={12} className="shrink-0 absolute right-1.5 text-muted-foreground" />
       </button>
 
       {open && (
         <div className="absolute top-full left-0 mt-1 z-50 w-64 rounded-lg border border-border bg-card shadow-lg">
           <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-border">
-            <Search className="size-3 text-muted-foreground shrink-0" />
+            <Icon name="search" size={12} className="text-muted-foreground shrink-0" />
             <input
               ref={inputRef}
               value={search}
@@ -166,7 +167,7 @@ function ThemaSelect({
             ) : (
               filtered.map(({ fach, themen }) => (
                 <div key={fach.id}>
-                  <p className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60 flex items-center gap-1">
+                  <p className="px-3 pt-2 pb-0.5 text-3xs font-semibold uppercase tracking-wide text-muted-foreground/60 flex items-center gap-1">
                     <span className={cn('size-1.5 rounded-full shrink-0', getFachColor(fach.id, allFachIds, fach.colorIndex).dot)} />
                     {fach.name}
                   </p>
@@ -183,7 +184,7 @@ function ThemaSelect({
                         )}
                       >
                         <span className="truncate">{thema.name}</span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">{lzCount} LZ</span>
+                        <span className="text-3xs text-muted-foreground shrink-0">{lzCount} LZ</span>
                       </button>
                     )
                   })}
@@ -222,7 +223,7 @@ const SLOT_STYLES = [
 ]
 
 
-export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; filterFachIds?: string[] }) {
+export const LernkontrolleTab = ({ klassId, filterFachIds }: { klassId: string; filterFachIds?: string[] }) => {
   const {
     getClass,
     getStudentsForClass,
@@ -325,7 +326,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
   if (assignedThemen.length === 0) {
     return (
       <EmptyState
-        icon={<ClipboardList className="size-6 text-accent-foreground" />}
+        icon={<Icon name="assignment" size={24} className="text-accent-foreground" />}
         title="Keine Themen zugewiesen"
         description={<>Weise dieser Klasse zuerst Themen unter <em>Einstellungen</em> zu.</>}
       />
@@ -341,7 +342,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
     )
   }
 
-  function handleTableKeyDown(e: React.KeyboardEvent) {
+  const handleTableKeyDown = (e: React.KeyboardEvent) => {
     if (!focusedCell) return
     const { row, col } = focusedCell
     const maxRow = orderedStudents.length - 1
@@ -367,7 +368,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
     }
   }
 
-  function lzReachedPct(lzId: string): number {
+  const lzReachedPct = (lzId: string): number => {
     const eligible = regularStudents
     if (eligible.length === 0) return 0
     const sum = eligible.reduce((acc, s) => {
@@ -377,7 +378,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
     return Math.round((sum / eligible.length) * 100)
   }
 
-  function studentTotalPct(studentId: string): number {
+  const studentTotalPct = (studentId: string): number => {
     if (allLernziele.length === 0) return 0
     const s = students.find(s => s.id === studentId)!
     const applicable = allLernziele.filter(lz => {
@@ -403,8 +404,8 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
           const slot = SLOT_STYLES[i % SLOT_STYLES.length]
           return (
             <div key={i} className="flex flex-col gap-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-                <span className={cn('size-3 rounded-full flex items-center justify-center text-[7px] font-bold shrink-0', slot.badge)}>
+              <span className="text-3xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                <span className={cn('size-3 rounded-full flex items-center justify-center text-4xs font-bold shrink-0', slot.badge)}>
                   {i + 1}
                 </span>
                 Thema
@@ -427,7 +428,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                     className="h-5 w-5 text-muted-foreground/60 hover:text-foreground"
                     title="Thema entfernen"
                   >
-                    <X className="size-3" />
+                    <Icon name="close" size={12} />
                   </Button>
                 )}
               </div>
@@ -438,13 +439,13 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
         {/* Add thema button */}
         {themaIds.length < assignedThemen.length && themaIds.length < SLOT_STYLES.length && (
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] opacity-0 select-none">.</span>
+            <span className="text-3xs opacity-0 select-none">.</span>
             <button
               onClick={addThema}
               className="h-7 w-7 rounded-md border border-dashed border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border/80 hover:bg-muted/40 transition-colors"
               title="Weiteres Thema hinzufügen"
             >
-              <Plus className="size-3.5" />
+              <Icon name="add" size={14} />
             </button>
           </div>
         )}
@@ -459,7 +460,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
             ['bg-status-not-reached-soft border border-status-not-reached', 'Nicht erreicht'],
             ['bg-status-none-soft', 'Nicht bewertet'],
           ] as const).map(([cls, label]) => (
-            <span key={label} className="flex items-center gap-1 text-[10px] text-muted-foreground/70">
+            <span key={label} className="flex items-center gap-1 text-3xs text-muted-foreground/70">
               <span className={cn('inline-block size-2.5 rounded-sm shrink-0', cls)} />
               {label}
             </span>
@@ -518,7 +519,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                             )}
                           >
                             <span className="flex items-center justify-center gap-1">
-                              <span className={cn('size-3.5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0', slot.badge)}>
+                              <span className={cn('size-3.5 rounded-full flex items-center justify-center text-4xs font-bold shrink-0', slot.badge)}>
                                 {gi + 1}
                               </span>
                               {thema.name}
@@ -549,13 +550,13 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                             <div className="flex flex-col gap-0.5">
                               <div className="flex items-center gap-0.5 flex-wrap">
                                 <span className={cn(
-                                  'rounded px-1 py-px text-[9px] font-semibold',
+                                  'rounded px-1 py-px text-4xs font-semibold',
                                   categoryChipClasses(lz.kategorie),
                                 )}>
                                   {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                                 </span>
                               </div>
-                              <span className="text-[11px] font-medium text-foreground leading-snug">{lz.label}</span>
+                              <span className="text-2xs font-medium text-foreground leading-snug">{lz.label}</span>
                             </div>
                           </th>
                         )
@@ -595,7 +596,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                           <tr className="border-t-2 border-border">
                             <td
                               colSpan={totalCols}
-                              className="sticky left-0 bg-rilz-soft px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-rilz-foreground"
+                              className="sticky left-0 bg-rilz-soft px-3 py-1 text-3xs font-semibold uppercase tracking-wide text-rilz-foreground"
                             >
                               Schülerinnen und Schüler mit bVSA
                             </td>
@@ -684,7 +685,7 @@ export function LernkontrolleTab({ klassId, filterFachIds }: { klassId: string; 
                             className={cn('px-1 py-1.5 text-center', isLastInGroup && 'border-r-2 border-primary/25')}
                           >
                             <span className={cn(
-                              'inline-block text-[10px] font-bold tabular-nums rounded-md px-1 py-0.5',
+                              'inline-block text-3xs font-bold tabular-nums rounded-md px-1 py-0.5',
                               color,
                             )}>
                               {pct}%

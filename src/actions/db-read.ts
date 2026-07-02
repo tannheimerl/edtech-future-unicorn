@@ -9,12 +9,12 @@ import type {
   Pruefung, PruefungErgebnis, VersuchSnapshot, Status, TagKategorie,
 } from '@/types/domain'
 
-export async function getCurrentTenantId(): Promise<string> {
+export const getCurrentTenantId = async (): Promise<string> => {
   const cookieStore = await cookies()
   return resolveTenantId(cookieStore.get(TENANT_COOKIE)?.value)
 }
 
-export async function fetchAllData() {
+export const fetchAllData = async () => {
   const tenantId = await getCurrentTenantId()
 
   const [

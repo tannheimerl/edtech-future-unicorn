@@ -6,13 +6,13 @@ import type { Fach, Thema, Lernziel, Klasse, Schueler, AssessmentKommentar, Them
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function log(label: string, error: { message: string } | null) {
+const log = (label: string, error: { message: string } | null) => {
   if (error) console.error(`db-write ${label}:`, error.message)
 }
 
 // ── Klassen ──────────────────────────────────────────────────────────────────
 
-export async function dbSaveKlasse(klasse: Klasse) {
+export const dbSaveKlasse = async (klasse: Klasse) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_klassen').upsert({
     id: klasse.id, name: klasse.name,
@@ -48,7 +48,7 @@ export async function dbSaveKlasse(klasse: Klasse) {
   }
 }
 
-export async function dbSaveBeurteilungSettings(klassId: string, settings: KlasseBeurteilungSettings) {
+export const dbSaveBeurteilungSettings = async (klassId: string, settings: KlasseBeurteilungSettings) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_klassen')
     .update({ settings })
@@ -56,7 +56,7 @@ export async function dbSaveBeurteilungSettings(klassId: string, settings: Klass
   log('dbSaveBeurteilungSettings', error)
 }
 
-export async function dbDeleteKlasse(id: string) {
+export const dbDeleteKlasse = async (id: string) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_klassen').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteKlasse', error)
@@ -64,7 +64,7 @@ export async function dbDeleteKlasse(id: string) {
 
 // ── Schüler ───────────────────────────────────────────────────────────────────
 
-export async function dbSaveSchueler(s: Schueler) {
+export const dbSaveSchueler = async (s: Schueler) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_schueler').upsert({
     id: s.id, klasse_id: s.klassId,
@@ -80,7 +80,7 @@ export async function dbSaveSchueler(s: Schueler) {
   log('dbSaveSchueler', error)
 }
 
-export async function dbDeleteSchueler(id: string) {
+export const dbDeleteSchueler = async (id: string) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_schueler').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteSchueler', error)
@@ -88,7 +88,7 @@ export async function dbDeleteSchueler(id: string) {
 
 // ── Lernziel-Status ───────────────────────────────────────────────────────────
 
-export async function dbSaveLernzielStatus(schueler_id: string, lernziel_id: string, status: Status) {
+export const dbSaveLernzielStatus = async (schueler_id: string, lernziel_id: string, status: Status) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_lernziel_status').upsert(
     { schueler_id, lernziel_id, status, tenant_id: tenantId },
@@ -97,7 +97,7 @@ export async function dbSaveLernzielStatus(schueler_id: string, lernziel_id: str
   log('dbSaveLernzielStatus', error)
 }
 
-export async function dbDeleteLernzielStatus(schueler_id: string, lernziel_id: string) {
+export const dbDeleteLernzielStatus = async (schueler_id: string, lernziel_id: string) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_lernziel_status')
     .delete().eq('schueler_id', schueler_id).eq('lernziel_id', lernziel_id).eq('tenant_id', tenantId)
@@ -106,7 +106,7 @@ export async function dbDeleteLernzielStatus(schueler_id: string, lernziel_id: s
 
 // ── RILZ Lernziele ────────────────────────────────────────────────────────────
 
-export async function dbSaveRilzLernziel(schueler_id: string, rlz: RilzLernziel) {
+export const dbSaveRilzLernziel = async (schueler_id: string, rlz: RilzLernziel) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_rilz_lernziele').upsert(
     { id: rlz.id, schueler_id, thema_id: rlz.themaId, label: rlz.label, status: rlz.status, tenant_id: tenantId },
@@ -115,7 +115,7 @@ export async function dbSaveRilzLernziel(schueler_id: string, rlz: RilzLernziel)
   log('dbSaveRilzLernziel', error)
 }
 
-export async function dbDeleteRilzLernziel(id: string) {
+export const dbDeleteRilzLernziel = async (id: string) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_rilz_lernziele').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteRilzLernziel', error)
@@ -123,7 +123,7 @@ export async function dbDeleteRilzLernziel(id: string) {
 
 // ── Kommentare ────────────────────────────────────────────────────────────────
 
-export async function dbSaveKommentar(k: AssessmentKommentar) {
+export const dbSaveKommentar = async (k: AssessmentKommentar) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_kommentare').upsert(
     { schueler_id: k.studentId, lernziel_id: k.lernzielId, text: k.text, created_at: k.createdAt, tenant_id: tenantId },
@@ -132,14 +132,14 @@ export async function dbSaveKommentar(k: AssessmentKommentar) {
   log('dbSaveKommentar', error)
 }
 
-export async function dbDeleteKommentar(studentId: string, lernzielId: string) {
+export const dbDeleteKommentar = async (studentId: string, lernzielId: string) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_kommentare')
     .delete().eq('schueler_id', studentId).eq('lernziel_id', lernzielId).eq('tenant_id', tenantId)
   log('dbDeleteKommentar', error)
 }
 
-export async function dbSaveThemaKommentar(k: ThemaKommentar) {
+export const dbSaveThemaKommentar = async (k: ThemaKommentar) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_thema_kommentare').upsert(
     { schueler_id: k.studentId, thema_id: k.themaId, text: k.text, updated_at: k.updatedAt, tenant_id: tenantId },
@@ -148,7 +148,7 @@ export async function dbSaveThemaKommentar(k: ThemaKommentar) {
   log('dbSaveThemaKommentar', error)
 }
 
-export async function dbDeleteThemaKommentar(studentId: string, themaId: string) {
+export const dbDeleteThemaKommentar = async (studentId: string, themaId: string) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_thema_kommentare')
     .delete().eq('schueler_id', studentId).eq('thema_id', themaId).eq('tenant_id', tenantId)
@@ -157,7 +157,7 @@ export async function dbDeleteThemaKommentar(studentId: string, themaId: string)
 
 // ── Fächer ────────────────────────────────────────────────────────────────────
 
-export async function dbSaveFach(f: Fach) {
+export const dbSaveFach = async (f: Fach) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_faecher').upsert(
     { id: f.id, name: f.name, color_index: f.colorIndex ?? null, tenant_id: tenantId },
@@ -166,7 +166,7 @@ export async function dbSaveFach(f: Fach) {
   log('dbSaveFach', error)
 }
 
-export async function dbDeleteFach(id: string) {
+export const dbDeleteFach = async (id: string) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_faecher').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteFach', error)
@@ -174,7 +174,7 @@ export async function dbDeleteFach(id: string) {
 
 // ── Themen ────────────────────────────────────────────────────────────────────
 
-export async function dbSaveThema(t: Thema) {
+export const dbSaveThema = async (t: Thema) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_themen').upsert({
     id: t.id, fach_id: t.fachId, name: t.name,
@@ -193,7 +193,7 @@ export async function dbSaveThema(t: Thema) {
 
 // ── Tag-Kategorien ────────────────────────────────────────────────────────────
 
-export async function dbSaveTagKategorie(kat: TagKategorie) {
+export const dbSaveTagKategorie = async (kat: TagKategorie) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_tag_kategorien').upsert({
     id: kat.id, name: kat.name, lp_id: kat.lpId ?? null, tenant_id: tenantId,
@@ -201,13 +201,13 @@ export async function dbSaveTagKategorie(kat: TagKategorie) {
   log('dbSaveTagKategorie', error)
 }
 
-export async function dbDeleteTagKategorie(id: string) {
+export const dbDeleteTagKategorie = async (id: string) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_tag_kategorien').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteTagKategorie', error)
 }
 
-export async function dbDeleteThema(id: string) {
+export const dbDeleteThema = async (id: string) => {
   const tenantId = await getCurrentTenantId()
   // dim_lernziele.thema_id und fact_rilz_lernziele.thema_id haben KEIN
   // ON DELETE CASCADE — diese Kinder müssen zuerst weg, sonst verweigert
@@ -225,7 +225,7 @@ export async function dbDeleteThema(id: string) {
 
 // ── Lernziele ─────────────────────────────────────────────────────────────────
 
-export async function dbSaveLernziel(l: Lernziel) {
+export const dbSaveLernziel = async (l: Lernziel) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_lernziele').upsert({
     id: l.id, thema_id: l.themaId, kategorie: l.kategorie, label: l.label,
@@ -237,7 +237,7 @@ export async function dbSaveLernziel(l: Lernziel) {
   log('dbSaveLernziel', error)
 }
 
-export async function dbDeleteLernziel(id: string) {
+export const dbDeleteLernziel = async (id: string) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('dim_lernziele').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeleteLernziel', error)
@@ -245,7 +245,7 @@ export async function dbDeleteLernziel(id: string) {
 
 // ── Prüfungen ─────────────────────────────────────────────────────────────────
 
-export async function dbSavePruefung(p: Pruefung) {
+export const dbSavePruefung = async (p: Pruefung) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_pruefungen').upsert({
     id: p.id, klasse_id: p.klasseId, fach_id: p.fachId,
@@ -266,13 +266,13 @@ export async function dbSavePruefung(p: Pruefung) {
   log('dbSavePruefung', error)
 }
 
-export async function dbDeletePruefung(id: string) {
+export const dbDeletePruefung = async (id: string) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_pruefungen').delete().eq('id', id).eq('tenant_id', tenantId)
   log('dbDeletePruefung', error)
 }
 
-export async function dbSavePruefungErgebnis(e: PruefungErgebnis) {
+export const dbSavePruefungErgebnis = async (e: PruefungErgebnis) => {
   const tenantId = await getCurrentTenantId()
   const { error } = await supabaseAdmin.from('fact_pruefung_ergebnisse').upsert({
     id: e.id, pruefung_id: e.pruefungId, schueler_id: e.schuelerId,
@@ -291,11 +291,11 @@ export async function dbSavePruefungErgebnis(e: PruefungErgebnis) {
   return error
 }
 
-export async function dbUploadPruefungAnhang(
+export const dbUploadPruefungAnhang = async (
   pruefungId: string,
   schuelerId: string,
   file: File,
-): Promise<string | null> {
+): Promise<string | null> => {
   const tenantId = await getCurrentTenantId()
   const ext = file.name.split('.').pop() ?? 'bin'
   const path = `${tenantId}/${pruefungId}/${schuelerId}/${crypto.randomUUID()}.${ext}`
@@ -308,7 +308,7 @@ export async function dbUploadPruefungAnhang(
   return data.publicUrl
 }
 
-export async function dbDeletePruefungAnhang(url: string): Promise<void> {
+export const dbDeletePruefungAnhang = async (url: string): Promise<void> => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const prefix = `${supabaseUrl}/storage/v1/object/public/lezio-anhaenge/`
   const path = url.startsWith(prefix) ? url.slice(prefix.length) : url

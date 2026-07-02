@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
-interface ModalProps {
+type ModalProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
@@ -20,7 +20,7 @@ interface ModalProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 }
 
-export function Modal({
+export const Modal = ({
   open,
   onOpenChange,
   title,
@@ -28,7 +28,7 @@ export function Modal({
   children,
   footer,
   size = 'md',
-}: ModalProps) {
+}: ModalProps) => {
   const maxWidth =
     size === 'xs' ? 'sm:max-w-xs' :
     size === 'sm' ? 'sm:max-w-sm' :

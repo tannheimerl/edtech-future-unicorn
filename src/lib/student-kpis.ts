@@ -6,11 +6,11 @@ import type { Schueler, Thema, Lernziel, Fach } from '@/types/domain'
  * zukünftig fällige (i. d. R. noch unbewertete) Themen in die Auswertung ein.
  * @param today aktuelles Datum im Format `YYYY-MM-DD`
  */
-export function themaCountsInStats(t: Thema, today: string): boolean {
+export const themaCountsInStats = (t: Thema, today: string): boolean => {
   return !!t.faelligAm && t.faelligAm <= today
 }
 
-export interface ThemaKpi {
+type ThemaKpi = {
   thema: Thema
   fachId: string
   pct: number
@@ -26,7 +26,7 @@ export interface ThemaKpi {
   aTotal: number
 }
 
-export interface FachKpi {
+type FachKpi = {
   fach: Fach
   pct: number
   reached: number
@@ -40,7 +40,7 @@ export interface FachKpi {
   aTotal: number
 }
 
-export interface StudentKpis {
+export type StudentKpis = {
   gesamtPct: number
   totalLz: number
   openLz: number
@@ -57,12 +57,12 @@ export interface StudentKpis {
   themaKpis: ThemaKpi[]
 }
 
-export function computeStudentKpis(
+export const computeStudentKpis = (
   student: Schueler,
   assignedThemen: Thema[],
   allLernziele: Lernziel[],
   faecher: Fach[],
-): StudentKpis {
+): StudentKpis => {
   const allLZ = assignedThemen.flatMap((t) =>
     allLernziele.filter((lz) => lz.themaId === t.id)
   )

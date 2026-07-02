@@ -3,17 +3,17 @@
 import { cn, getFachColor } from '@/lib/utils'
 import type { Fach } from '@/types/domain'
 
-interface FachChipFilterProps {
+type FachChipFilterProps = {
   faecher: Fach[]
   allFachIds: string[]
   selectedIds: string[]
   onChange: (ids: string[]) => void
 }
 
-export function FachChipFilter({ faecher, allFachIds, selectedIds, onChange }: FachChipFilterProps) {
+export const FachChipFilter = ({ faecher, allFachIds, selectedIds, onChange }: FachChipFilterProps) => {
   if (faecher.length <= 1) return null
 
-  function toggle(id: string) {
+  const toggle = (id: string) => {
     onChange(
       selectedIds.includes(id)
         ? selectedIds.filter((x) => x !== id)
@@ -23,11 +23,11 @@ export function FachChipFilter({ faecher, allFachIds, selectedIds, onChange }: F
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 shrink-0">Fach</span>
+      <span className="text-4xs font-semibold uppercase tracking-widest text-muted-foreground/60 shrink-0">Fach</span>
       <button
         onClick={() => onChange([])}
         className={cn(
-          'h-7 px-2.5 rounded-md text-xs font-medium transition-all whitespace-nowrap',
+          'h-7 px-2 rounded-md text-xs font-medium transition-all whitespace-nowrap',
           selectedIds.length === 0
             ? 'bg-foreground text-background shadow-sm'
             : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -43,7 +43,7 @@ export function FachChipFilter({ faecher, allFachIds, selectedIds, onChange }: F
             key={f.id}
             onClick={() => toggle(f.id)}
             className={cn(
-              'h-7 px-2.5 rounded-md text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5',
+              'h-7 px-2 rounded-md text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5',
               isActive
                 ? cn('shadow-sm', fc.bg, fc.text)
                 : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground',

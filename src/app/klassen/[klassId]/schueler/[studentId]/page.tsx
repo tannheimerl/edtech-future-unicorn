@@ -9,13 +9,14 @@ import { FilterDropdown } from '@/components/shared/FilterDropdown'
 import { SectionBlock } from '@/components/shared/SectionBlock'
 import { StatusCell } from '@/components/shared/StatusCell'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 import { computeStudentKpis } from '@/lib/student-kpis'
 import { cn, getFachColor, scoreColor, statusChipClasses, categoryChipClasses } from '@/lib/utils'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-function StackedBar({ reached, partial, total }: { reached: number; partial: number; total: number }) {
+const StackedBar = ({ reached, partial, total }: { reached: number; partial: number; total: number }) => {
   if (total === 0) return <div className="h-1.5 rounded-full bg-muted w-full" />
   const rp = (reached / total) * 100
   const pp = (partial / total) * 100
@@ -29,7 +30,7 @@ function StackedBar({ reached, partial, total }: { reached: number; partial: num
 
 // ── Page ─────────────────────────────────────────────────────────────────
 
-export default function SchuelerDetailPage() {
+const SchuelerDetailPage = () => {
   const { klassId, studentId } = useParams<{ klassId: string; studentId: string }>()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -104,14 +105,14 @@ export default function SchuelerDetailPage() {
             <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
               <span className="text-sm text-muted-foreground">{klasse.name}</span>
               {student.bvsa && (
-                <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg">bVSA</span>
+                <Badge variant="bvsa" className="font-semibold">bVSA</Badge>
               )}
               {(student.rilzFachIds ?? []).map((fachId) => {
                 const fach = faecher.find((f) => f.id === fachId)
                 if (!fach) return null
                 const fc = getFachColor(fach.id, faecher.map((f) => f.id), fach.colorIndex)
                 return (
-                  <span key={fachId} className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold', fc.bg, fc.text)}>
+                  <span key={fachId} className={cn('rounded px-1.5 py-0.5 text-3xs font-semibold', fc.bg, fc.text)}>
                     RILZ {fach.name}
                   </span>
                 )
@@ -161,7 +162,7 @@ export default function SchuelerDetailPage() {
                     key={k}
                     onClick={() => setLzKatFilter(k)}
                     className={cn(
-                      'px-2.5 py-1 text-xs font-medium transition-colors',
+                      'px-2 py-1 text-xs font-medium transition-colors',
                       lzKatFilter === k
                         ? k === 'grundlegend' ? 'bg-category-grundlegend text-white'
                           : k === 'anspruchsvoll' ? 'bg-category-anspruchsvoll text-white'
@@ -213,35 +214,35 @@ export default function SchuelerDetailPage() {
 
               return (
                 <div className="rounded-2xl border border-border overflow-hidden">
-                  <div className="w-full flex items-center gap-2.5 px-4 py-3 text-left">
+                  <div className="w-full flex items-center gap-2 px-4 py-3 text-left">
                     {showFachContext && (
                       <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {showFachContext && fachName && (
-                          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide shrink-0">
+                          <span className="text-3xs font-medium text-muted-foreground uppercase tracking-wide shrink-0">
                             {fachName}
                           </span>
                         )}
                         <span className="text-sm font-medium">{tk.thema.name}</span>
                         {hasRilz && (
-                          <span className="rounded px-1 text-[9px] font-semibold bg-rilz-soft text-rilz-foreground">RILZ</span>
+                          <Badge variant="rilz" size="sm">RILZ</Badge>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       {tk.gTotal > 0 && (
-                        <span className="text-[10px] text-muted-foreground hidden sm:block">
+                        <span className="text-3xs text-muted-foreground hidden sm:block">
                           G <span className="font-medium text-foreground">{tk.gPct}%</span>
                         </span>
                       )}
                       {tk.aTotal > 0 && (
-                        <span className="text-[10px] text-muted-foreground hidden sm:block">
+                        <span className="text-3xs text-muted-foreground hidden sm:block">
                           A <span className="font-medium text-foreground">{tk.aPct}%</span>
                         </span>
                       )}
-                      <span className="text-[10px] text-muted-foreground">{tk.total} LZ</span>
+                      <span className="text-3xs text-muted-foreground">{tk.total} LZ</span>
                       <div className="w-14 shrink-0">
                         <StackedBar reached={tk.reached} partial={tk.partial} total={tk.total} />
                       </div>
@@ -261,10 +262,10 @@ export default function SchuelerDetailPage() {
                         {visibleLZ.map((lz) => {
                           const current = student.lernzielStatus[lz.id] ?? 'not_reached'
                           return (
-                            <div key={lz.id} className="flex items-center justify-between gap-4 px-4 py-2.5">
+                            <div key={lz.id} className="flex items-center justify-between gap-4 px-4 py-2">
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <span className={cn(
-                                  'shrink-0 rounded px-1 text-[9px] font-semibold',
+                                  'shrink-0 rounded px-1 text-4xs font-semibold',
                                   categoryChipClasses(lz.kategorie),
                                 )}>
                                   {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
@@ -294,7 +295,7 @@ export default function SchuelerDetailPage() {
                 const fach = thema ? getFachForThema(thema.id) : null
                 return (
                   <div key={`${k.studentId}-${k.lernzielId}`} className="rounded-lg border border-border bg-muted/20 px-3 py-2 space-y-0.5">
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-3xs text-muted-foreground">
                       {fach?.name && <span className="font-medium">{fach.name} · </span>}
                       {lz?.label}
                     </p>
@@ -316,14 +317,14 @@ export default function SchuelerDetailPage() {
                 const fach = thema ? getFachForThema(thema.id) : null
                 return (
                   <div key={lz.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2">
-                    <p className="text-[10px] text-muted-foreground mb-1">
+                    <p className="text-3xs text-muted-foreground mb-1">
                       {fach?.name && <span className="font-medium">{fach.name} · </span>}
                       {lz.label}
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {versuche.map((v, i) => (
                         <span key={i} className={cn(
-                          'rounded px-1.5 py-0.5 text-[9px] font-semibold',
+                          'rounded px-1.5 py-0.5 text-4xs font-semibold',
                           statusChipClasses(v.status),
                         )}>
                           {i + 1}. {v.status === 'reached' ? 'Erreicht' : v.status === 'partially_reached' ? 'Teilweise' : 'Nicht err.'} {v.date}
@@ -341,3 +342,5 @@ export default function SchuelerDetailPage() {
     </div>
   )
 }
+
+export default SchuelerDetailPage

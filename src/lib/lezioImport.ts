@@ -9,13 +9,13 @@ import type { LezioExport } from '@/types/domain'
  */
 
 /** Ein eingelesenes Thema samt Herkunft (Dateiname) für Fehlermeldungen/Anzeige. */
-export interface LezioImportItem {
+export type LezioImportItem = {
   source: string
   data: LezioExport
 }
 
 /** Parst und validiert den Inhalt einer einzelnen `.lezio`/`.json`-Datei. */
-export function parseLezio(text: string): LezioExport {
+export const parseLezio = (text: string): LezioExport => {
   const data = JSON.parse(text) as LezioExport
   if (data.version !== '1' || !data.fachName || !data.thema?.name) {
     throw new Error('Ungültiges Dateiformat')
@@ -23,7 +23,7 @@ export function parseLezio(text: string): LezioExport {
   return data
 }
 
-function isLezioEntry(name: string): boolean {
+const isLezioEntry = (name: string): boolean => {
   const lower = name.toLowerCase()
   return lower.endsWith('.lezio') || lower.endsWith('.json')
 }
@@ -33,9 +33,9 @@ function isLezioEntry(name: string): boolean {
  * enthaltene `.lezio`/`.json`-Datei verarbeitet. Ungültige Einträge werden gezählt
  * (`errors`), brechen den Import aber nicht ab.
  */
-export async function readLezioFiles(
+export const readLezioFiles = async (
   files: File[],
-): Promise<{ items: LezioImportItem[]; errors: number }> {
+): Promise<{ items: LezioImportItem[]; errors: number }> => {
   const items: LezioImportItem[] = []
   let errors = 0
 
@@ -71,7 +71,7 @@ export async function readLezioFiles(
 export const NEW_FACH = '__new__'
 
 /** Baut die Erfolgsmeldung nach einem Import zusammen. */
-export function importDoneMsg(themen: number, neueFaecher: number, errors: number): string {
+export const importDoneMsg = (themen: number, neueFaecher: number, errors: number): string => {
   const teile = [`${themen} ${themen === 1 ? 'Thema' : 'Themen'} importiert`]
   if (neueFaecher > 0) teile.push(`${neueFaecher} ${neueFaecher === 1 ? 'neues Fach' : 'neue Fächer'} angelegt`)
   if (errors > 0) teile.push(`${errors} übersprungen`)

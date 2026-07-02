@@ -7,9 +7,10 @@ import { StatusCell } from '@/components/shared/StatusCell'
 import { PruefungAnhangUpload } from '@/components/pruefungen/PruefungAnhangUpload'
 
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import type { PruefungErgebnis, Schueler, Status, Thema, VersuchSnapshot } from '@/types/domain'
 
-function useDebounce<T>(value: T, delay: number): T {
+const useDebounce = <T,>(value: T, delay: number): T => {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {
     const t = setTimeout(() => setDebounced(value), delay)
@@ -18,13 +19,13 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced
 }
 
-interface RowState {
+type RowState = {
   punkte: string
   note: string
   kommentar: string
 }
 
-function useRowState(ergebnis: PruefungErgebnis | undefined) {
+const useRowState = (ergebnis: PruefungErgebnis | undefined) => {
   const [state, setState] = useState<RowState>({
     punkte: ergebnis?.punkte != null ? String(ergebnis.punkte) : '',
     note: ergebnis?.note ?? '',
@@ -44,9 +45,9 @@ function useRowState(ergebnis: PruefungErgebnis | undefined) {
   return [state, setState] as const
 }
 
-interface AssessmentSettings { punkteEnabled: boolean; noteEnabled: boolean; anhangEnabled: boolean }
+type AssessmentSettings = { punkteEnabled: boolean; noteEnabled: boolean; anhangEnabled: boolean }
 
-interface StudentRowProps {
+type StudentRowProps = {
   student: Schueler
   pruefungId: string
   maxPunkte?: number
@@ -64,9 +65,9 @@ interface StudentRowProps {
   onDeleteAnhang: (ergebnisId: string, url: string) => Promise<void>
 }
 
-function buildUpsertBase(
+const buildUpsertBase = (
   id: string, pruefungId: string, schuelerId: string, ergebnis: PruefungErgebnis | undefined
-): Omit<PruefungErgebnis, 'tenantId' | 'createdAt'> {
+): Omit<PruefungErgebnis, 'tenantId' | 'createdAt'> => {
   return {
     id,
     pruefungId,
@@ -83,11 +84,11 @@ function buildUpsertBase(
   }
 }
 
-function StudentRow({
+const StudentRow = ({
   student, pruefungId, maxPunkte, lzGroups, allLzIds, ergebnis,
   settings, rowIdx, totalRows, rilzFachIds, pruefungFachId,
   onUpsert, onUpdateLz, onUpload, onDeleteAnhang,
-}: StudentRowProps) {
+}: StudentRowProps) => {
   const [row, setRow] = useRowState(ergebnis)
   const debouncedRow = useDebounce(row, 500)
   const ergebnisId = useRef(ergebnis?.id ?? crypto.randomUUID())
@@ -178,7 +179,7 @@ function StudentRow({
             value={versuchVal}
             onChange={e => handleVersuchChange(e.target.value as 'laufend' | 'zweiter_versuch' | 'dritter_versuch' | 'abgeschlossen')}
             className={cn(
-              'shrink-0 rounded px-1 py-0.5 text-[10px] font-medium border-0 focus:outline-none cursor-pointer',
+              'shrink-0 rounded px-1 py-0.5 text-3xs font-medium border-0 focus:outline-none cursor-pointer',
               versuchVal === 'abgeschlossen' && 'bg-status-reached-soft text-status-reached-fg',
               (versuchVal === 'zweiter_versuch' || versuchVal === 'dritter_versuch') && 'bg-status-partial-soft text-status-partial-fg',
               versuchVal === 'laufend' && 'bg-muted text-muted-foreground',
@@ -305,12 +306,12 @@ function StudentRow({
   )
 }
 
-interface Props {
+type Props = {
   pruefungId: string
   klassId: string
 }
 
-export function BeurteilungGrid({ pruefungId, klassId }: Props) {
+export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
   const {
     pruefungen, getPruefungErgebnisse, getStudentsForClass, lernziele, themen,
     faecher, updateLernzielStatus, upsertPruefungErgebnis, uploadAnhang, deleteAnhang, updatePruefung,
@@ -402,7 +403,7 @@ export function BeurteilungGrid({ pruefungId, klassId }: Props) {
           ['bg-status-not-reached-soft border border-status-not-reached', 'Nicht erreicht'],
           ['bg-status-none-soft', 'Nicht bewertet'],
         ] as const).map(([cls, label]) => (
-          <span key={label} className="flex items-center gap-1 text-[10px] text-muted-foreground/70">
+          <span key={label} className="flex items-center gap-1 text-3xs text-muted-foreground/70">
             <span className={cn('inline-block size-2.5 rounded-sm shrink-0', cls)} />
             {label}
           </span>
@@ -474,8 +475,8 @@ export function BeurteilungGrid({ pruefungId, klassId }: Props) {
                           style={{ width: 72, minWidth: 72 }}
                         >
                           <div className="flex flex-col gap-0.5">
-                            <span className="rounded px-1 py-px text-[9px] font-semibold bg-category-grundlegend-soft text-category-grundlegend-fg w-fit">G</span>
-                            <span className="text-[11px] font-medium text-foreground leading-snug">{lz.label}</span>
+                            <Badge variant="grundlegend" size="sm" className="w-fit">G</Badge>
+                            <span className="text-2xs font-medium text-foreground leading-snug">{lz.label}</span>
                           </div>
                         </th>
                       ))}
@@ -489,8 +490,8 @@ export function BeurteilungGrid({ pruefungId, klassId }: Props) {
                           style={{ width: 72, minWidth: 72 }}
                         >
                           <div className="flex flex-col gap-0.5">
-                            <span className="rounded px-1 py-px text-[9px] font-semibold bg-category-anspruchsvoll-soft text-category-anspruchsvoll-fg w-fit">A</span>
-                            <span className="text-[11px] font-medium text-foreground leading-snug">{lz.label}</span>
+                            <Badge variant="anspruchsvoll" size="sm" className="w-fit">A</Badge>
+                            <span className="text-2xs font-medium text-foreground leading-snug">{lz.label}</span>
                           </div>
                         </th>
                       ))}
@@ -596,7 +597,7 @@ export function BeurteilungGrid({ pruefungId, klassId }: Props) {
                             isAEnd && 'border-r-2 border-border/50',
                             isGEnd && 'border-r border-dashed border-border/60',
                           )}>
-                            <span className={cn('inline-block text-[10px] font-bold tabular-nums rounded-md px-1 py-0.5', color)}>
+                            <span className={cn('inline-block text-3xs font-bold tabular-nums rounded-md px-1 py-0.5', color)}>
                               {pct}%
                             </span>
                           </td>

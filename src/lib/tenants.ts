@@ -32,7 +32,7 @@ export const VALID_TENANT_IDS = new Set<string>([
 
 // Returns the tenant ID to use for DB queries.
 // Falls back to the dev tenant in development (env NEXT_PUBLIC_DEV_TENANT).
-export function resolveTenantId(cookieValue: string | undefined): string {
+export const resolveTenantId = (cookieValue: string | undefined): string => {
   const devTenant = process.env.NEXT_PUBLIC_DEV_TENANT
   if (devTenant && process.env.NODE_ENV !== 'production') return devTenant
   if (cookieValue && VALID_TENANT_IDS.has(cookieValue)) return cookieValue

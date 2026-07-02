@@ -2,18 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import {
-  SquarePen, Plus, UserRound,
-  ChevronDown, ChevronLeft, ChevronRight, Trash2,
-  Info, Pencil, PencilLine, Calendar, BookMarked, BarChart2,
-  Download, Upload, Check, X,
-} from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { ClassAnalytics } from '@/components/analytics/ClassAnalytics'
 import { BeurteilungTab } from '@/components/beurteilung/BeurteilungTab'
 import { BerichteTab } from '@/components/berichte/BerichteTab'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableSortHeader, TableEmpty } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
@@ -35,7 +32,7 @@ import { themaCountsInStats } from '@/lib/student-kpis'
 import type { Schueler, Lernziel as LernzielType, LernzielKategorie, Fach, Thema, LezioExport, RilzLernziel } from '@/types/domain'
 
 
-function compPct(student: Schueler, comps: { id: string }[]): number {
+const compPct = (student: Schueler, comps: { id: string }[]): number => {
   if (comps.length === 0) return 0
   const reached = comps.filter(c => student.competencyStatus[c.id] === 'reached').length
   const partial = comps.filter(c => student.competencyStatus[c.id] === 'partially_reached').length
@@ -44,13 +41,13 @@ function compPct(student: Schueler, comps: { id: string }[]): number {
 
 // ── Student form modal ─────────────────────────────────────────────────────
 
-function SchuelerFormModal({
+const SchuelerFormModal = ({
   open, onOpenChange, initialVorname = '', initialNachname = '', onSubmit,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void
   initialVorname?: string; initialNachname?: string
   onSubmit: (vorname: string, nachname: string) => void
-}) {
+}) => {
   const [vorname, setVorname] = useState(initialVorname)
   const [nachname, setNachname] = useState(initialNachname)
   useEffect(() => {
@@ -106,13 +103,13 @@ function SchuelerFormModal({
 
 type Tab = 'schueler' | 'klassenübersicht' | 'lernziele' | 'beurteilung' | 'berichte'
 
-function TabBar({
+const TabBar = ({
   active, onChange,
   title, editingTitle, onEditTitle, editNode,
 }: {
   active: Tab; onChange: (t: Tab) => void
   title: string; editingTitle: boolean; onEditTitle: () => void; editNode: React.ReactNode
-}) {
+}) => {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'schueler',         label: 'Schüler' },
     { key: 'beurteilung',      label: 'Beurteilung' },
@@ -132,7 +129,7 @@ function TabBar({
         className="text-muted-foreground hover:text-foreground transition-colors"
         aria-label="Klassenname bearbeiten"
       >
-        <SquarePen className="size-3.5" />
+        <Icon name="edit_square" size={14} />
       </button>
     </span>
   )
@@ -145,9 +142,9 @@ function TabBar({
 
 // ── Settings card wrapper ──────────────────────────────────────────────────
 
-function SettingsCard({ title, children, action }: {
+const SettingsCard = ({ title, children, action }: {
   title: string; children: React.ReactNode; action?: React.ReactNode
-}) {
+}) => {
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
       <div className="flex items-center justify-between gap-2">
@@ -161,7 +158,7 @@ function SettingsCard({ title, children, action }: {
 
 // ── Kategorisierung modal (RILZ + BVSA per student) ───────────────────────
 
-function Toggle({ on, color = 'bg-primary' }: { on: boolean; color?: string }) {
+const Toggle = ({ on, color = 'bg-primary' }: { on: boolean; color?: string }) => {
   return (
     <div className={cn(
       'relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors pointer-events-none',
@@ -175,7 +172,7 @@ function Toggle({ on, color = 'bg-primary' }: { on: boolean; color?: string }) {
   )
 }
 
-function SchuelerBearbeitenModal({
+const SchuelerBearbeitenModal = ({
   open, onOpenChange, studentId, students, faecher, setRilzFach, setBvsa, updateStudent, deleteStudent,
 }: {
   open: boolean
@@ -187,7 +184,7 @@ function SchuelerBearbeitenModal({
   setBvsa: (studentId: string, enabled: boolean) => void
   updateStudent: (id: string, patch: Partial<Pick<Schueler, 'vorname' | 'nachname'>>) => void
   deleteStudent: (id: string) => void
-}) {
+}) => {
   const [vorname, setVorname] = useState('')
   const [nachname, setNachname] = useState('')
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -225,7 +222,7 @@ function SchuelerBearbeitenModal({
               onClick={() => setDeleteConfirmOpen(true)}
               className="text-destructive hover:text-destructive/80 hover:bg-destructive/8"
             >
-              <Trash2 className="size-3.5" />
+              <Icon name="delete" size={14} />
               Löschen
             </Button>
             <div className="flex gap-2">
@@ -235,9 +232,9 @@ function SchuelerBearbeitenModal({
           </div>
         }
       >
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {/* Name fields side by side */}
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label htmlFor="edit-vorname" className="text-xs text-muted-foreground">Vorname</Label>
               <Input
@@ -269,7 +266,7 @@ function SchuelerBearbeitenModal({
             >
               <div className="min-w-0">
                 <p className="text-sm font-medium leading-tight">bVSA</p>
-                <p className="text-[11px] text-muted-foreground leading-tight">Bericht ohne Noten</p>
+                <p className="text-2xs text-muted-foreground leading-tight">Bericht ohne Noten</p>
               </div>
               <Toggle on={!!student.bvsa} color="bg-category-bvsa-fg" />
             </div>
@@ -280,7 +277,7 @@ function SchuelerBearbeitenModal({
             <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border/60 bg-muted/20">
               {/* RILZ divider label */}
               <div className="px-3 py-1 bg-muted/40">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="text-3xs font-semibold uppercase tracking-wider text-muted-foreground">
                   RILZ — Reduzierte Lernziele
                 </p>
               </div>
@@ -322,7 +319,7 @@ function SchuelerBearbeitenModal({
 
 // ── Lernziele tab ─────────────────────────────────────────────────────────
 
-function Highlight({ text, query }: { text: string; query: string }) {
+const Highlight = ({ text, query }: { text: string; query: string }) => {
   if (!query) return <>{text}</>
   const idx = text.toLowerCase().indexOf(query.toLowerCase())
   if (idx === -1) return <>{text}</>
@@ -335,7 +332,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
   )
 }
 
-function LernzielPopup({ lz, onClose }: { lz: LernzielType; onClose: () => void }) {
+const LernzielPopup = ({ lz, onClose }: { lz: LernzielType; onClose: () => void }) => {
   return (
     <Modal open onOpenChange={(v) => { if (!v) onClose() }} title={lz.label} size="sm">
       {(lz.kriterien?.length ?? 0) === 0 ? (
@@ -343,7 +340,7 @@ function LernzielPopup({ lz, onClose }: { lz: LernzielType; onClose: () => void 
       ) : (
         <ul className="space-y-2">
           {lz.kriterien!.map((k, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-sm">
+            <li key={i} className="flex items-start gap-2 text-sm">
               <span className="mt-2 size-1.5 rounded-full bg-primary shrink-0" />
               {k}
             </li>
@@ -356,9 +353,9 @@ function LernzielPopup({ lz, onClose }: { lz: LernzielType; onClose: () => void 
 
 // Bearbeiten-Popup im Klassen-Tab — Format wie die Lernzielsammlung (2 Schritte),
 // jedoch ohne Filter-Tags und mit dem klassenspezifischen Feld „Fällig am".
-function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
+const KlassenThemaEditModal = ({ themaId, klassId, allowRemove, onClose }: {
   themaId: string; klassId: string; allowRemove: boolean; onClose: () => void
-}) {
+}) => {
   const {
     themen, faecher, lernziele, updateThema, removeThemaFromKlasse, exportThema,
     createLernziel, updateLernziel, deleteLernziel,
@@ -387,7 +384,7 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
 
   if (!thema) return null
 
-  function save() {
+  const save = () => {
     if (!localName.trim()) return
     updateThema(themaId, {
       name: localName.trim(),
@@ -398,29 +395,29 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
     })
     onClose()
   }
-  function remove() {
+  const remove = () => {
     removeThemaFromKlasse(klassId, themaId)
     onClose()
   }
 
-  function openRow(id: string, isOpen: boolean) {
+  const openRow = (id: string, isOpen: boolean) => {
     setOpenRowId(isOpen ? id : null)
   }
 
-  function renderSimpleOptions(
+  const renderSimpleOptions = (
     opts: { value: string; label: string }[],
     current: string,
     onSelect: (v: string) => void,
     clearLabel?: string
-  ) {
+  ) => {
     return (
       <div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto">
         {clearLabel && current && (
           <button
             onClick={() => { onSelect(''); setOpenRowId(null) }}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 text-left"
+            className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 text-left"
           >
-            <X className="size-3 shrink-0" />{clearLabel}
+            <Icon name="close" size={12} className="shrink-0" />{clearLabel}
           </button>
         )}
         {opts.map(opt => (
@@ -428,12 +425,12 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
             key={opt.value}
             onClick={() => { onSelect(opt.value); setOpenRowId(null) }}
             className={cn(
-              'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors text-left',
+              'flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors text-left',
               opt.value === current ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted/60 text-foreground'
             )}
           >
             {opt.value === current
-              ? <Check className="size-3 shrink-0" />
+              ? <Icon name="check" size={12} className="shrink-0" />
               : <span className="size-3 shrink-0" />
             }
             {opt.label}
@@ -447,33 +444,33 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
   const grundlegendLZ = themaLZ.filter(lz => lz.kategorie === 'grundlegend')
   const anspruchsvollLZ = themaLZ.filter(lz => lz.kategorie === 'anspruchsvoll')
 
-  function addLZG() {
+  const addLZG = () => {
     if (!newLZG.trim()) return
     createLernziel(themaId, newLZG.trim(), 'grundlegend')
     setNewLZG('')
   }
-  function addLZA() {
+  const addLZA = () => {
     if (!newLZA.trim()) return
     createLernziel(themaId, newLZA.trim(), 'anspruchsvoll')
     setNewLZA('')
   }
-  function saveLZ(id: string) {
+  const saveLZ = (id: string) => {
     if (!editLzLabel.trim()) return
     updateLernziel(id, { label: editLzLabel.trim(), kategorie: editLzKategorie })
     setEditLzId(null)
   }
 
-  function renderLZRow(lz: (typeof themaLZ)[number], idx: number) {
+  const renderLZRow = (lz: (typeof themaLZ)[number], idx: number) => {
     return (
       <div key={lz.id} className="group flex items-center gap-2 py-1.5 hover:bg-accent/20 transition-colors px-1">
-        <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">{idx + 1}</span>
+        <span className="w-4 shrink-0 text-3xs font-mono text-muted-foreground">{idx + 1}</span>
         {editLzId === lz.id ? (
           <>
             <div className="flex rounded border overflow-hidden shrink-0 h-6">
               {(['grundlegend', 'anspruchsvoll'] as LernzielKategorie[]).map(k => (
                 <button key={k} onClick={() => setEditLzKategorie(k)}
                   className={cn(
-                    'px-1.5 text-[9px] font-medium transition-colors',
+                    'px-1.5 text-4xs font-medium transition-colors',
                     editLzKategorie === k
                       ? k === 'grundlegend' ? 'bg-category-grundlegend text-white' : 'bg-category-anspruchsvoll text-white'
                       : 'bg-background text-muted-foreground hover:bg-muted',
@@ -487,10 +484,10 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
               onKeyDown={e => { if (e.key === 'Enter') saveLZ(lz.id); if (e.key === 'Escape') setEditLzId(null) }}
               className="h-6 text-xs flex-1 px-1.5" autoFocus />
             <Button size="icon-sm" variant="ghost" onClick={() => saveLZ(lz.id)}>
-              <Check className="size-3 text-status-reached" />
+              <Icon name="check" size={12} className="text-status-reached" />
             </Button>
             <Button size="icon-sm" variant="ghost" onClick={() => setEditLzId(null)}>
-              <X className="size-3" />
+              <Icon name="close" size={12} />
             </Button>
           </>
         ) : (
@@ -500,12 +497,12 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
               <Button size="icon-sm" variant="ghost"
                 onClick={() => { setEditLzId(lz.id); setEditLzLabel(lz.label); setEditLzKategorie(lz.kategorie) }}
                 aria-label="Bearbeiten">
-                <PencilLine className="size-3" />
+                <Icon name="edit" size={12} />
               </Button>
               <Button size="icon-sm" variant="ghost"
                 className="text-destructive/70 hover:text-destructive"
                 onClick={() => setDeleteLzId(lz.id)} aria-label="Löschen">
-                <Trash2 className="size-3" />
+                <Icon name="delete" size={12} />
               </Button>
             </div>
           </>
@@ -528,24 +525,24 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
                 onClick={remove}
                 className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded-lg hover:bg-destructive/8"
               >
-                <Trash2 className="size-3.5" />
+                <Icon name="delete" size={14} />
                 Aus Klasse entfernen
               </button>
             ) : <div />}
             <div className="flex items-center gap-2">
               <Button size="sm" variant="ghost" onClick={() => exportThema(themaId)} aria-label="Exportieren" className="text-muted-foreground">
-                <Download className="size-3.5" />
+                <Icon name="download" size={14} />
               </Button>
               <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
               <Button size="sm" onClick={() => setEditStep('lernziele')} disabled={!localName.trim()}>
-                Weiter <ChevronRight className="size-3.5 ml-0.5" />
+                Weiter <Icon name="chevron_right" size={14} className="ml-0.5" />
               </Button>
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-between w-full gap-2">
             <Button size="sm" variant="ghost" onClick={() => setEditStep('meta')} className="text-muted-foreground">
-              <ChevronLeft className="size-3.5 mr-0.5" /> Zurück
+              <Icon name="chevron_left" size={14} className="mr-0.5" /> Zurück
             </Button>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
@@ -578,7 +575,7 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
                 onChange={e => setFaelligAm(e.target.value)}
                 className="pr-8 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
               />
-              <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+              <Icon name="calendar_today" size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             </div>
           </div>
 
@@ -640,11 +637,11 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
           {/* Grundlegend */}
           <div className="border-b border-border/40">
             <div className="py-1 bg-muted/20 px-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
+              <span className="text-3xs font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
             </div>
             <div className="divide-y divide-border/30">
               {grundlegendLZ.length === 0 && (
-                <p className="py-1.5 px-1 text-[10px] text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
+                <p className="py-1.5 px-1 text-3xs text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
               )}
               {grundlegendLZ.map((lz, i) => renderLZRow(lz, i))}
             </div>
@@ -653,7 +650,7 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
                 onKeyDown={e => e.key === 'Enter' && addLZG()}
                 placeholder="Grundlegendes Lernziel…" className="h-6 text-xs flex-1" />
               <Button size="icon-sm" variant="outline" onClick={addLZG} disabled={!newLZG.trim()}>
-                <Plus className="size-3" />
+                <Icon name="add" size={12} />
               </Button>
             </div>
           </div>
@@ -661,11 +658,11 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
           {/* Anspruchsvoll */}
           <div>
             <div className="py-1 bg-muted/20 px-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
+              <span className="text-3xs font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
             </div>
             <div className="divide-y divide-border/30">
               {anspruchsvollLZ.length === 0 && (
-                <p className="py-1.5 px-1 text-[10px] text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
+                <p className="py-1.5 px-1 text-3xs text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
               )}
               {anspruchsvollLZ.map((lz, i) => renderLZRow(lz, i))}
             </div>
@@ -674,7 +671,7 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
                 onKeyDown={e => e.key === 'Enter' && addLZA()}
                 placeholder="Anspruchsvolles Lernziel…" className="h-6 text-xs flex-1" />
               <Button size="icon-sm" variant="outline" onClick={addLZA} disabled={!newLZA.trim()}>
-                <Plus className="size-3" />
+                <Icon name="add" size={12} />
               </Button>
             </div>
           </div>
@@ -693,7 +690,7 @@ function KlassenThemaEditModal({ themaId, klassId, allowRemove, onClose }: {
   )
 }
 
-function LernzieleTab({ klassId }: { klassId: string }) {
+const LernzieleTab = ({ klassId }: { klassId: string }) => {
   const {
     getClass,
     faecher, themen, lernziele,
@@ -729,16 +726,16 @@ function LernzieleTab({ klassId }: { klassId: string }) {
   const [importFeedback, setImportFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  function toggleThema(themaId: string) {
+  const toggleThema = (themaId: string) => {
     setExpandedThemen(prev => { const n = new Set(prev); n.has(themaId) ? n.delete(themaId) : n.add(themaId); return n })
   }
 
-  function showImportFeedback(ok: boolean, msg: string) {
+  const showImportFeedback = (ok: boolean, msg: string) => {
     setImportFeedback({ ok, msg })
     setTimeout(() => setImportFeedback(null), 4000)
   }
 
-  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
     e.target.value = ''
     if (files.length === 0) return
@@ -776,7 +773,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
     if (errors > 0) showImportFeedback(false, `${errors} Datei(en) konnten nicht gelesen werden.`)
   }
 
-  function handleZuordnenConfirm() {
+  const handleZuordnenConfirm = () => {
     const fachByKey: Record<string, string> = {}
     let neueFaecher = 0
     for (const { name } of distinctFaecher) {
@@ -801,7 +798,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
     showImportFeedback(true, importDoneMsg(count, neueFaecher, 0))
   }
 
-  function closeZuordnen() {
+  const closeZuordnen = () => {
     setFachZuordnenOpen(false)
     setImportItems([])
     setDistinctFaecher([])
@@ -809,7 +806,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
   }
 
   // Alle Standard-Themen eines Fachs aus dieser Klasse abmelden (kein globales Löschen).
-  function removeFachFromKlasse(fachId: string) {
+  const removeFachFromKlasse = (fachId: string) => {
     themen
       .filter(t => t.fachId === fachId && klasse.assignedThemaIds.includes(t.id))
       .forEach(t => removeThemaFromKlasse(klassId, t.id))
@@ -876,7 +873,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
     }
 
     const byFach = new Map<string, { fach: Fach; themen: RilzThemaEntry[] }>()
-    function addEntry(fachId: string, entry: RilzThemaEntry) {
+    const addEntry = (fachId: string, entry: RilzThemaEntry) => {
       const fach = faecher.find(f => f.id === fachId)
       if (!fach) return
       if (!byFach.has(fachId)) byFach.set(fachId, { fach, themen: [] })
@@ -894,7 +891,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
     return [...byFach.values()]
   }, [getStudentsForClass, klassId, themen, lernziele, faecher])
 
-  function toggleFach(fachId: string) {
+  const toggleFach = (fachId: string) => {
     setCollapsedFaecher(prev => { const n = new Set(prev); n.has(fachId) ? n.delete(fachId) : n.add(fachId); return n })
   }
 
@@ -917,7 +914,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
               {`${klasse.assignedThemaIds.length} Themen · ${assignedLzIds.size} Lernziele`}
             </span>
             <Button size="sm" className="h-auto shrink-0" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="size-3.5" /> Importieren
+              <Icon name="upload" size={14} /> Importieren
             </Button>
           </>}
         />
@@ -968,8 +965,8 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                       className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
                     >
                       {fachCollapsed
-                        ? <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
-                        : <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
+                        ? <Icon name="chevron_right" size={14} className="text-muted-foreground shrink-0" />
+                        : <Icon name="expand_more" size={14} className="text-muted-foreground shrink-0" />
                       }
                       <span className="text-xs font-semibold uppercase tracking-wider text-foreground flex-1 text-left">
                         <Highlight text={fach.name} query={q} />
@@ -983,7 +980,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                       aria-label={`${fach.name} exportieren`}
                       className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground"
                     >
-                      <Download className="size-3.5" />
+                      <Icon name="download" size={14} />
                     </Button>
                     <Button
                       size="icon-sm"
@@ -992,7 +989,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                       aria-label={`${fach.name} aus Klasse entfernen`}
                       className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-destructive"
                     >
-                      <Trash2 className="size-3.5" />
+                      <Icon name="delete" size={14} />
                     </Button>
                   </div>
 
@@ -1008,8 +1005,8 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                 onClick={() => toggleThema(thema.id)}
                               >
                                 {isExpanded
-                                  ? <ChevronDown className="size-3 text-muted-foreground shrink-0" />
-                                  : <ChevronRight className="size-3 text-muted-foreground shrink-0" />
+                                  ? <Icon name="expand_more" size={12} className="text-muted-foreground shrink-0" />
+                                  : <Icon name="chevron_right" size={12} className="text-muted-foreground shrink-0" />
                                 }
                                 <span className="text-sm font-medium truncate"><Highlight text={thema.name} query={q} /></span>
                               </button>
@@ -1020,20 +1017,20 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                   <span
                                     title={active ? undefined : 'Fließt ab dem Fälligkeitsdatum in die Statistik ein'}
                                     className={cn(
-                                      'inline-flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5',
+                                      'inline-flex items-center gap-1 text-3xs tabular-nums shrink-0 rounded px-1.5 py-0.5',
                                       active ? 'bg-muted text-foreground' : 'bg-muted/50 text-muted-foreground',
                                     )}
                                   >
-                                    <Calendar className="size-3" />
+                                    <Icon name="calendar_today" size={12} />
                                     {new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
                                   </span>
                                 )
                               })() : (
                                 <span
                                   title="Fließt erst mit gesetztem Fälligkeitsdatum in die Statistik ein"
-                                  className="inline-flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5 border border-dashed border-border text-muted-foreground/60"
+                                  className="inline-flex items-center gap-1 text-3xs tabular-nums shrink-0 rounded px-1.5 py-0.5 border border-dashed border-border text-muted-foreground/60"
                                 >
-                                  <Calendar className="size-3" />
+                                  <Icon name="calendar_today" size={12} />
                                   kein Datum
                                 </span>
                               )}
@@ -1047,21 +1044,21 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                 )}
                                 aria-label="Statistiken anzeigen"
                               >
-                                <BarChart2 className="size-3.5" />
+                                <Icon name="bar_chart" size={14} />
                               </button>
                               <button
                                 onClick={e => { e.stopPropagation(); setEditThema({ id: thema.id, allowRemove: true }) }}
                                 className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                                 aria-label="Thema bearbeiten"
                               >
-                                <PencilLine className="size-3.5" />
+                                <Icon name="edit" size={14} />
                               </button>
                               <button
                                 onClick={e => { e.stopPropagation(); exportThema(thema.id) }}
                                 className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                                 aria-label="Thema herunterladen"
                               >
-                                <Download className="size-3.5" />
+                                <Icon name="download" size={14} />
                               </button>
                             </div>
 
@@ -1069,8 +1066,8 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                               const statsLZ = lernziele.filter(lz => lz.themaId === thema.id)
                               const n = klassStudents.length
                               return (
-                                <div className="border-t border-primary/15 bg-primary/5 px-3 py-2.5 space-y-1.5">
-                                  <p className="text-[9px] font-semibold uppercase tracking-widest text-primary mb-2">
+                                <div className="border-t border-primary/15 bg-primary/5 px-3 py-2 space-y-1.5">
+                                  <p className="text-4xs font-semibold uppercase tracking-widest text-primary mb-2">
                                     Statistik — {n} Schüler
                                   </p>
                                   {statsLZ.map(lz => {
@@ -1080,19 +1077,19 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                     return (
                                       <div key={lz.id} className="flex items-center gap-2">
                                         <span className={cn(
-                                          'shrink-0 rounded px-1 py-0.5 text-[8px] font-bold leading-none',
+                                          'shrink-0 rounded px-1 py-0.5 text-4xs font-bold leading-none',
                                           categoryChipClasses(lz.kategorie),
                                         )}>
                                           {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
                                         </span>
                                         <span className="flex-1 text-xs truncate text-foreground">{lz.label}</span>
-                                        <span className="text-[10px] tabular-nums text-muted-foreground whitespace-nowrap">
+                                        <span className="text-3xs tabular-nums text-muted-foreground whitespace-nowrap">
                                           <span className="text-status-reached font-medium">{reached}</span>/{n}
                                         </span>
                                         <div className="w-20 bg-muted h-1.5 shrink-0">
                                           <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                                         </div>
-                                        <span className={cn('text-[10px] font-bold tabular-nums w-7 text-right shrink-0', scoreColor(pct))}>
+                                        <span className={cn('text-3xs font-bold tabular-nums w-7 text-right shrink-0', scoreColor(pct))}>
                                           {pct}%
                                         </span>
                                       </div>
@@ -1110,7 +1107,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                   return (
                                     <div key={kat} className="border-b border-border/40 last:border-b-0">
                                       <div className="pl-8 pr-3 py-1 bg-muted/20">
-                                        <span className={cn('text-[10px] font-semibold uppercase tracking-wide',
+                                        <span className={cn('text-3xs font-semibold uppercase tracking-wide',
                                           kat === 'grundlegend' ? 'text-category-grundlegend-fg' : 'text-category-anspruchsvoll-fg')}>
                                           {kat === 'grundlegend' ? 'Grundlegend' : 'Anspruchsvoll'}
                                         </span>
@@ -1127,7 +1124,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                                 className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                                                 aria-label="Details anzeigen"
                                               >
-                                                <Info className="size-3.5" />
+                                                <Icon name="info" size={14} />
                                               </button>
                                             )}
                                           </div>
@@ -1155,31 +1152,31 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                                 onClick={() => toggleThema(rilzKey)}
                               >
                                 {isExpanded
-                                  ? <ChevronDown className="size-3 text-muted-foreground shrink-0" />
-                                  : <ChevronRight className="size-3 text-muted-foreground shrink-0" />
+                                  ? <Icon name="expand_more" size={12} className="text-muted-foreground shrink-0" />
+                                  : <Icon name="chevron_right" size={12} className="text-muted-foreground shrink-0" />
                                 }
                                 <span className="text-sm font-medium truncate">{thema.name}</span>
-                                <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-rilz-soft text-rilz-foreground shrink-0">
+                                <Badge variant="rilz">
                                   RILZ
-                                </span>
-                                <span className="inline-flex items-center gap-0.5 text-[10px] tabular-nums rounded px-1.5 py-0.5 bg-muted text-muted-foreground shrink-0">
-                                  <UserRound className="size-3" />
+                                </Badge>
+                                <Badge className="gap-0.5 tabular-nums">
+                                  <Icon name="person" size={12} />
                                   {studentCount}
-                                </span>
+                                </Badge>
                               </button>
 
                               {thema.faelligAm && (
-                                <span className="inline-flex items-center gap-1 text-[10px] tabular-nums shrink-0 rounded px-1.5 py-0.5 bg-muted text-muted-foreground">
-                                  <Calendar className="size-3" />
+                                <Badge className="gap-1 tabular-nums">
+                                  <Icon name="calendar_today" size={12} />
                                   {new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
-                                </span>
+                                </Badge>
                               )}
                               <button
                                 onClick={e => { e.stopPropagation(); setEditThema({ id: thema.id, allowRemove: false }) }}
                                 className="shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                                 aria-label="Thema bearbeiten"
                               >
-                                <PencilLine className="size-3.5" />
+                                <Icon name="edit" size={14} />
                               </button>
                             </div>
 
@@ -1208,7 +1205,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                           onClick={() => setAddFachId(fach.id)}
                           className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-accent/20 transition-colors"
                         >
-                          <Plus className="size-3" /> Themen hinzufügen
+                          <Icon name="add" size={12} /> Themen hinzufügen
                         </button>
                       )}
                     </div>
@@ -1258,7 +1255,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                           aria-label={`${fach.name} löschen`}
                           className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-destructive"
                         >
-                          <Trash2 className="size-3.5" />
+                          <Icon name="delete" size={14} />
                         </Button>
                       )}
                     </div>
@@ -1266,7 +1263,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
                       onClick={() => setAddFachId(fach.id)}
                       className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-accent/20 transition-colors"
                     >
-                      <Plus className="size-3" /> Thema hinzufügen
+                      <Icon name="add" size={12} /> Thema hinzufügen
                     </button>
                   </div>
                 )
@@ -1278,9 +1275,9 @@ function LernzieleTab({ klassId }: { klassId: string }) {
         {/* Neues Fach — ganz unten (wie in der Lernzielsammlung) */}
         <button
           onClick={() => setFachCreateOpen(true)}
-          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border py-2.5 text-xs text-muted-foreground hover:text-primary hover:bg-accent/20 transition-colors"
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border py-2 text-xs text-muted-foreground hover:text-primary hover:bg-accent/20 transition-colors"
         >
-          <Plus className="size-3" /> Neues Fach
+          <Icon name="add" size={12} /> Neues Fach
         </button>
 
         {/* Add-Themen modal for a fach */}
@@ -1390,7 +1387,7 @@ function LernzieleTab({ klassId }: { klassId: string }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────
 
-export default function KlasseDetailPage() {
+const KlasseDetailPage = () => {
   const { klassId } = useParams<{ klassId: string }>()
   const router = useRouter()
   const {
@@ -1493,7 +1490,7 @@ export default function KlasseDetailPage() {
         <>
           {students.length === 0 && (
             <EmptyState
-              icon={<UserRound className="size-6 text-accent-foreground" />}
+              icon={<Icon name="person" size={24} className="text-accent-foreground" />}
               title="Noch keine Schüler"
               description="Füge Schüler zu dieser Klasse hinzu."
               action={<Button onClick={() => setCreateOpen(true)}>Ersten Schüler hinzufügen</Button>}
@@ -1509,95 +1506,88 @@ export default function KlasseDetailPage() {
                 className="mb-2"
                 right={
                   <Button size="sm" className="h-auto" onClick={() => setCreateOpen(true)}>
-                    <Plus className="size-3.5" />
+                    <Icon name="add" size={14} />
                     Neuer Schüler
                   </Button>
                 }
               />
 
               {/* Admin table */}
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                {/* Column headers */}
-                <div className="flex items-center gap-3 px-3 py-1.5 bg-muted/40 border-b border-border text-xs text-muted-foreground font-medium select-none">
-                  <div className="size-7 shrink-0" />
-                  {([
-                    { col: 'vorname' as const, label: 'Vorname', w: 'w-24' },
-                    { col: 'nachname' as const, label: 'Nachname', w: 'w-24' },
-                  ] as const).map(({ col, label, w }) => (
-                    <button
-                      key={col}
-                      onClick={() => handleSortCol(col)}
-                      className={cn('flex items-center gap-0.5 shrink-0', w, 'hover:text-foreground transition-colors')}
-                    >
-                      {label}
-                      {sortCol === col
-                        ? sortDir === 'asc'
-                          ? <ChevronDown className="size-3 text-primary" />
-                          : <ChevronDown className="size-3 text-primary rotate-180" />
-                        : <ChevronDown className="size-3 opacity-30" />}
-                    </button>
-                  ))}
-                  <div className="flex-1 text-xs text-muted-foreground">Kategorie</div>
-                  <button
+              <Table>
+                <TableHeader>
+                  <TableHead className="w-7 pr-0" />
+                  <TableSortHeader
+                    active={sortCol === 'vorname'}
+                    direction={sortDir}
+                    onClick={() => handleSortCol('vorname')}
+                    className="w-24"
+                  >
+                    Vorname
+                  </TableSortHeader>
+                  <TableSortHeader
+                    active={sortCol === 'nachname'}
+                    direction={sortDir}
+                    onClick={() => handleSortCol('nachname')}
+                    className="w-24"
+                  >
+                    Nachname
+                  </TableSortHeader>
+                  <TableHead className="w-full">Kategorie</TableHead>
+                  <TableSortHeader
+                    active={sortCol === 'progress'}
+                    direction={sortDir}
                     onClick={() => handleSortCol('progress')}
-                    className="flex items-center gap-0.5 w-20 shrink-0 hover:text-foreground transition-colors"
+                    className="w-28"
                   >
                     Fortschritt
-                    {sortCol === 'progress'
-                      ? sortDir === 'asc'
-                        ? <ChevronDown className="size-3 text-primary" />
-                        : <ChevronDown className="size-3 text-primary rotate-180" />
-                      : <ChevronDown className="size-3 opacity-30" />}
-                  </button>
-                  <div className="w-14 shrink-0" />
-                </div>
+                  </TableSortHeader>
+                  <TableHead className="w-14" />
+                </TableHeader>
 
-                {/* Empty search result */}
-                {sortedStudents.length === 0 && (
-                  <p className="text-sm text-muted-foreground px-4 py-6 text-center">
-                    Keine Schüler gefunden für „{adminSearch}"
-                  </p>
-                )}
-
-                {/* Student rows */}
-                <div className="divide-y divide-border">
+                <TableBody>
+                  {sortedStudents.length === 0 && (
+                    <TableEmpty colSpan={6}>
+                      Keine Schüler gefunden für „{adminSearch}"
+                    </TableEmpty>
+                  )}
                   {sortedStudents.map(student => {
                     const cp = compPct(student, competencies)
                     const pctColor = cp >= 75 ? 'text-status-reached' : cp >= 40 ? 'text-status-partial' : 'text-status-not-reached'
                     const barColor = cp >= 75 ? 'bg-status-reached' : cp >= 40 ? 'bg-status-partial' : 'bg-status-not-reached'
                     return (
-                      <div key={student.id}>
-                        {/* Main row */}
-                        <div
-                          className="flex items-center gap-3 px-3 py-1.5 hover:bg-accent/30 transition-colors cursor-pointer"
-                          onClick={() => router.push(`/klassen/${klassId}/schueler/${student.id}`)}
-                        >
+                      <TableRow
+                        key={student.id}
+                        onClick={() => router.push(`/klassen/${klassId}/schueler/${student.id}`)}
+                      >
+                        <TableCell className="pr-0">
                           <Avatar size="sm" className="shrink-0">
                             <AvatarFallback className={cn('text-xs', getAvatarColor(student.vorname + ' ' + student.nachname))}>
                               {getInitials(student.vorname + ' ' + student.nachname)}
                             </AvatarFallback>
                           </Avatar>
+                        </TableCell>
 
-                          {/* Vorname */}
-                          <div className="w-24 shrink-0">
-                            <span className="text-sm font-medium truncate">{student.vorname}</span>
-                          </div>
+                        {/* Vorname */}
+                        <TableCell>
+                          <span className="text-sm font-medium truncate block">{student.vorname}</span>
+                        </TableCell>
 
-                          {/* Nachname */}
-                          <div className="w-24 shrink-0">
-                            <span className="text-sm text-muted-foreground truncate block">{student.nachname}</span>
-                          </div>
+                        {/* Nachname */}
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground truncate block">{student.nachname}</span>
+                        </TableCell>
 
-                          {/* Kategorie cell */}
-                          <div className="flex-1 flex items-center gap-1.5 py-0.5 min-w-0 overflow-hidden">
+                        {/* Kategorie */}
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
                             {(() => {
                               const badges: { key: string; node: React.ReactNode }[] = []
-                              if (student.bvsa) badges.push({ key: 'bvsa', node: <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg shrink-0">bVSA</span> })
+                              if (student.bvsa) badges.push({ key: 'bvsa', node: <Badge variant="bvsa" className="font-semibold">bVSA</Badge> })
                               for (const fachId of student.rilzFachIds ?? []) {
                                 const fach = faecher.find(f => f.id === fachId)
                                 if (fach) {
                                   const fc = getFachColor(fach.id, faecher.map(f => f.id), fach.colorIndex)
-                                  badges.push({ key: fachId, node: <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold shrink-0', fc.bg, fc.text)}>RILZ {fach.name}</span> })
+                                  badges.push({ key: fachId, node: <span className={cn('rounded px-1.5 py-0.5 text-3xs font-semibold shrink-0', fc.bg, fc.text)}>RILZ {fach.name}</span> })
                                 }
                               }
                               if (badges.length === 0) return null
@@ -1607,21 +1597,23 @@ export default function KlasseDetailPage() {
                                 <>
                                   {badges.slice(0, MAX).map(b => <span key={b.key} className="contents">{b.node}</span>)}
                                   {overflow > 0 && (
-                                    <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-muted text-muted-foreground shrink-0">+{overflow}</span>
+                                    <Badge className="font-semibold">+{overflow}</Badge>
                                   )}
                                 </>
                               )
                             })()}
                           </div>
+                        </TableCell>
 
-                          {/* Mini progress bar */}
-                          <div className="w-20 shrink-0 flex items-center gap-1.5">
+                        {/* Mini progress bar */}
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
                             {competencies.length > 0 ? (
                               <>
                                 <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                                   <div className={cn('h-full rounded-full transition-all', barColor)} style={{ width: `${cp}%` }} />
                                 </div>
-                                <span className={cn('text-[10px] font-semibold tabular-nums w-6 text-right shrink-0', pctColor)}>
+                                <span className={cn('text-3xs font-semibold tabular-nums w-6 text-right shrink-0', pctColor)}>
                                   {Math.round(cp)}%
                                 </span>
                               </>
@@ -1629,25 +1621,24 @@ export default function KlasseDetailPage() {
                               <span className="text-xs text-muted-foreground">—</span>
                             )}
                           </div>
+                        </TableCell>
 
-                          {/* Actions */}
-                          <div className="w-14 shrink-0 flex items-center justify-end">
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={(e) => { e.stopPropagation(); setEditStudentId(student.id) }}
-                              aria-label="Schüler bearbeiten"
-                            >
-                              <Pencil className="size-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-
-                      </div>
+                        {/* Actions */}
+                        <TableCell align="right">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={(e) => { e.stopPropagation(); setEditStudentId(student.id) }}
+                            aria-label="Schüler bearbeiten"
+                          >
+                            <Icon name="edit" size={14} />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
                     )
                   })}
-                </div>
-              </div>
+                </TableBody>
+              </Table>
             </>
           )}
         </>
@@ -1701,3 +1692,5 @@ export default function KlasseDetailPage() {
     </div>
   )
 }
+
+export default KlasseDetailPage

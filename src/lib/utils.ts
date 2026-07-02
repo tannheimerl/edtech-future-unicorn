@@ -2,7 +2,7 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Status, LernzielKategorie } from '@/types/domain'
 
-export function cn(...inputs: ClassValue[]) {
+export const cn = (...inputs: ClassValue[]) => {
   return twMerge(clsx(inputs))
 }
 
@@ -21,23 +21,23 @@ export const FACH_COLORS = [
 
 export type FachColor = (typeof FACH_COLORS)[number]
 
-export function getFachColor(fachId: string, allFachIds: string[], colorIndex?: number): FachColor {
+export const getFachColor = (fachId: string, allFachIds: string[], colorIndex?: number): FachColor => {
   if (colorIndex !== undefined) return FACH_COLORS[colorIndex % FACH_COLORS.length]
   const idx = allFachIds.indexOf(fachId)
   return FACH_COLORS[idx === -1 ? 0 : idx % FACH_COLORS.length]
 }
 
-export function sv(status: Status | string): number {
+export const sv = (status: Status | string): number => {
   return status === 'reached' ? 1 : status === 'partially_reached' ? 0.5 : 0
 }
 
-export function scoreColor(pct: number): string {
+export const scoreColor = (pct: number): string => {
   return pct >= 75 ? 'text-status-reached' : pct >= 25 ? 'text-status-partial' : 'text-status-not-reached'
 }
 
 // Token-based chip classes for a RAG status (soft bg + readable fg).
 // `undefined` = "nicht bewertet" → neutral.
-export function statusChipClasses(status: Status | undefined): string {
+export const statusChipClasses = (status: Status | undefined): string => {
   switch (status) {
     case 'reached':
       return 'bg-status-reached-soft text-status-reached-fg'
@@ -51,7 +51,7 @@ export function statusChipClasses(status: Status | undefined): string {
 }
 
 // Token-based chip classes for a Lernziel-Anspruchsniveau.
-export function categoryChipClasses(kategorie: LernzielKategorie): string {
+export const categoryChipClasses = (kategorie: LernzielKategorie): string => {
   return kategorie === 'anspruchsvoll'
     ? 'bg-category-anspruchsvoll-soft text-category-anspruchsvoll-fg'
     : 'bg-category-grundlegend-soft text-category-grundlegend-fg'

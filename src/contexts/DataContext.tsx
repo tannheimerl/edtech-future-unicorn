@@ -38,7 +38,7 @@ import { parseLezio } from '@/lib/lezioImport'
 
 // ── Public interface ─────────────────────────────────────────────────────────
 
-interface DataContextValue {
+type DataContextValue = {
   // Identity
   currentLpId: string
 
@@ -156,7 +156,7 @@ const DataContext = createContext<DataContextValue | null>(null)
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 
-export function DataProvider({ children }: { children: React.ReactNode }) {
+export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [classes, setClasses] = useState<Klasse[]>([])
   const [students, setStudents] = useState<Schueler[]>([])
@@ -1006,7 +1006,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
 // ── Hook ─────────────────────────────────────────────────────────────────
 
-export function useData(): DataContextValue {
+export const useData = (): DataContextValue => {
   const ctx = useContext(DataContext)
   if (!ctx) throw new Error('useData must be used within <DataProvider>')
   return ctx

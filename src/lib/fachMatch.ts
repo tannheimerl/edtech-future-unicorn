@@ -18,7 +18,7 @@ export const SUGGEST_THRESHOLD = 0.6
  * trim → lowercase → Diakritika/Umlaute entfernen → Mehrfach-Whitespace kollabieren.
  * So matchen "Französisch", "franzoesisch " und "FRANZÖSISCH" auf denselben Wert.
  */
-export function normalizeFachName(name: string): string {
+export const normalizeFachName = (name: string): string => {
   return name
     .trim()
     .toLowerCase()
@@ -34,13 +34,13 @@ export function normalizeFachName(name: string): string {
 }
 
 /** Findet ein Fach mit (nach Normalisierung) identischem Namen. */
-export function findExactFachMatch(fachName: string, faecher: Fach[]): Fach | undefined {
+export const findExactFachMatch = (fachName: string, faecher: Fach[]): Fach | undefined => {
   const target = normalizeFachName(fachName)
   return faecher.find((f) => normalizeFachName(f.name) === target)
 }
 
 /** Levenshtein-Distanz zwischen zwei Strings. */
-function levenshtein(a: string, b: string): number {
+const levenshtein = (a: string, b: string): number => {
   if (a === b) return 0
   if (!a.length) return b.length
   if (!b.length) return a.length
@@ -60,7 +60,7 @@ function levenshtein(a: string, b: string): number {
  * Ähnlichkeitsscore zweier Fachnamen (0–1, höher = ähnlicher).
  * Präfix > Substring > Levenshtein-basierte Ähnlichkeit.
  */
-export function fachSimilarity(a: string, b: string): number {
+const fachSimilarity = (a: string, b: string): number => {
   const na = normalizeFachName(a)
   const nb = normalizeFachName(b)
   if (!na || !nb) return 0
@@ -87,10 +87,10 @@ export function fachSimilarity(a: string, b: string): number {
  * Die UI nutzt das, um Kandidaten zu sortieren und den Top-Treffer
  * (score ≥ {@link SUGGEST_THRESHOLD}) als Vorschlag hervorzuheben.
  */
-export function rankFachSuggestions(
+export const rankFachSuggestions = (
   fachName: string,
   faecher: Fach[],
-): { fach: Fach; score: number }[] {
+): { fach: Fach; score: number }[] => {
   return faecher
     .map((fach) => ({ fach, score: fachSimilarity(fachName, fach.name) }))
     .sort((a, b) => b.score - a.score)

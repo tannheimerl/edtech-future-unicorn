@@ -96,7 +96,7 @@ const s = StyleSheet.create({
 
 // ── SVG Icons ─────────────────────────────────────────────────────────────────
 
-function IconEmpty() {
+const IconEmpty = () => {
   return (
     <Svg width={12} height={12} viewBox="0 0 12 12">
       <Circle cx="6" cy="6" r="5" fill="none" stroke={BORDER} strokeWidth={1.5} />
@@ -104,7 +104,7 @@ function IconEmpty() {
   )
 }
 
-function IconHalf() {
+const IconHalf = () => {
   return (
     <Svg width={12} height={12} viewBox="0 0 12 12">
       <Circle cx="6" cy="6" r="5" fill="none" stroke={ACCENT} strokeWidth={1.5} />
@@ -113,7 +113,7 @@ function IconHalf() {
   )
 }
 
-function IconFull() {
+const IconFull = () => {
   return (
     <Svg width={12} height={12} viewBox="0 0 12 12">
       <Circle cx="6" cy="6" r="5" fill={ACCENT} />
@@ -121,7 +121,7 @@ function IconFull() {
   )
 }
 
-function CrossMark() {
+const CrossMark = () => {
   return (
     <Svg width={14} height={14} viewBox="0 0 14 14">
       <Line x1="2" y1="2" x2="12" y2="12" stroke={ACCENT} strokeWidth={2.2} strokeLinecap="round" />
@@ -132,7 +132,7 @@ function CrossMark() {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export interface SchuelerBerichtPDFProps {
+export type SchuelerBerichtPDFProps = {
   studentName: string
   klassenName: string
   fachName: string
@@ -157,12 +157,12 @@ export interface SchuelerBerichtPDFProps {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function grundlegendMark(status: Status, col: 'nicht' | 'erreicht'): boolean {
+const grundlegendMark = (status: Status, col: 'nicht' | 'erreicht'): boolean => {
   if (col === 'nicht') return status === 'not_reached' || status === 'partially_reached'
   return status === 'reached'
 }
 
-function anspruchsvollMark(status: Status, col: 'nicht' | 'teilweise' | 'erreicht'): boolean {
+const anspruchsvollMark = (status: Status, col: 'nicht' | 'teilweise' | 'erreicht'): boolean => {
   return (
     (col === 'nicht'    && status === 'not_reached')       ||
     (col === 'teilweise' && status === 'partially_reached') ||
@@ -172,10 +172,10 @@ function anspruchsvollMark(status: Status, col: 'nicht' | 'teilweise' | 'erreich
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function SchuelerBerichtPDF({
+export const SchuelerBerichtPDF = ({
   studentName, klassenName, fachName, themaName, date, lernziele, kommentar,
   pruefungsErgebnis, includeInBericht,
-}: SchuelerBerichtPDFProps) {
+}: SchuelerBerichtPDFProps) => {
   const grundlegend   = lernziele.filter((lz) => lz.kategorie === 'grundlegend')
   const anspruchsvoll = lernziele.filter((lz) => lz.kategorie === 'anspruchsvoll')
 

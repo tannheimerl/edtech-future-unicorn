@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Printer, ArrowLeft } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { cn, categoryChipClasses } from '@/lib/utils'
@@ -21,7 +21,7 @@ const STATUS_TEXT: Record<Status, string> = {
   not_reached: 'text-status-not-reached-fg',
 }
 
-export default function BerichtPage() {
+const BerichtPage = () => {
   const { klassId, studentId } = useParams<{ klassId: string; studentId: string }>()
   const router = useRouter()
   const { getClass, getStudent, getThemenForKlasse, getLernzieleForThema, getFachForThema, faecher, kommentare } = useData()
@@ -91,7 +91,7 @@ export default function BerichtPage() {
             <p className="text-sm text-muted-foreground">{student.vorname} {student.nachname} · {klasse.name}</p>
           </div>
           <Button onClick={() => window.print()}>
-            <Printer className="size-4" /> Drucken / PDF
+            <Icon name="print" size={16} /> Drucken / PDF
           </Button>
         </div>
 
@@ -132,7 +132,7 @@ export default function BerichtPage() {
                 className="h-7 rounded border border-border bg-background text-xs px-2 focus:outline-none"
               />
               {zeitraumBis && (
-                <Button variant="link" onClick={() => setZeitraumBis('')} className="h-auto p-0 ml-1 text-[10px] text-muted-foreground hover:text-foreground no-underline hover:no-underline">zurücksetzen</Button>
+                <Button variant="link" onClick={() => setZeitraumBis('')} className="h-auto p-0 ml-1 text-3xs text-muted-foreground hover:text-foreground no-underline hover:no-underline">zurücksetzen</Button>
               )}
             </div>
           </div>
@@ -163,13 +163,13 @@ export default function BerichtPage() {
                 </div>
                 <div className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
                   {lernziele.map(({ lz, status, kommentar }) => (
-                    <div key={lz.id} className="px-3 py-2.5 space-y-1">
+                    <div key={lz.id} className="px-3 py-2 space-y-1">
                       <div className="flex items-start gap-2">
                         <div className={cn('mt-1.5 shrink-0 size-2 rounded-full', STATUS_DOT[status])} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className={cn(
-                              'rounded px-1 text-[9px] font-semibold',
+                              'rounded px-1 text-4xs font-semibold',
                               categoryChipClasses(lz.kategorie),
                             )}>
                               {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
@@ -203,3 +203,5 @@ export default function BerichtPage() {
     </div>
   )
 }
+
+export default BerichtPage

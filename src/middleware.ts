@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { VALID_TENANT_IDS, TENANT_COOKIE } from '@/lib/tenants'
 
-export function middleware(request: NextRequest) {
+export const middleware = (request: NextRequest) => {
   const tokenParam = request.nextUrl.searchParams.get('t')
 
   if (tokenParam && VALID_TENANT_IDS.has(tokenParam)) {

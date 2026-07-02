@@ -1,20 +1,20 @@
 'use client'
 
 import { Fragment, useState } from 'react'
-import { Check, ChevronDown, Plus, X } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
-export interface FilterDropdownOption {
+type FilterDropdownOption = {
   value: string
   label: string
   /** Optional color dot class, e.g. 'bg-blue-400'. */
   dot?: string
 }
 
-interface FilterDropdownProps {
+type FilterDropdownProps = {
   label: string
   value: string
   options: FilterDropdownOption[]
@@ -36,7 +36,7 @@ interface FilterDropdownProps {
  * Quartal, Thema, Lernzielkontrolle). Consolidates the former FilterSpalte and
  * FilterCombobox into one component.
  */
-export function FilterDropdown({
+export const FilterDropdown = ({
   label,
   value,
   options,
@@ -47,7 +47,7 @@ export function FilterDropdown({
   footerAction,
   className,
   popoverClassName,
-}: FilterDropdownProps) {
+}: FilterDropdownProps) => {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -74,7 +74,7 @@ export function FilterDropdown({
           <span className={cn(isActive ? 'font-medium text-foreground' : 'text-muted-foreground')}>
             {displayLabel}
           </span>
-          <ChevronDown className="size-3 text-muted-foreground shrink-0" />
+          <Icon name="expand_more" size={12} className="text-muted-foreground shrink-0" />
         </PopoverTrigger>
         <PopoverContent className={cn('p-1.5 w-52', popoverClassName)} align="start" side="bottom">
           {showSearch && (
@@ -84,7 +84,7 @@ export function FilterDropdown({
                 placeholder="Suchen…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-xs outline-none placeholder:text-muted-foreground"
+                className="w-full rounded-md border border-border bg-transparent px-2 py-1.5 text-xs outline-none placeholder:text-muted-foreground"
               />
             </div>
           )}
@@ -94,7 +94,7 @@ export function FilterDropdown({
                 <button
                   onClick={() => { onChange(opt.value); setOpen(false); setSearch('') }}
                   className={cn(
-                    'flex items-center gap-2.5 w-full px-3 py-2 rounded-md text-xs transition-colors text-left',
+                    'flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs transition-colors text-left',
                     opt.value === value
                       ? 'bg-primary/10 text-primary font-medium'
                       : 'hover:bg-muted/60 text-foreground',
@@ -104,7 +104,7 @@ export function FilterDropdown({
                     ? <span className={cn('size-2.5 rounded-full shrink-0', opt.dot)} />
                     : <span className="size-2.5 shrink-0" />}
                   <span className="flex-1">{opt.label}</span>
-                  {opt.value === value && <Check className="size-3 shrink-0 text-primary" />}
+                  {opt.value === value && <Icon name="check" size={12} className="shrink-0 text-primary" />}
                 </button>
                 {i === 0 && options.length > 1 && !search && (
                   <div className="my-0.5 border-t border-border/40" />
@@ -117,9 +117,9 @@ export function FilterDropdown({
               <div className="my-0.5 border-t border-border/40" />
               <button
                 onClick={() => { footerAction.onSelect(); setOpen(false); setSearch('') }}
-                className="flex items-center gap-2.5 w-full px-3 py-2 rounded-md text-xs text-primary hover:bg-muted/60 transition-colors text-left"
+                className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs text-primary hover:bg-muted/60 transition-colors text-left"
               >
-                <Plus className="size-3 shrink-0" />
+                <Icon name="add" size={12} className="shrink-0" />
                 <span className="flex-1">{footerAction.label}</span>
               </button>
             </>
@@ -132,7 +132,7 @@ export function FilterDropdown({
           className="flex items-center justify-center px-1.5 py-1.5 hover:bg-accent/50 transition-colors text-muted-foreground hover:text-foreground border-l border-border/40"
           aria-label={`${label}-Spalte entfernen`}
         >
-          <X className="size-3" />
+          <Icon name="close" size={12} />
         </button>
       )}
     </div>

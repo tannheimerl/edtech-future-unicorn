@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Check, ChevronLeft, ChevronRight, Plus, Trash2, X } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,12 +13,12 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import type { LernzielKategorie } from '@/types/domain'
 
-export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
+export const CreateThemaModal = ({ open, onOpenChange, fachId, onCreated }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   fachId: string
   onCreated?: (themaId: string) => void
-}) {
+}) => {
   const {
     faecher, tagKategorien, getTagWerte, createTagKategorie, deleteTagKategorie,
     createThema, updateThema, createLernziel,
@@ -57,29 +57,29 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
     }
   }, [open, fachId])
 
-  function openRow(id: string, isOpen: boolean) {
+  const openRow = (id: string, isOpen: boolean) => {
     setOpenRowId(isOpen ? id : null)
   }
 
-  function setTagValue(katId: string, value: string) {
+  const setTagValue = (katId: string, value: string) => {
     setLocalTagValues(prev => ({ ...prev, [katId]: prev[katId] === value ? '' : value }))
     setOpenRowId(null)
   }
 
-  function renderSimpleOptions(
+  const renderSimpleOptions = (
     opts: { value: string; label: string }[],
     current: string,
     onSelect: (v: string) => void,
     clearLabel?: string
-  ) {
+  ) => {
     return (
       <div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto">
         {clearLabel && current && (
           <button
             onClick={() => { onSelect(''); setOpenRowId(null) }}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 text-left"
+            className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 text-left"
           >
-            <X className="size-3 shrink-0" />{clearLabel}
+            <Icon name="close" size={12} className="shrink-0" />{clearLabel}
           </button>
         )}
         {opts.map(opt => (
@@ -87,12 +87,12 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
             key={opt.value}
             onClick={() => { onSelect(opt.value); setOpenRowId(null) }}
             className={cn(
-              'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors text-left',
+              'flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors text-left',
               opt.value === current ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted/60 text-foreground'
             )}
           >
             {opt.value === current
-              ? <Check className="size-3 shrink-0" />
+              ? <Icon name="check" size={12} className="shrink-0" />
               : <span className="size-3 shrink-0" />
             }
             {opt.label}
@@ -102,19 +102,19 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
     )
   }
 
-  function addLzG() {
+  const addLzG = () => {
     if (!newLzG.trim()) return
     setLernziele(prev => [...prev, { id: crypto.randomUUID(), label: newLzG.trim(), kategorie: 'grundlegend' }])
     setNewLzG('')
   }
 
-  function addLzA() {
+  const addLzA = () => {
     if (!newLzA.trim()) return
     setLernziele(prev => [...prev, { id: crypto.randomUUID(), label: newLzA.trim(), kategorie: 'anspruchsvoll' }])
     setNewLzA('')
   }
 
-  function submit() {
+  const submit = () => {
     if (!name.trim()) return
     const id = createThema(localFachId, name.trim(), typ)
     updateThema(id, {
@@ -147,13 +147,13 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
             <div className="flex items-center justify-end gap-2 w-full">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
               <Button onClick={() => setStep('lernziele')} disabled={!name.trim()}>
-                Weiter <ChevronRight className="size-3.5 ml-0.5" />
+                Weiter <Icon name="chevron_right" size={14} className="ml-0.5" />
               </Button>
             </div>
           ) : (
             <div className="flex items-center justify-between w-full gap-2">
               <Button variant="ghost" onClick={() => setStep('meta')} className="text-muted-foreground">
-                <ChevronLeft className="size-3.5 mr-0.5" /> Zurück
+                <Icon name="chevron_left" size={14} className="mr-0.5" /> Zurück
               </Button>
               <div className="flex items-center gap-2">
                 <Button variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
@@ -245,16 +245,16 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
                     <div className="border-t border-border/40 mt-0.5 pt-0.5">
                       <button
                         onClick={() => setAddValueKatId(kat.id)}
-                        className="flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-md text-xs text-primary hover:bg-primary/5 transition-colors"
+                        className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs text-primary hover:bg-primary/5 transition-colors"
                       >
-                        <Plus className="size-3 shrink-0" />
+                        <Icon name="add" size={12} className="shrink-0" />
                         Wert hinzufügen
                       </button>
                       <button
                         onClick={() => { setDeleteKatId(kat.id); setOpenRowId(null) }}
-                        className="flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
+                        className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
                       >
-                        <Trash2 className="size-3 shrink-0" />
+                        <Icon name="delete" size={12} className="shrink-0" />
                         Kategorie löschen
                       </button>
                     </div>
@@ -267,7 +267,7 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
                 onClick={() => setNewKatOpen(true)}
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-3 py-1.5 w-full"
               >
-                <Plus className="size-3" />
+                <Icon name="add" size={12} />
                 Kategorie hinzufügen
               </button>
             </div>
@@ -280,10 +280,10 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
             {/* Grundlegend */}
             <div className="border-b border-border/40">
               <div className="px-1 py-1 bg-muted/20">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
+                <span className="text-3xs font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
               </div>
               {grundlegendLZ.length === 0 && (
-                <p className="px-1 py-1.5 text-[10px] text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
+                <p className="px-1 py-1.5 text-3xs text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
               )}
               {grundlegendLZ.map(lz => (
                 <div key={lz.id} className="flex items-center gap-2 px-1 py-1.5 border-t border-border/30">
@@ -293,7 +293,7 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
                     className="shrink-0 text-muted-foreground/40 hover:text-destructive transition-colors"
                     aria-label="Entfernen"
                   >
-                    <Trash2 className="size-3" />
+                    <Icon name="delete" size={12} />
                   </button>
                 </div>
               ))}
@@ -302,7 +302,7 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLzG() } }}
                   placeholder="Grundlegendes Lernziel…" className="h-6 text-xs flex-1" />
                 <Button size="icon-sm" variant="outline" onClick={addLzG} disabled={!newLzG.trim()}>
-                  <Plus className="size-3" />
+                  <Icon name="add" size={12} />
                 </Button>
               </div>
             </div>
@@ -310,10 +310,10 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
             {/* Anspruchsvoll */}
             <div>
               <div className="px-1 py-1 bg-muted/20">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
+                <span className="text-3xs font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
               </div>
               {anspruchsvollLZ.length === 0 && (
-                <p className="px-1 py-1.5 text-[10px] text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
+                <p className="px-1 py-1.5 text-3xs text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
               )}
               {anspruchsvollLZ.map(lz => (
                 <div key={lz.id} className="flex items-center gap-2 px-1 py-1.5 border-t border-border/30">
@@ -323,7 +323,7 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
                     className="shrink-0 text-muted-foreground/40 hover:text-destructive transition-colors"
                     aria-label="Entfernen"
                   >
-                    <Trash2 className="size-3" />
+                    <Icon name="delete" size={12} />
                   </button>
                 </div>
               ))}
@@ -332,7 +332,7 @@ export function CreateThemaModal({ open, onOpenChange, fachId, onCreated }: {
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLzA() } }}
                   placeholder="Anspruchsvolles Lernziel…" className="h-6 text-xs flex-1" />
                 <Button size="icon-sm" variant="outline" onClick={addLzA} disabled={!newLzA.trim()}>
-                  <Plus className="size-3" />
+                  <Icon name="add" size={12} />
                 </Button>
               </div>
             </div>

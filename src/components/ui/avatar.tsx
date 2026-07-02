@@ -4,13 +4,13 @@ import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar"
 
 import { cn } from "@/lib/utils"
 
-function Avatar({
+const Avatar = ({
   className,
   size = "default",
   ...props
 }: AvatarPrimitive.Root.Props & {
   size?: "default" | "sm" | "lg"
-}) {
+}) => {
   return (
     <AvatarPrimitive.Root
       data-slot="avatar"
@@ -24,10 +24,10 @@ function Avatar({
   )
 }
 
-function AvatarFallback({
+const AvatarFallback = ({
   className,
   ...props
-}: AvatarPrimitive.Fallback.Props) {
+}: AvatarPrimitive.Fallback.Props) => {
   return (
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"

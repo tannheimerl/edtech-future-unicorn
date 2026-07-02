@@ -1,17 +1,17 @@
 'use client'
 
-import { Check, Minus, X } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { cn, statusChipClasses } from '@/lib/utils'
 import type { Status } from '@/types/domain'
 
-export function nextStatus(current: Status | undefined): Status | undefined {
+export const nextStatus = (current: Status | undefined): Status | undefined => {
   if (current === undefined) return 'reached'
   if (current === 'reached') return 'partially_reached'
   if (current === 'partially_reached') return 'not_reached'
   return undefined
 }
 
-export function StatusCell({
+export const StatusCell = ({
   status,
   onSelect,
   readOnly = false,
@@ -19,7 +19,7 @@ export function StatusCell({
   status: Status | undefined
   onSelect: (s: Status | undefined) => void
   readOnly?: boolean
-}) {
+}) => {
   return (
     <div className="flex justify-center">
       <button
@@ -39,9 +39,9 @@ export function StatusCell({
           statusChipClasses(status),
         )}
       >
-        {status === 'reached' && <Check className="size-3 stroke-[2.5]" />}
-        {status === 'partially_reached' && <Minus className="size-3 stroke-[2.5]" />}
-        {status === 'not_reached' && <X className="size-3 stroke-[2.5]" />}
+        {status === 'reached' && <Icon name="check" size={12} weight={600} />}
+        {status === 'partially_reached' && <Icon name="remove" size={12} weight={600} />}
+        {status === 'not_reached' && <Icon name="close" size={12} weight={600} />}
         {status === undefined && <span className="size-1.5 rounded-full bg-status-none-fg" />}
       </button>
     </div>
