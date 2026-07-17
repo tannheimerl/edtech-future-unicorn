@@ -14,107 +14,47 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { sv } from "@/lib/utils";
-import { themaCountsInStats } from "@/lib/student-kpis";
-
-// TODO: Cleanup pages files -> only one function
-// ── Helpers ───────────────────────────────────────────────────────────────
-
-const isSpecial = (s: { bvsa?: boolean; rilzFachIds?: string[] }): boolean => {
-  return !!(s.bvsa || s.rilzFachIds?.length);
-};
+import { themaCountsInStats, computeKlasseStats } from "@/lib/student-kpis";
 
 // ── Klasse stats ──────────────────────────────────────────────────────────
 
+const KeineSchuelerHinweis = () => (
+  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <Icon name="group" size={12} />
+    <span>Keine Schüler</span>
+  </div>
+);
+
 const KlasseStats = ({ klassId }: { klassId: string }) => {
-  const { getClass, getStudentsForClass, getThemenForKlasse, lernziele } =
-    useData();
-  const klasse = getClass(klassId);
+  const { getStudentsForClass, getThemenForKlasse, lernziele } = useData();
   const students = getStudentsForClass(klassId);
 
-  // TODO: Empty State Component
   if (students.length === 0) {
-    return (
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Icon name="group" size={12} />
-        <span>Keine Schüler</span>
-      </div>
-    );
+    return <KeineSchuelerHinweis />;
   }
 
   const today = new Date().toISOString().slice(0, 10);
   const classThemen = getThemenForKlasse(klassId).filter((t) =>
     themaCountsInStats(t, today),
   );
-  const allLZ = classThemen.flatMap((t) =>
-    lernziele.filter((lz) => lz.themaId === t.id),
-  );
-  const allLZIds = allLZ.map((lz) => lz.id);
-
-  const regularStudents = students.filter((s) => !isSpecial(s));
-
-  // TODO: Outsource all stats functionality (per student, class etc.) in a helper file
-  let avgScore = 0;
-  let atRisk = 0;
-  let excellent = 0;
-
-  if (allLZIds.length > 0 && regularStudents.length > 0) {
-    const scores = regularStudents.map((s) => {
-      const applicable = allLZ.filter((lz) => {
-        if (lz.kategorie !== "anspruchsvoll") return true;
-        if (!s.rilzFachIds?.length) return true;
-        const thema = classThemen.find((t) => t.id === lz.themaId);
-        return !thema || !s.rilzFachIds.includes(thema.fachId);
-      });
-      if (applicable.length === 0) return 0;
-      return (
-        (applicable.reduce(
-          (sum, lz) => sum + sv(s.lernzielStatus[lz.id] ?? "not_reached"),
-          0,
-        ) /
-          applicable.length) *
-        100
-      );
-    });
-    avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-    atRisk = scores.filter((sc) => sc < 25).length;
-    excellent = scores.filter((sc) => sc >= 75).length;
-  }
-
-  const reached = allLZIds.reduce(
-    (sum, id) =>
-      sum +
-      regularStudents.filter((s) => s.lernzielStatus[id] === "reached").length,
-    0,
-  );
-  const partial = allLZIds.reduce(
-    (sum, id) =>
-      sum +
-      regularStudents.filter(
-        (s) => s.lernzielStatus[id] === "partially_reached",
-      ).length,
-    0,
-  );
-  const total = allLZIds.length * (regularStudents.length || 1);
-
-  const rp = total > 0 ? (reached / total) * 100 : 0;
-  const pp = total > 0 ? (partial / total) * 100 : 0;
+  const { avgScore, atRisk, excellent, reachedPct, partialPct, hasData } =
+    computeKlasseStats(students, classThemen, lernziele);
 
   return (
     <div className="space-y-3">
       {/* Progress bar */}
       <div>
         <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted/70">
-          {rp > 0 && (
+          {reachedPct > 0 && (
             <div
               className="bg-status-reached transition-all"
-              style={{ width: `${rp}%` }}
+              style={{ width: `${reachedPct}%` }}
             />
           )}
-          {pp > 0 && (
+          {partialPct > 0 && (
             <div
               className="bg-status-partial transition-all"
-              style={{ width: `${pp}%` }}
+              style={{ width: `${partialPct}%` }}
             />
           )}
         </div>
@@ -129,7 +69,7 @@ const KlasseStats = ({ klassId }: { klassId: string }) => {
           <p
             className={`text-base font-bold tabular-nums ${avgScore >= 75 ? "text-status-reached" : avgScore >= 25 ? "text-status-partial" : "text-status-not-reached"}`}
           >
-            {allLZIds.length > 0 ? `${avgScore}%` : "—"}
+            {hasData ? `${avgScore}%` : "—"}
           </p>
         </div>
         <div className="bg-muted/60 rounded-md px-2 py-2 text-center ring-1 ring-border/40">
@@ -216,6 +156,8 @@ const KlassenPage = () => {
     getPruefungErgebnisse,
     createClass,
     deleteClass,
+    loadError,
+    reloadData,
   } = useData();
   const myClasses = classes
     .filter((k) => (k.lpZuweisungen ?? []).some((z) => z.lpId === currentLpId))
@@ -229,22 +171,38 @@ const KlassenPage = () => {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-6 py-8">
-      {/* Empty state */}
+      {/* Empty / load-error state */}
       {myClasses.length === 0 && (
         <div>
-          <EmptyState
-            size="lg"
-            icon={
-              <Icon name="group" size={24} className="text-accent-foreground" />
-            }
-            title="Noch keine Klassen angelegt"
-            description="Erstelle deine erste Klasse und füge Schüler hinzu."
-            action={
-              <Button onClick={() => setCreateOpen(true)}>
-                Erste Klasse erstellen
-              </Button>
-            }
-          />
+          {loadError ? (
+            <EmptyState
+              size="lg"
+              icon={
+                <Icon name="cloud_off" size={24} className="text-accent-foreground" />
+              }
+              title="Daten konnten nicht geladen werden"
+              description="Prüfe deine Internetverbindung und versuche es erneut."
+              action={
+                <Button variant="outline" onClick={() => reloadData()}>
+                  Erneut laden
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              size="lg"
+              icon={
+                <Icon name="group" size={24} className="text-accent-foreground" />
+              }
+              title="Noch keine Klassen angelegt"
+              description="Erstelle deine erste Klasse und füge Schüler hinzu."
+              action={
+                <Button onClick={() => setCreateOpen(true)}>
+                  Erste Klasse erstellen
+                </Button>
+              }
+            />
+          )}
         </div>
       )}
 

@@ -50,7 +50,7 @@ async function main() {
   if (unused.length > 0) {
     console.log(`=== Ungenutzte Themen (werden gelöscht) ===`)
     unused.forEach((t) =>
-      console.log(`  ❌ [${t.id}] "${t.name}" | fach: ${t.fach_id} | typ: ${t.typ ?? 'standard'} | tenant: ${t.tenant_id}`)
+      console.log(`  ❌ [${t.id}] "${t.name}" | fach: ${t.fach_id} | typ: ${t.typ ?? 'standard'}`)
     )
   } else {
     console.log('✅ Keine ungenutzten Themen gefunden.')
@@ -59,7 +59,7 @@ async function main() {
   if (missingStufe.length > 0) {
     console.log(`\n=== Genutzte Themen ohne stufe-Feld (manuell in App befüllen) ===`)
     missingStufe.forEach((t) =>
-      console.log(`  ⚠️  [${t.id}] "${t.name}" | fach: ${t.fach_id} | tenant: ${t.tenant_id}`)
+      console.log(`  ⚠️  [${t.id}] "${t.name}" | fach: ${t.fach_id}`)
     )
   } else {
     console.log('\n✅ Alle genutzten Themen haben ein stufe-Feld.')

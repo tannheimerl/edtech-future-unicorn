@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import { Providers } from "./providers"
 import { FeedbackButton } from "@/components/shared/FeedbackButton"
+import { Toaster } from "@/components/ui/Toaster"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -42,6 +43,7 @@ const RootLayout = ({
           <Footer siteName="Lezio" />
           <FeedbackButton />
         </Providers>
+        <Toaster />
       </body>
     </html>
   )

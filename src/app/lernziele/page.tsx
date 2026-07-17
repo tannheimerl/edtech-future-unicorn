@@ -12,6 +12,7 @@ import { FilterDropdown } from '@/components/shared/FilterDropdown'
 import { InputModal } from '@/components/shared/InputModal'
 import { Modal } from '@/components/shared/Modal'
 import { ModalRow } from '@/components/shared/ModalRow'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { ThemaAddPickerModal } from '@/components/shared/ThemaAddPickerModal'
 import { FachZuordnenRow } from '@/components/shared/FachZuordnenRow'
 import { SearchBar } from '@/components/shared/SearchBar'
@@ -611,7 +612,7 @@ const ThemaEditModal = ({ themaId, onClose, onRequestDelete }: {
 // ── Page ──────────────────────────────────────────────────────────────────
 
 const LernzielePage = () => {
-  const { faecher, themen, lernziele, createFach, exportThema, exportFach, importThemaData, deleteThema, deleteFach, tagKategorien, createTagKategorie, getTagWerte } = useData()
+  const { faecher, themen, lernziele, createFach, exportThema, exportFach, importThemaData, deleteThema, deleteFach, tagKategorien, createTagKategorie, getTagWerte, loadError, reloadData } = useData()
 
   const [aktiveKolonnen, setAktiveKolonnen] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(LS_KEY) ?? '["fach","typ"]') }
@@ -818,18 +819,33 @@ const LernzielePage = () => {
   return (
     <div className="mx-auto w-full max-w-7xl px-6 py-8">
 
-      {/* Empty state */}
+      {/* Empty / load-error state */}
       {faecher.length === 0 && (
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-accent">
-            <Icon name="menu_book" size={32} className="text-accent-foreground" />
-          </div>
-          <div>
-            <p className="font-semibold">Noch keine Fächer angelegt</p>
-            <p className="mt-1 text-sm text-muted-foreground">Erstelle dein erstes Fach, um Lernziele zu verwalten.</p>
-          </div>
-          <Button onClick={() => { setFachCreateMode('withThema'); setFachCreateOpen(true) }}>Erstes Fach erstellen</Button>
-        </div>
+        loadError ? (
+          <EmptyState
+            size="lg"
+            icon={<Icon name="cloud_off" size={24} className="text-accent-foreground" />}
+            title="Daten konnten nicht geladen werden"
+            description="Prüfe deine Internetverbindung und versuche es erneut."
+            action={
+              <Button variant="outline" onClick={() => reloadData()}>
+                Erneut laden
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            size="lg"
+            icon={<Icon name="menu_book" size={24} className="text-accent-foreground" />}
+            title="Noch keine Fächer angelegt"
+            description="Erstelle dein erstes Fach, um Lernziele zu verwalten."
+            action={
+              <Button onClick={() => { setFachCreateMode('withThema'); setFachCreateOpen(true) }}>
+                Erstes Fach erstellen
+              </Button>
+            }
+          />
+        )
       )}
 
       {faecher.length > 0 && (

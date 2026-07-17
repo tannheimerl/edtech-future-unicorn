@@ -1,44 +1,34 @@
 # Lezio – Datenbankschema (aktueller Stand)
 
 > Dieses Dokument immer aktuell halten wenn eine Migration hinzugefügt wird.
-> Migrationsreihenfolge: `migrations/001_init.sql` → `012_fach_farbe.sql`
+> Migrationsreihenfolge: `migrations/001_init.sql`
 
 ---
 
 ## Architektur-Übersicht
 
-- **Multi-Tenant**: Jede Tabelle trägt `tenant_id` → Datenisolation pro Schule/Account
+- **Single-Tenant**: eine gemeinsame Datenbasis, keine Mandantentrennung
 - **Naming**: `dim_` = Stammdaten · `fact_` = Transaktionsdaten · `bridge_` = M:N-Verknüpfungen
 - **IDs**: `TEXT PRIMARY KEY` (meist UUIDs oder sprechende Keys wie `k1`, `f1`, `lp1`)
 
 ```
-dim_tenants
-  └── dim_faecher
-        └── dim_themen ──────────── dim_tag_kategorien
-              └── dim_lernziele
-  └── dim_lehrpersonen
-  └── dim_klassen ─────────────────── bridge_klasse_themen (→ dim_themen)
-        └── dim_schueler             bridge_lp_zuweisungen (→ dim_lehrpersonen)
-              ├── fact_lernziel_status (→ dim_lernziele)
-              ├── fact_rilz_lernziele  (→ dim_themen)
-              ├── fact_kommentare      (→ dim_lernziele)
-              ├── fact_thema_kommentare(→ dim_themen)
-              └── fact_pruefung_ergebnisse (→ fact_pruefungen)
-  └── fact_pruefungen (→ dim_klassen, dim_faecher)
+dim_faecher
+  └── dim_themen ──────────── dim_tag_kategorien
+        └── dim_lernziele
+dim_lehrpersonen
+dim_klassen ─────────────────── bridge_klasse_themen (→ dim_themen)
+  └── dim_schueler             bridge_lp_zuweisungen (→ dim_lehrpersonen)
+        ├── fact_lernziel_status (→ dim_lernziele)
+        ├── fact_rilz_lernziele  (→ dim_themen)
+        ├── fact_kommentare      (→ dim_lernziele)
+        ├── fact_thema_kommentare(→ dim_themen)
+        └── fact_pruefung_ergebnisse (→ fact_pruefungen)
+fact_pruefungen (→ dim_klassen, dim_faecher)
 ```
 
 ---
 
 ## Tabellen
-
-### `dim_tenants`
-| Spalte | Typ | Bemerkung |
-|--------|-----|-----------|
-| id | TEXT PK | z.B. `'shared'`, `'demo_01'` |
-| name | TEXT | |
-| created_at | TIMESTAMPTZ | |
-
----
 
 ### `dim_faecher`
 | Spalte | Typ | Bemerkung |
@@ -46,7 +36,6 @@ dim_tenants
 | id | TEXT PK | z.B. `'f1'` |
 | name | TEXT NOT NULL | z.B. `'Deutsch'` |
 | color_index | SMALLINT | Index in FACH_COLORS (0–7), NULL = positions-basiert |
-| tenant_id | TEXT → dim_tenants | |
 | created_at | TIMESTAMPTZ | |
 
 ---
@@ -65,7 +54,6 @@ dim_tenants
 | autor | TEXT | |
 | autor_lp_id | TEXT → dim_lehrpersonen | |
 | tags | JSONB | Default `{}` — Key: tag-kategorie-id, Value: Tag-Label |
-| tenant_id | TEXT → dim_tenants | |
 | created_at | TIMESTAMPTZ | |
 
 ---
@@ -80,7 +68,6 @@ dim_tenants
 | kriterien | TEXT[] | |
 | stufe | INTEGER[] | |
 | beschreibung | TEXT | |
-| tenant_id | TEXT → dim_tenants | |
 | created_at | TIMESTAMPTZ | |
 
 ---
@@ -91,7 +78,6 @@ dim_tenants
 | id | TEXT PK | z.B. `'lp1'` |
 | name | TEXT NOT NULL | |
 | kuerzel | TEXT NOT NULL | z.B. `'LM'` für Lukas Meier |
-| tenant_id | TEXT → dim_tenants | |
 | created_at | TIMESTAMPTZ | |
 
 ---
@@ -104,7 +90,6 @@ dim_tenants
 | schuljahr | TEXT | |
 | vorgaenger_klasse_id | TEXT → dim_klassen | Für Klassenübergabe |
 | settings | JSONB | Beurteilungs-Einstellungen pro Fach |
-| tenant_id | TEXT → dim_tenants | |
 | created_at | TIMESTAMPTZ | |
 
 ---
@@ -123,7 +108,6 @@ dim_tenants
 | competency_status | JSONB | `Record<kompetenzId, Status>` |
 | lernziel_versuche | JSONB | `Record<lzId, Versuch[]>` — Übungsversuche |
 | progress_history | JSONB | `StatusSnapshot[]` — Verlauf |
-| tenant_id | TEXT → dim_tenants | |
 | created_at | TIMESTAMPTZ | |
 
 ---
@@ -134,7 +118,6 @@ dim_tenants
 | id | TEXT PK | UUID |
 | name | TEXT NOT NULL | z.B. `'Lehrplan 21'` |
 | lp_id | TEXT → dim_lehrpersonen | Erstellt von |
-| tenant_id | TEXT → dim_tenants | |
 | position | INTEGER | Sortierreihenfolge, default 0 |
 | created_at | TIMESTAMPTZ | |
 
@@ -145,9 +128,8 @@ dim_tenants
 |--------|-----|-----------|
 | klasse_id | TEXT → dim_klassen (CASCADE) | PK |
 | thema_id | TEXT → dim_themen (CASCADE) | PK |
-| tenant_id | TEXT → dim_tenants | |
 
-**Constraint:** `UNIQUE (thema_id, tenant_id)` — ein Thema pro Tenant nur einer Klasse zuweisbar
+**Constraint:** `UNIQUE (thema_id)` — ein Thema nur einer Klasse zuweisbar
 
 ---
 
@@ -159,7 +141,6 @@ dim_tenants
 | lp_id | TEXT → dim_lehrpersonen | |
 | fach_ids | TEXT[] | Fächer die diese LP in dieser Klasse unterrichtet |
 | rolle | TEXT | `'klassenlehrperson'` \| `'fachlehrperson'` \| `'heilpaedagogin'` |
-| tenant_id | TEXT → dim_tenants | |
 
 **Constraint:** `UNIQUE (klasse_id, lp_id)`
 
@@ -171,7 +152,6 @@ dim_tenants
 | schueler_id | TEXT → dim_schueler (CASCADE) | PK |
 | lernziel_id | TEXT → dim_lernziele (CASCADE) | PK |
 | status | TEXT | `'not_reached'` \| `'partially_reached'` \| `'reached'` |
-| tenant_id | TEXT → dim_tenants | |
 | updated_at | TIMESTAMPTZ | |
 
 ---
@@ -186,7 +166,6 @@ Ad-hoc RILZ-Lernziele, die von der Heilpädagogin direkt auf einen Schüler gesc
 | thema_id | TEXT → dim_themen | |
 | label | TEXT NOT NULL | Freitext |
 | status | TEXT | `'not_reached'` \| `'partially_reached'` \| `'reached'` |
-| tenant_id | TEXT → dim_tenants | |
 | created_at | TIMESTAMPTZ | |
 
 ---
@@ -200,7 +179,6 @@ Kommentar pro Schüler + Lernziel.
 | lernziel_id | TEXT → dim_lernziele (CASCADE) | PK |
 | text | TEXT NOT NULL | |
 | created_at | TEXT NOT NULL | ISO-Timestamp |
-| tenant_id | TEXT → dim_tenants | |
 
 ---
 
@@ -213,7 +191,6 @@ Freitext-Kommentar pro Schüler + Thema (Beobachtungsnotiz).
 | thema_id | TEXT → dim_themen (CASCADE) | PK |
 | text | TEXT NOT NULL | |
 | updated_at | TEXT NOT NULL | ISO-Timestamp |
-| tenant_id | TEXT → dim_tenants | |
 
 ---
 
@@ -236,7 +213,6 @@ Freitext-Kommentar pro Schüler + Thema (Beobachtungsnotiz).
 | beschreibung | TEXT | |
 | nur_rilz | BOOLEAN | Nur für RILZ-Schüler, default FALSE |
 | rilz_schueler_ids | TEXT[] | Explizite RILZ-Schüler-IDs |
-| tenant_id | TEXT → dim_tenants | |
 | created_at | TIMESTAMPTZ | |
 
 ---
@@ -256,7 +232,6 @@ Freitext-Kommentar pro Schüler + Thema (Beobachtungsnotiz).
 | zweiter_versuch_ausstehend | BOOLEAN | Default FALSE |
 | versuch_snapshots | JSONB | `VersuchSnapshot[]` — Punkte/Note je Versuch |
 | abgeschlossen | BOOLEAN | Default FALSE |
-| tenant_id | TEXT → dim_tenants | |
 | created_at | TIMESTAMPTZ | |
 
 **Constraint:** `UNIQUE (pruefung_id, schueler_id)`
@@ -267,4 +242,4 @@ Freitext-Kommentar pro Schüler + Thema (Beobachtungsnotiz).
 
 | Bucket | Zugriff | Pfad-Konvention |
 |--------|---------|-----------------|
-| `lezio-anhaenge` | privat | `{tenant_id}/{pruefung_id}/{schueler_id}/{filename}` |
+| `lezio-anhaenge` | privat | `{pruefung_id}/{schueler_id}/{filename}` |

@@ -25,7 +25,6 @@ export type TagKategorie = {
   id: string
   name: string
   lpId?: string
-  tenantId: string
 }
 
 export type Thema = {
@@ -223,7 +222,6 @@ export type Pruefung = {
   erstelltVonId?: string
   nurRilz: boolean
   rilzSchuelerIds: string[]
-  tenantId: string
   createdAt: string
 }
 
@@ -249,7 +247,6 @@ export type PruefungErgebnis = {
   kommentar?: string
   anhangUrls: string[]
   status?: Status
-  tenantId: string
   createdAt: string
 }
 

@@ -3,12 +3,14 @@
 import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { FACH_COLORS, getFachColor, cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/shared/EmptyState'
 import Link from 'next/link'
 
 const COLOR_LABELS = ['Blau', 'Violett', 'Grün', 'Rot', 'Gelb', 'Türkis', 'Pink', 'Indigo']
 
 const EinstellungenPage = () => {
-  const { faecher, updateFachColor } = useData()
+  const { faecher, updateFachColor, loadError, reloadData } = useData()
   const allFachIds = faecher.map(f => f.id)
 
   return (
@@ -19,12 +21,28 @@ const EinstellungenPage = () => {
 
       <div className="max-w-2xl">
         {faecher.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">Noch keine Fächer vorhanden.</p>
-            <Link href="/lernziele" className="text-sm text-primary hover:underline mt-1 inline-block">
-              Fächer in der Lernzielsammlung erstellen →
-            </Link>
-          </div>
+          loadError ? (
+            <EmptyState
+              icon={<Icon name="cloud_off" size={20} className="text-accent-foreground" />}
+              title="Daten konnten nicht geladen werden"
+              description="Prüfe deine Internetverbindung und versuche es erneut."
+              action={
+                <Button variant="outline" size="sm" onClick={() => reloadData()}>
+                  Erneut laden
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={<Icon name="palette" size={20} className="text-accent-foreground" />}
+              title="Noch keine Fächer vorhanden"
+              description={
+                <Link href="/lernziele" className="text-primary hover:underline">
+                  Fächer in der Lernzielsammlung erstellen →
+                </Link>
+              }
+            />
+          )
         ) : (
           <ul className="divide-y divide-border">
             {faecher.map((fach) => {

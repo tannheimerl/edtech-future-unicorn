@@ -1,2 +1,0 @@
-ALTER TABLE fact_pruefung_ergebnisse
-  ADD COLUMN IF NOT EXISTS abgeschlossen BOOLEAN NOT NULL DEFAULT FALSE;

@@ -59,7 +59,7 @@ type StudentRowProps = {
   totalRows: number
   rilzFachIds: string[]
   pruefungFachId: string
-  onUpsert: (data: Omit<PruefungErgebnis, 'tenantId' | 'createdAt'>) => void
+  onUpsert: (data: Omit<PruefungErgebnis, 'createdAt'>) => void
   onUpdateLz: (studentId: string, lzId: string, status: Status | undefined) => void
   onUpload: (pruefungId: string, schuelerId: string, file: File) => Promise<string | null>
   onDeleteAnhang: (ergebnisId: string, url: string) => Promise<void>
@@ -67,7 +67,7 @@ type StudentRowProps = {
 
 const buildUpsertBase = (
   id: string, pruefungId: string, schuelerId: string, ergebnis: PruefungErgebnis | undefined
-): Omit<PruefungErgebnis, 'tenantId' | 'createdAt'> => {
+): Omit<PruefungErgebnis, 'createdAt'> => {
   return {
     id,
     pruefungId,

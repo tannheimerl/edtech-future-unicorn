@@ -1,22 +1,13 @@
 'use server'
 
-import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { resolveTenantId, TENANT_COOKIE } from '@/lib/tenants'
 import type {
   Fach, Thema, Lernziel, LernzielKategorie, Lehrperson,
   Klasse, KlasseBeurteilungSettings, Schueler, AssessmentKommentar, ThemaKommentar,
   Pruefung, PruefungErgebnis, VersuchSnapshot, Status, TagKategorie,
 } from '@/types/domain'
 
-export const getCurrentTenantId = async (): Promise<string> => {
-  const cookieStore = await cookies()
-  return resolveTenantId(cookieStore.get(TENANT_COOKIE)?.value)
-}
-
 export const fetchAllData = async () => {
-  const tenantId = await getCurrentTenantId()
-
   const [
     { data: dbFaecher,          error: e1 },
     { data: dbThemen,           error: e2 },
@@ -34,24 +25,24 @@ export const fetchAllData = async () => {
     { data: dbPruefungErg,      error: e14 },
     { data: dbTagKategorien,    error: e15 },
   ] = await Promise.all([
-    supabaseAdmin.from('dim_faecher').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('dim_themen').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('dim_lernziele').select('*').eq('tenant_id', tenantId),
-    // Lehrpersonen bleiben geteilte Identitäts-Referenz (kein Schreibpfad in der App).
-    supabaseAdmin.from('dim_lehrpersonen').select('*').in('tenant_id', ['shared', tenantId]),
-    supabaseAdmin.from('dim_klassen').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('bridge_klasse_themen').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('bridge_lp_zuweisungen').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('dim_schueler').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('fact_lernziel_status').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('fact_rilz_lernziele').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('fact_kommentare').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('fact_thema_kommentare').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('fact_pruefungen').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('fact_pruefung_ergebnisse').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('dim_tag_kategorien').select('*').eq('tenant_id', tenantId).order('position'),
+    supabaseAdmin.from('dim_faecher').select('*'),
+    supabaseAdmin.from('dim_themen').select('*'),
+    supabaseAdmin.from('dim_lernziele').select('*'),
+    supabaseAdmin.from('dim_lehrpersonen').select('*'),
+    supabaseAdmin.from('dim_klassen').select('*'),
+    supabaseAdmin.from('bridge_klasse_themen').select('*'),
+    supabaseAdmin.from('bridge_lp_zuweisungen').select('*'),
+    supabaseAdmin.from('dim_schueler').select('*'),
+    supabaseAdmin.from('fact_lernziel_status').select('*'),
+    supabaseAdmin.from('fact_rilz_lernziele').select('*'),
+    supabaseAdmin.from('fact_kommentare').select('*'),
+    supabaseAdmin.from('fact_thema_kommentare').select('*'),
+    supabaseAdmin.from('fact_pruefungen').select('*'),
+    supabaseAdmin.from('fact_pruefung_ergebnisse').select('*'),
+    supabaseAdmin.from('dim_tag_kategorien').select('*').order('position'),
   ])
 
+  let hasError = false
   for (const [label, err] of [
     ['dim_faecher', e1], ['dim_themen', e2], ['dim_lernziele', e3],
     ['dim_lehrpersonen', e4], ['dim_klassen', e5], ['bridge_klasse_themen', e6],
@@ -59,8 +50,12 @@ export const fetchAllData = async () => {
     ['fact_rilz_lernziele', e10], ['fact_kommentare', e11], ['fact_thema_kommentare', e12],
     ['fact_pruefungen', e13], ['fact_pruefung_ergebnisse', e14], ['dim_tag_kategorien', e15],
   ] as const) {
-    if (err) console.error(`fetchAllData ${label}:`, err.message)
+    if (err) { console.error(`fetchAllData ${label}:`, err.message); hasError = true }
   }
+  // Supabase-js resolves (rather than rejects) on a failed query, so a partial
+  // failure here would otherwise look identical to "genuinely no data" to the
+  // caller. Throw so DataContext can tell the two apart.
+  if (hasError) throw new Error('fetchAllData: one or more queries failed')
 
   const faecher: Fach[] = (dbFaecher ?? []).map((f) => ({
     id: f.id, name: f.name,
@@ -145,7 +140,7 @@ export const fetchAllData = async () => {
     ...(p.erstellt_von_id ? { erstelltVonId: p.erstellt_von_id } : {}),
     nurRilz: p.nur_rilz ?? false,
     rilzSchuelerIds: p.rilz_schueler_ids ?? [],
-    tenantId: p.tenant_id, createdAt: p.created_at,
+    createdAt: p.created_at,
   }))
 
   const pruefungErgebnisse: PruefungErgebnis[] = (dbPruefungErg ?? []).map((e) => ({
@@ -159,11 +154,11 @@ export const fetchAllData = async () => {
     ...(e.kommentar ? { kommentar: e.kommentar } : {}),
     anhangUrls: e.anhang_urls ?? [],
     ...(e.status ? { status: e.status as Status } : {}),
-    tenantId: e.tenant_id, createdAt: e.created_at,
+    createdAt: e.created_at,
   }))
 
   const tagKategorien: TagKategorie[] = (dbTagKategorien ?? []).map((k) => ({
-    id: k.id, name: k.name, tenantId: k.tenant_id,
+    id: k.id, name: k.name,
     ...(k.lp_id ? { lpId: k.lp_id } : {}),
   }))
 
