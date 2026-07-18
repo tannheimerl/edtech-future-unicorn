@@ -29,9 +29,6 @@ import { useTagKategorienActions } from '@/hooks/data/useTagKategorienActions'
 // ── Public interface ─────────────────────────────────────────────────────────
 
 type DataContextValue = {
-  // Identity
-  currentLpId: string
-
   // Loading state
   isLoading: boolean
   loadError: boolean
@@ -59,8 +56,6 @@ type DataContextValue = {
   & { getThemenForKlasse: (klassId: string) => Thema[] }
 
 const DataContext = createContext<DataContextValue | null>(null)
-
-const CURRENT_LP_ID = 'lp1'
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 
@@ -109,7 +104,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     reloadData().finally(() => setIsLoading(false))
   }, [reloadData])
 
-  const klassenActions = useKlassenActions(CURRENT_LP_ID, classes, setClasses, setStudents)
+  const klassenActions = useKlassenActions(classes, setClasses, setStudents)
   const schuelerActions = useSchuelerActions(students, setStudents, setKommentare)
   const kommentareActions = useKommentareActions(kommentare, setKommentare, themaKommentare, setThemaKommentare)
   const { getThemenForKlasse: getThemenForKlasseRaw, ...faecherThemenLernzielActions } = useFaecherThemenLernzielActions(
@@ -126,7 +121,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <DataContext.Provider
       value={{
-        currentLpId: CURRENT_LP_ID,
         isLoading,
         loadError,
         reloadData,

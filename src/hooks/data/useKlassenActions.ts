@@ -1,11 +1,10 @@
 import { useCallback } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
-import type { Klasse, KlasseBeurteilungSettings, LpRolle, Schueler } from '@/types/domain'
+import type { Klasse, KlasseBeurteilungSettings, Schueler } from '@/types/domain'
 import { dbSaveKlasse, dbDeleteKlasse, dbSaveSchueler, dbSaveBeurteilungSettings } from '@/actions/db-write'
 import { notifyDbError } from '@/lib/toast'
 
 export function useKlassenActions(
-  currentLpId: string,
   classes: Klasse[],
   setClasses: Dispatch<SetStateAction<Klasse[]>>,
   setStudents: Dispatch<SetStateAction<Schueler[]>>,
@@ -17,16 +16,11 @@ export function useKlassenActions(
 
   const createClass = useCallback((name: string): string => {
     const id = crypto.randomUUID()
-    const newKlasse: Klasse = {
-      id, name, assignedThemaIds: [],
-      // Ersteller direkt als Klassenlehrperson zuweisen, sonst fällt die neue
-      // Klasse durch den `myClasses`-Filter (klassen/page.tsx) und bleibt unsichtbar.
-      lpZuweisungen: [{ lpId: currentLpId, fachIds: [], rolle: 'klassenlehrperson' }],
-    }
+    const newKlasse: Klasse = { id, name, assignedThemaIds: [] }
     setClasses((prev) => [...prev, newKlasse])
     dbSaveKlasse(newKlasse).catch(notifyDbError)
     return id
-  }, [currentLpId, setClasses])
+  }, [setClasses])
 
   const updateClass = useCallback((id: string, name: string, schuljahr?: string) => {
     setClasses((prev) => prev.map((c) => {
@@ -76,32 +70,6 @@ export function useKlassenActions(
     )
   }, [setClasses])
 
-  const setLpZuweisung = useCallback((klassId: string, lpId: string, fachIds: string[], rolle?: LpRolle) => {
-    setClasses((prev) =>
-      prev.map((c) => {
-        if (c.id !== klassId) return c
-        const existing = (c.lpZuweisungen ?? []).filter((z) => z.lpId !== lpId)
-        const lpZuweisungen = fachIds.length > 0 || rolle != null
-          ? [...existing, { lpId, fachIds, rolle }]
-          : existing
-        const updated = { ...c, lpZuweisungen }
-        dbSaveKlasse(updated).catch(notifyDbError)
-        return updated
-      })
-    )
-  }, [setClasses])
-
-  const removeLpFromKlasse = useCallback((klassId: string, lpId: string) => {
-    setClasses((prev) =>
-      prev.map((c) => {
-        if (c.id !== klassId) return c
-        const updated = { ...c, lpZuweisungen: (c.lpZuweisungen ?? []).filter((z) => z.lpId !== lpId) }
-        dbSaveKlasse(updated).catch(notifyDbError)
-        return updated
-      })
-    )
-  }, [setClasses])
-
   const createFolgeklasse = useCallback(
     (vorgaengerKlasseId: string, neuerName: string, neuesSchuljahr: string): string => {
       const vorgaenger = classes.find((c) => c.id === vorgaengerKlasseId)
@@ -140,8 +108,6 @@ export function useKlassenActions(
     updateBeurteilungSettings,
     assignThemaToKlasse,
     removeThemaFromKlasse,
-    setLpZuweisung,
-    removeLpFromKlasse,
     createFolgeklasse,
   }
 }

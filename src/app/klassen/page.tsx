@@ -186,7 +186,6 @@ const KlassenPage = () => {
   const router = useRouter();
   const {
     classes,
-    currentLpId,
     getStudentsForClass,
     getPruefungenForKlasse,
     getPruefungErgebnisse,
@@ -196,7 +195,7 @@ const KlassenPage = () => {
     reloadData,
   } = useData();
   const myClasses = classes
-    .filter((k) => (k.lpZuweisungen ?? []).some((z) => z.lpId === currentLpId))
+    .slice()
     .sort((a, b) => a.name.localeCompare(b.name, "de", { numeric: true }));
   const [createOpen, setCreateOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);

@@ -22,7 +22,7 @@ type Props = {
 }
 
 export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated }: Props) => {
-  const { getClass, faecher, themen, lernziele, createPruefung, currentLpId, getStudentsForClass } = useData()
+  const { getClass, faecher, themen, lernziele, createPruefung, getStudentsForClass } = useData()
 
   const [step, setStep] = useState(1)
 
@@ -138,7 +138,6 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
       datum,
       lernzielIds: Array.from(selectedLzIds),
       ...(punkteEnabled && maxPunkte ? { maxPunkte: Number(maxPunkte) } : {}),
-      erstelltVonId: currentLpId,
       nurRilz,
       rilzSchuelerIds,
     })

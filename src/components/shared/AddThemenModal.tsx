@@ -114,7 +114,7 @@ export const AddThemenModal = ({
   onCreateNew?: () => void
 }) => {
   const {
-    faecher, themen, lernziele, currentLpId, classes,
+    faecher, themen, lernziele, classes,
     getClass, createThema, updateThema, createLernziel,
   } = useData()
 
@@ -150,7 +150,6 @@ export const AddThemenModal = ({
   // ── Browse helpers ────────────────────────────────────────────────────────
   const baseThemen = themen.filter(t =>
     (!t.typ || t.typ === 'standard') &&
-    (!t.autorLpId || t.autorLpId === currentLpId) &&
     (!t.stufe || t.stufe.includes(klasseGrade))
   )
 

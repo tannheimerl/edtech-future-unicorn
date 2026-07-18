@@ -177,6 +177,12 @@ CREATE INDEX IF NOT EXISTS idx_fact_pruefungen_klasse     ON fact_pruefungen(kla
 CREATE INDEX IF NOT EXISTS idx_fact_pruefung_erg_pruefung ON fact_pruefung_ergebnisse(pruefung_id);
 CREATE INDEX IF NOT EXISTS idx_fact_pruefung_erg_schueler ON fact_pruefung_ergebnisse(schueler_id);
 CREATE INDEX IF NOT EXISTS idx_dim_tag_kategorien_position ON dim_tag_kategorien(position);
+
+-- 'lp1' historically satisfied FK constraints on dim_lehrpersonen for a
+-- hardcoded "current teacher" concept the app no longer uses (each teacher
+-- now has their own private local DB, so per-teacher scoping was removed).
+-- Kept so any pre-existing bridge_lp_zuweisungen rows referencing it stay valid.
+INSERT OR IGNORE INTO dim_lehrpersonen (id, name, kuerzel) VALUES ('lp1', 'Lukas Meier', 'LM');
 `
 
 // Split into individual statements — tauri-plugin-sql executes one
