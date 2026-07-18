@@ -27,20 +27,3 @@ export const resetDbConnection = async (): Promise<void> => {
 }
 
 export const toInt = (b: boolean): number => (b ? 1 : 0)
-
-// Generic upsert: INSERT ... ON CONFLICT(conflictCols) DO UPDATE SET (all other columns).
-export const upsert = async (
-  db: Database,
-  table: string,
-  data: Record<string, unknown>,
-  conflictCols: string[] = ['id'],
-) => {
-  const cols = Object.keys(data)
-  const placeholders = cols.map((_, i) => `$${i + 1}`)
-  const updates = cols
-    .filter((c) => !conflictCols.includes(c))
-    .map((c) => `${c} = excluded.${c}`)
-  const sql = `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders.join(', ')})
-    ON CONFLICT(${conflictCols.join(', ')}) DO UPDATE SET ${updates.join(', ')}`
-  await db.execute(sql, cols.map((c) => data[c]))
-}
