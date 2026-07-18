@@ -4,7 +4,7 @@ import { Input as InputPrimitive } from "@base-ui/react/input"
 import { cn } from "@/lib/utils"
 
 /* h-5 = 40px on the 8px grid */
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+const Input = ({ className, type, ...props }: React.ComponentProps<"input">) => {
   return (
     <InputPrimitive
       type={type}

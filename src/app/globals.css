@@ -20,10 +20,40 @@
   /* ── Grid ──────────────────────────────────────────────────── */
   --spacing: 0.5rem;
 
+  /* ── Breakpoints — layout grid ─────────────────────────────────
+     xs is new (480px); md/lg/xl match Tailwind's defaults (768/1024/
+     1280px) and are listed only for reference; 2xl is overridden to
+     1440px (default 1536px) to match the container spec below. */
+  --breakpoint-xs: 30rem;
+  --breakpoint-2xl: 90rem;
+
   /* ── Typography ────────────────────────────────────────────── */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-geist-sans);
+
+  /* Micro type-scale below text-xs (12px). Use these tokens instead of
+     ad-hoc text-[Npx] so dense labels share one scale.
+       text-2xs = 11px   text-3xs = 10px   text-4xs = 9px */
+  --text-2xs: 0.6875rem;
+  --text-3xs: 0.625rem;
+  --text-4xs: 0.5625rem;
+
+  /* Regular text scale — identical on desktop and mobile.
+       text-xs = 12px (smaller)   text-sm = 14px (small)   text-base = 16px (standard)
+     These match Tailwind's built-in defaults; kept here for documentation. */
+
+  /* Headline scale — identical on desktop and mobile, use instead of
+     ad-hoc text-Nxl on headings so every page shares the same scale.
+       heading-xs = 16px/semibold   heading-sm  = 20px/semibold
+       heading-md = 24px/semibold   heading-lg  = 28px/semibold
+       heading-xl = 32px/bold       heading-2xl = 40px/bold */
+  --text-heading-xs: 1rem;
+  --text-heading-sm: 1.25rem;
+  --text-heading-md: 1.5rem;
+  --text-heading-lg: 1.75rem;
+  --text-heading-xl: 2rem;
+  --text-heading-2xl: 2.5rem;
 
   /* ── Color aliases ─────────────────────────────────────────── */
   --color-background: var(--background);
@@ -76,14 +106,14 @@
   --color-category-bvsa-soft: var(--category-bvsa-soft);
   --color-category-bvsa-fg: var(--category-bvsa-fg);
 
-  /* ── Radius — friendly rounding ────────────────────────────── */
-  --radius-sm: calc(var(--radius) * 0.5);
+  /* ── Radius — standardized at 12px across the app ─────────── */
+  --radius-sm: var(--radius);
   --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) * 2);
-  --radius-xl: calc(var(--radius) * 3);
-  --radius-2xl: calc(var(--radius) * 4);
-  --radius-3xl: calc(var(--radius) * 6);
-  --radius-4xl: calc(var(--radius) * 8);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
+  --radius-4xl: var(--radius);
 }
 
 /*
@@ -156,7 +186,7 @@
   --input: oklch(0.90 0.003 265);
   --ring: oklch(0.47 0.15 265);              /* primary color for focus rings */
 
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 }
 
 /* Warm Indigo Design System — Dark */
@@ -230,6 +260,28 @@
     @apply font-sans;
     scrollbar-gutter: stable;
   }
+
+  /* ── Default heading styles — h1..h6 map straight onto the headline
+     scale (h1 = XXL down to h6 = XS) so headings never need a utility
+     class. Sizes are identical on desktop and mobile. */
+  h1 {
+    @apply text-heading-2xl font-bold tracking-tight;
+  }
+  h2 {
+    @apply text-heading-xl font-bold tracking-tight;
+  }
+  h3 {
+    @apply text-heading-lg font-semibold tracking-tight;
+  }
+  h4 {
+    @apply text-heading-md font-semibold;
+  }
+  h5 {
+    @apply text-heading-sm font-semibold;
+  }
+  h6 {
+    @apply text-heading-xs font-semibold;
+  }
 }
 
 @layer components {
@@ -238,14 +290,70 @@
     box-shadow: 0 1px 3px 0 oklch(0.47 0.15 265 / 0.07), 0 1px 2px -1px oklch(0.47 0.15 265 / 0.05);
   }
 
-  /* ── Typography helpers — one source of truth for heading levels ──
-     Use instead of ad-hoc text-2xl / text-sm on headings so every page
-     and section shares the same scale. */
-  .heading-page {
-    @apply text-2xl font-bold tracking-tight;
+  /* ── Layout grid — page-container + 12-column grid ──────────────
+     Page-level responsive system. `.page-container` is the max-width
+     wrapper (fluid + 24px margin below 480px, centered fixed-width
+     container above it). `.grid-row` is a 12-column grid with the
+     matching responsive gutter — pair it with Tailwind's `col-span-*`
+     utilities (responsive via xs:/md:/lg:/xl:/2xl:) instead of writing
+     one-off grid-cols/gap combinations per page.
+
+     Named `.page-container` (not `.container`) because Tailwind ships
+     its own `container` utility, whose rules live in a later CSS layer
+     and would silently win over anything defined here.
+
+       Breakpoint   Container   Gutter
+       <480px       fluid       12px  (24px side margin)
+       >=480px      436px       16px
+       >=768px      728px       20px
+       >=1024px     948px       24px
+       >=1280px     1200px      24px
+       >=1440px     1356px      24px
+  */
+  .page-container {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: 1.5rem;
   }
-  .heading-section {
-    @apply text-sm font-semibold;
+  .grid-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+  @media (min-width: 480px) {
+    .page-container {
+      max-width: 436px;
+      padding-inline: 0;
+    }
+    .grid-row {
+      gap: 1rem;
+    }
+  }
+  @media (min-width: 768px) {
+    .page-container {
+      max-width: 728px;
+    }
+    .grid-row {
+      gap: 1.25rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .page-container {
+      max-width: 948px;
+    }
+    .grid-row {
+      gap: 1.5rem;
+    }
+  }
+  @media (min-width: 1280px) {
+    .page-container {
+      max-width: 1200px;
+    }
+  }
+  @media (min-width: 1440px) {
+    .page-container {
+      max-width: 1356px;
+    }
   }
 }
 
@@ -259,6 +367,25 @@
 
 .animate-wiggle {
   animation: wiggle 0.6s ease-in-out;
+}
+
+
+/* ── Material Symbols (icon font) ────────────────────────────────────────
+   Base class for the <Icon> component. Per-icon size, weight and fill are
+   applied inline via font-size + font-variation-settings. */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
 

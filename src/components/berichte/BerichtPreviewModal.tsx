@@ -1,14 +1,15 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, X } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import { generatePdfBlob } from '@/lib/berichtUtils'
 import type { SchuelerBerichtPDFProps } from '@/components/berichte/SchuelerBerichtPDF'
 import type { Fach, Klasse, Lernziel, Schueler, Thema } from '@/types/domain'
 
-interface Props {
+type Props = {
   open: boolean
   onClose: () => void
   student: Schueler
@@ -22,7 +23,7 @@ interface Props {
   themaKommentar?: string
 }
 
-export function BerichtPreviewModal({
+export const BerichtPreviewModal = ({
   open,
   onClose,
   student,
@@ -34,7 +35,7 @@ export function BerichtPreviewModal({
   onKommentarChange,
   inspirationNotes,
   themaKommentar,
-}: Props) {
+}: Props) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -118,7 +119,7 @@ export function BerichtPreviewModal({
           <div className="relative bg-muted/30 border-b sm:border-b-0 sm:border-r border-border h-[45vh] sm:h-full overflow-hidden">
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10">
-                <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                <Icon name="progress_activity" size={24} className="animate-spin text-muted-foreground" />
               </div>
             )}
             {previewUrl && (
@@ -150,19 +151,19 @@ export function BerichtPreviewModal({
                 onClick={onClose}
                 className="text-muted-foreground shrink-0"
               >
-                <X className="size-4" />
+                <Icon name="close" size={16} />
               </Button>
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Kommentar</label>
-              <textarea
+              <Textarea
                 value={kommentar}
                 onChange={e => onKommentarChange(e.target.value)}
                 placeholder="Persönlicher Kommentar für den Elternbericht…"
                 rows={6}
                 autoFocus
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                className="field-sizing-fixed resize-none"
               />
             </div>
 

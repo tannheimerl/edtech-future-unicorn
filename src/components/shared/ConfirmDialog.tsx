@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal } from './Modal'
 
-interface ConfirmDialogProps {
+type ConfirmDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
@@ -18,7 +18,7 @@ interface ConfirmDialogProps {
   requireTyping?: boolean
 }
 
-export function ConfirmDialog({
+export const ConfirmDialog = ({
   open,
   onOpenChange,
   title,
@@ -27,7 +27,7 @@ export function ConfirmDialog({
   onConfirm,
   confirmKeyword = 'löschen',
   requireTyping = true,
-}: ConfirmDialogProps) {
+}: ConfirmDialogProps) => {
   const [typed, setTyped] = useState('')
 
   const matches = typed.trim().toLowerCase() === confirmKeyword.toLowerCase()

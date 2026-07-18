@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import { Providers } from "./providers"
 import { FeedbackButton } from "@/components/shared/FeedbackButton"
+import { Toaster } from "@/components/ui/Toaster"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -21,14 +22,20 @@ export const metadata: Metadata = {
   description: "Lernziel-Tracking für Lehrkräfte",
 }
 
-export default function RootLayout({
+const RootLayout = ({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{ children: React.ReactNode }>) => {
   return (
     <html
       lang="de"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        />
+      </head>
       <body className="flex min-h-full flex-col">
         <Providers>
           <Header siteName="Lezio" />
@@ -36,7 +43,10 @@ export default function RootLayout({
           <Footer siteName="Lezio" />
           <FeedbackButton />
         </Providers>
+        <Toaster />
       </body>
     </html>
   )
 }
+
+export default RootLayout

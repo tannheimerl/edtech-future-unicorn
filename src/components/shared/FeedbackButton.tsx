@@ -1,4 +1,4 @@
-import { Mail } from "lucide-react"
+import { Icon } from "@/components/ui/Icon"
 
 const RECIPIENTS = "ramanantsoaluc@gmail.com,lukas.tannheimer@bluewin.ch"
 const SUBJECT = "Lezio Feedback"
@@ -16,7 +16,7 @@ const mailtoHref = `mailto:${RECIPIENTS}?subject=${encodeURIComponent(
   SUBJECT,
 )}&body=${encodeURIComponent(BODY)}`
 
-export function FeedbackButton() {
+export const FeedbackButton = () => {
   return (
     <a
       href={mailtoHref}
@@ -24,7 +24,7 @@ export function FeedbackButton() {
       title="Feedback geben"
       className="fixed bottom-6 right-[max(1rem,calc((100vw-80rem)/2-3rem))] z-50 flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:bg-primary/85"
     >
-      <Mail className="size-5" />
+      <Icon name="mail" size={20} />
     </a>
   )
 }

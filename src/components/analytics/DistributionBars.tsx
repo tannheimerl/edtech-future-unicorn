@@ -8,12 +8,12 @@ const H = 88
 const innerW = W - PAD.left - PAD.right
 const innerH = H - PAD.top - PAD.bottom
 
-export interface DistributionBucket {
+type DistributionBucket = {
   x: number
   count: number
 }
 
-interface DistributionBarsProps {
+type DistributionBarsProps = {
   buckets: DistributionBucket[] // one bucket per axis value, count 0 allowed
   domainMin: number
   domainMax: number
@@ -22,14 +22,14 @@ interface DistributionBarsProps {
   ariaLabel?: string
 }
 
-export function DistributionBars({
+export const DistributionBars = ({
   buckets,
   domainMin,
   domainMax,
   ticks,
   formatTick = String,
   ariaLabel,
-}: DistributionBarsProps) {
+}: DistributionBarsProps) => {
   const maxCount = Math.max(1, ...buckets.map(b => b.count))
   const hasData = buckets.some(b => b.count > 0)
 

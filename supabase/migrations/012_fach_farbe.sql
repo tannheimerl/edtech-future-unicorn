@@ -1,1 +1,0 @@
-ALTER TABLE dim_faecher ADD COLUMN IF NOT EXISTS color_index SMALLINT;

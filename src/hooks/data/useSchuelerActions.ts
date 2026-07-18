@@ -1,0 +1,198 @@
+import { useCallback } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
+import type {
+  AssessmentKommentar, RilzLernziel, Schueler, Status, Versuch,
+} from '@/types/domain'
+import { SEED_COMPETENCIES } from '@/types/domain'
+import {
+  dbSaveSchueler, dbDeleteSchueler,
+  dbSaveLernzielStatus, dbDeleteLernzielStatus,
+  dbSaveRilzLernziel, dbDeleteRilzLernziel,
+} from '@/actions/db-write'
+import { notifyDbError } from '@/lib/toast'
+
+export function useSchuelerActions(
+  students: Schueler[],
+  setStudents: Dispatch<SetStateAction<Schueler[]>>,
+  setKommentare: Dispatch<SetStateAction<AssessmentKommentar[]>>,
+) {
+  const getStudent = useCallback(
+    (id: string) => students.find((s) => s.id === id),
+    [students]
+  )
+  const getStudentsForClass = useCallback(
+    (klassId: string) => students.filter((s) => s.klassId === klassId),
+    [students]
+  )
+  const getVersuche = useCallback(
+    (student: Schueler, lernzielId: string): Versuch[] =>
+      student.lernzielVersuche?.[lernzielId] ?? [],
+    []
+  )
+
+  const createStudent = useCallback((klassId: string, vorname: string, nachname: string) => {
+    const competencyStatus = Object.fromEntries(
+      SEED_COMPETENCIES.map((c) => [c.id, 'not_reached' as Status])
+    )
+    const newStudent: Schueler = {
+      id: crypto.randomUUID(), klassId, vorname, nachname, note: '',
+      competencyStatus, lernzielStatus: {}, rilzFachIds: [], lernzielVersuche: {},
+    }
+    setStudents((prev) => [...prev, newStudent])
+    dbSaveSchueler(newStudent).catch(notifyDbError)
+  }, [setStudents])
+
+  const updateStudent = useCallback(
+    (id: string, patch: Partial<Pick<Schueler, 'vorname' | 'nachname' | 'note'>>) => {
+      setStudents((prev) =>
+        prev.map((s) => {
+          if (s.id !== id) return s
+          const updated = { ...s, ...patch }
+          dbSaveSchueler(updated).catch(notifyDbError)
+          return updated
+        })
+      )
+    },
+    [setStudents]
+  )
+
+  const deleteStudent = useCallback((id: string) => {
+    setStudents((prev) => prev.filter((s) => s.id !== id))
+    setKommentare((prev) => prev.filter((k) => k.studentId !== id))
+    dbDeleteSchueler(id).catch(notifyDbError)
+  }, [setStudents, setKommentare])
+
+  const setRilzFach = useCallback((studentId: string, fachId: string, enabled: boolean) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        const current = s.rilzFachIds ?? []
+        const rilzFachIds = enabled
+          ? current.includes(fachId) ? current : [...current, fachId]
+          : current.filter((id) => id !== fachId)
+        const updated = { ...s, rilzFachIds }
+        dbSaveSchueler(updated).catch(notifyDbError)
+        return updated
+      })
+    )
+  }, [setStudents])
+
+  const setBvsa = useCallback((studentId: string, enabled: boolean) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        const updated = { ...s, bvsa: enabled }
+        dbSaveSchueler(updated).catch(notifyDbError)
+        return updated
+      })
+    )
+  }, [setStudents])
+
+  const addRilzLernziel = useCallback((studentId: string, themaId: string, label: string) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        const lz: RilzLernziel = { id: crypto.randomUUID(), themaId, label, status: 'not_reached' }
+        const updated = { ...s, rilzLernziele: [...(s.rilzLernziele ?? []), lz] }
+        dbSaveRilzLernziel(studentId, lz).catch(notifyDbError)
+        return updated
+      })
+    )
+  }, [setStudents])
+
+  const updateRilzLernzielStatus = useCallback((studentId: string, lzId: string, status: Status) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        const rilzLernziele = (s.rilzLernziele ?? []).map((lz) => lz.id === lzId ? { ...lz, status } : lz)
+        const updated = { ...s, rilzLernziele }
+        const rlz = rilzLernziele.find((lz) => lz.id === lzId)
+        if (rlz) dbSaveRilzLernziel(studentId, rlz).catch(notifyDbError)
+        return updated
+      })
+    )
+  }, [setStudents])
+
+  const updateRilzLernzielLabel = useCallback((studentId: string, lzId: string, label: string) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        const rilzLernziele = (s.rilzLernziele ?? []).map((lz) => lz.id === lzId ? { ...lz, label } : lz)
+        const updated = { ...s, rilzLernziele }
+        const rlz = rilzLernziele.find((lz) => lz.id === lzId)
+        if (rlz) dbSaveRilzLernziel(studentId, rlz).catch(notifyDbError)
+        return updated
+      })
+    )
+  }, [setStudents])
+
+  const deleteRilzLernziel = useCallback((studentId: string, lzId: string) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        return { ...s, rilzLernziele: (s.rilzLernziele ?? []).filter((lz) => lz.id !== lzId) }
+      })
+    )
+    dbDeleteRilzLernziel(lzId).catch(notifyDbError)
+  }, [setStudents])
+
+  const updateLernzielStatus = useCallback(
+    (studentId: string, lernzielId: string, status: Status | undefined) => {
+      setStudents((prev) =>
+        prev.map((s) => {
+          if (s.id !== studentId) return s
+          if (status === undefined) {
+            const { [lernzielId]: _, ...rest } = s.lernzielStatus
+            dbDeleteLernzielStatus(studentId, lernzielId).catch(notifyDbError)
+            return { ...s, lernzielStatus: rest }
+          }
+          dbSaveLernzielStatus(studentId, lernzielId, status).catch(notifyDbError)
+          return { ...s, lernzielStatus: { ...s.lernzielStatus, [lernzielId]: status } }
+        })
+      )
+    },
+    [setStudents]
+  )
+
+  const assignRilzThemaToStudent = useCallback((studentId: string, rilzThemaId: string) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        const current = s.rilzThemaIds ?? []
+        if (current.includes(rilzThemaId)) return s
+        const updated = { ...s, rilzThemaIds: [...current, rilzThemaId] }
+        dbSaveSchueler(updated).catch(notifyDbError)
+        return updated
+      })
+    )
+  }, [setStudents])
+
+  const removeRilzThemaFromStudent = useCallback((studentId: string, rilzThemaId: string) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== studentId) return s
+        const updated = { ...s, rilzThemaIds: (s.rilzThemaIds ?? []).filter((id) => id !== rilzThemaId) }
+        dbSaveSchueler(updated).catch(notifyDbError)
+        return updated
+      })
+    )
+  }, [setStudents])
+
+  return {
+    getStudent,
+    getStudentsForClass,
+    getVersuche,
+    createStudent,
+    updateStudent,
+    deleteStudent,
+    setRilzFach,
+    setBvsa,
+    addRilzLernziel,
+    updateRilzLernzielStatus,
+    updateRilzLernzielLabel,
+    deleteRilzLernziel,
+    updateLernzielStatus,
+    assignRilzThemaToStudent,
+    removeRilzThemaFromStudent,
+  }
+}

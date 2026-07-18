@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, BookOpen, Check, Plus, Search, Upload } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Select } from '@/components/ui/select'
 import { Modal } from '@/components/shared/Modal'
 import { cn } from '@/lib/utils'
 import type { LezioExport, Thema } from '@/types/domain'
@@ -23,7 +25,7 @@ const STEP_SIZE: Record<Step, 'xs' | 'sm' | 'md' | 'lg'> = {
   upload: 'sm',
 }
 
-function ThemaRow({
+const ThemaRow = ({
   thema,
   lzCount,
   selected,
@@ -37,7 +39,7 @@ function ThemaRow({
   disabled: boolean
   disabledLabel?: string
   onToggle?: () => void
-}) {
+}) => {
   const today = new Date().toISOString().slice(0, 10)
   const isOverdue = thema.faelligAm ? thema.faelligAm < today : false
   const daysUntil = thema.faelligAm
@@ -68,7 +70,7 @@ function ThemaRow({
           ? 'border-primary bg-primary'
           : 'border-muted-foreground/30 bg-background',
       )}>
-        {(disabled || selected) && <Check className="size-2.5 text-white stroke-[3]" />}
+        {(disabled || selected) && <Icon name="check" size={10} weight={700} className="text-white" />}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{thema.name}</p>
@@ -78,13 +80,13 @@ function ThemaRow({
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
         {stufeLabel && (
-          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+          <Badge className="rounded-full">
             {stufeLabel}
-          </span>
+          </Badge>
         )}
         {thema.faelligAm && (
           <span className={cn(
-            'rounded px-1.5 py-0.5 text-[10px] tabular-nums',
+            'rounded px-1.5 py-0.5 text-3xs tabular-nums',
             isOverdue
               ? 'bg-status-not-reached-soft text-status-not-reached-fg font-medium'
               : isNearDeadline
@@ -99,7 +101,7 @@ function ThemaRow({
   )
 }
 
-export function AddThemenModal({
+export const AddThemenModal = ({
   open, onOpenChange, fachId, klassId, klasseGrade, assignedThemaIds, onAdd, onCreateNew,
 }: {
   open: boolean
@@ -110,7 +112,7 @@ export function AddThemenModal({
   assignedThemaIds: string[]
   onAdd: (themaIds: string[]) => void
   onCreateNew?: () => void
-}) {
+}) => {
   const {
     faecher, themen, lernziele, currentLpId, classes,
     getClass, createThema, updateThema, createLernziel,
@@ -133,7 +135,7 @@ export function AddThemenModal({
   const [uploadFileName, setUploadFileName] = useState('')
 
   // Reset all state when modal opens
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+   
   useEffect(() => {
     if (!open) return
     setStep('picker')
@@ -179,16 +181,16 @@ export function AddThemenModal({
   )
   const fachesWithAvail = faecher.filter(f => browseAvailable.some(t => t.fachId === f.id))
 
-  function browseLzCount(themaId: string) {
+  const browseLzCount = (themaId: string) => {
     return lernziele.filter(lz => lz.themaId === themaId).length
   }
 
-  function toggleBrowse(id: string) {
+  const toggleBrowse = (id: string) => {
     setBrowseSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
 
   // ── Upload handler ────────────────────────────────────────────────────────
-  async function handleUploadFile(file: File) {
+  const handleUploadFile = async (file: File) => {
     setUploadError('')
     setUploadLoading(true)
     try {
@@ -207,12 +209,12 @@ export function AddThemenModal({
   }
 
   // ── Footer per step ───────────────────────────────────────────────────────
-  function renderFooter() {
+  const renderFooter = () => {
     if (step === 'picker') return undefined
 
     const back = (
       <Button variant="outline" onClick={() => setStep('picker')} disabled={uploadLoading}>
-        <ArrowLeft className="size-3.5 mr-1.5" />Zurück
+        <Icon name="arrow_back" size={14} className="mr-1.5" />Zurück
       </Button>
     )
 
@@ -250,20 +252,20 @@ export function AddThemenModal({
       {step === 'picker' && (
         <div className="grid gap-2 pt-1 pb-2">
           {([
-            { s: 'browse' as Step | 'create', Icon: BookOpen, label: 'Aus deiner Lernzielsammlung', desc: 'Bestehendes Thema zuweisen' },
-            { s: 'create', Icon: Plus, label: 'Neu erstellen', desc: 'Eigenes Thema mit Lernzielen' },
-            { s: 'upload' as Step | 'create', Icon: Upload, label: 'Hochladen', desc: '.lezio-Datei importieren' },
-          ] as { s: Step | 'create'; Icon: React.FC<{ className?: string }>; label: string; desc: string }[]).map(({ s, Icon, label, desc }) => (
+            { s: 'browse' as Step | 'create', iconName: 'menu_book', label: 'Aus deiner Lernzielsammlung', desc: 'Bestehendes Thema zuweisen' },
+            { s: 'create', iconName: 'add', label: 'Neu erstellen', desc: 'Eigenes Thema mit Lernzielen' },
+            { s: 'upload' as Step | 'create', iconName: 'upload', label: 'Hochladen', desc: '.lezio-Datei importieren' },
+          ] as { s: Step | 'create'; iconName: string; label: string; desc: string }[]).map(({ s, iconName, label, desc }) => (
             <button
               key={s}
               onClick={() => {
                 if (s === 'create') { onCreateNew?.(); onOpenChange(false) }
                 else setStep(s)
               }}
-              className="flex items-center gap-3 rounded-2xl border border-border p-3.5 text-left hover:border-primary/40 hover:bg-accent transition-all"
+              className="flex items-center gap-3 rounded-2xl border border-border p-3 text-left hover:border-primary/40 hover:bg-accent transition-all"
             >
               <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                <Icon className="size-4 text-muted-foreground" />
+                <Icon name={iconName} size={16} className="text-muted-foreground" />
               </div>
               <div>
                 <p className="text-sm font-medium leading-snug">{label}</p>
@@ -280,7 +282,7 @@ export function AddThemenModal({
           {/* Filter row */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-28">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+              <Icon name="search" size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <Input
                 value={browseSearch}
                 onChange={e => setBrowseSearch(e.target.value)}
@@ -288,14 +290,14 @@ export function AddThemenModal({
                 className="pl-8 h-8 text-xs"
               />
             </div>
-            <select
+            <Select
               value={browseFach}
               onChange={e => setBrowseFach(e.target.value)}
-              className="h-8 text-xs rounded-lg border border-border bg-background px-2 focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-8 w-auto text-xs"
             >
               <option value="alle">Alle Fächer</option>
               {faecher.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-            </select>
+            </Select>
           </div>
 
           {/* List */}
@@ -312,7 +314,7 @@ export function AddThemenModal({
                 if (!rows.length) return null
                 return (
                   <div key={f.id} className="mb-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 px-0.5 mb-1">{f.name}</p>
+                    <p className="text-3xs font-semibold uppercase tracking-wider text-muted-foreground/60 px-0.5 mb-1">{f.name}</p>
                     <div className="space-y-1.5">
                       {rows.map(t => (
                         <ThemaRow key={t.id} thema={t} lzCount={browseLzCount(t.id)} selected={browseSelected.has(t.id)} disabled={false} onToggle={() => toggleBrowse(t.id)} />
@@ -371,7 +373,7 @@ export function AddThemenModal({
             disabled={uploadLoading}
             className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-10 text-center hover:border-primary/40 hover:bg-accent/10 transition-all disabled:pointer-events-none disabled:opacity-50"
           >
-            <Upload className="size-7 text-muted-foreground/50" />
+            <Icon name="upload" size={28} className="text-muted-foreground/50" />
             {uploadFileName ? (
               <p className="text-sm font-medium">{uploadFileName}</p>
             ) : (

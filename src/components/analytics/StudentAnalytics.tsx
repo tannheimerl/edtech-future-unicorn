@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import { cn, getFachColor, scoreColor, sv, categoryChipClasses } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
 import { FilterDropdown } from '@/components/shared/FilterDropdown'
 import { SegmentedControl } from '@/components/shared/SegmentedControl'
@@ -13,14 +14,14 @@ import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach, Status } from 
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function isLZSkipped(lz: Lernziel, student: Schueler, themen: Thema[]): boolean {
+const isLZSkipped = (lz: Lernziel, student: Schueler, themen: Thema[]): boolean => {
   if (lz.kategorie !== 'anspruchsvoll') return false
   if (!student.rilzFachIds?.length) return false
   const thema = themen.find(t => t.id === lz.themaId)
   return !!thema && student.rilzFachIds.includes(thema.fachId)
 }
 
-function studentScopedScore(student: Schueler, lzList: Lernziel[], themen: Thema[]): number {
+const studentScopedScore = (student: Schueler, lzList: Lernziel[], themen: Thema[]): number => {
   const applicable = lzList.filter(lz => !isLZSkipped(lz, student, themen))
   if (applicable.length === 0) return 0
   return (applicable.reduce((sum, lz) => sum + sv(student.lernzielStatus[lz.id] ?? 'not_reached'), 0) / applicable.length) * 100
@@ -39,10 +40,10 @@ const KAT_LABELS: Record<KatFilter, string> = {
 
 // ── Filter bar ─────────────────────────────────────────────────────────────
 
-function FilterBar({ katFilter, onKatChange }: {
+const FilterBar = ({ katFilter, onKatChange }: {
   katFilter: KatFilter
   onKatChange: (k: KatFilter) => void
-}) {
+}) => {
   return (
     <SegmentedControl<KatFilter>
       label="Lernziel-Kategorie"
@@ -59,7 +60,7 @@ function FilterBar({ katFilter, onKatChange }: {
 
 // ── Section label ──────────────────────────────────────────────────────────
 
-function SectionLabel({ label }: { label: string }) {
+const SectionLabel = ({ label }: { label: string }) => {
   return (
     <div className="pb-1 border-b border-border/40">
       <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">{label}</span>
@@ -69,28 +70,28 @@ function SectionLabel({ label }: { label: string }) {
 
 // ── KPI tile ───────────────────────────────────────────────────────────────
 
-function KpiTile({ label, value, sub, valueClass }: {
+const KpiTile = ({ label, value, sub, valueClass }: {
   label: string
   value: string | number
   sub?: string
   valueClass?: string
-}) {
+}) => {
   return (
     <div className="bg-card border border-border rounded-md px-4 py-3">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">{label}</p>
+      <p className="text-3xs font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">{label}</p>
       <p className={cn('text-2xl font-bold tabular-nums tracking-tight leading-none', valueClass ?? 'text-foreground')}>
         {value}
       </p>
-      {sub && <p className="text-[10px] text-muted-foreground/70 mt-1.5 leading-tight">{sub}</p>}
+      {sub && <p className="text-3xs text-muted-foreground/70 mt-1.5 leading-tight">{sub}</p>}
     </div>
   )
 }
 
 // ── LZ aggregate status bar ────────────────────────────────────────────────
 
-function LZStatusBar({ reached, partial, notReached }: {
+const LZStatusBar = ({ reached, partial, notReached }: {
   reached: number; partial: number; notReached: number
-}) {
+}) => {
   const total = reached + partial + notReached
   if (total === 0) return null
   const rp = (reached / total) * 100
@@ -103,7 +104,7 @@ function LZStatusBar({ reached, partial, notReached }: {
         {pp > 0 && <div style={{ width: `${pp}%` }} className="h-full bg-status-partial transition-all" />}
         {np > 0 && <div style={{ width: `${np}%` }} className="h-full bg-status-none-soft transition-all" />}
       </div>
-      <div className="flex gap-4 text-[10px] text-muted-foreground">
+      <div className="flex gap-4 text-3xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="inline-block size-1.5 bg-status-reached shrink-0" />
           {reached} erreicht
@@ -123,7 +124,7 @@ function LZStatusBar({ reached, partial, notReached }: {
 
 // ── Blue progress bar ──────────────────────────────────────────────────────
 
-function ProgressBar({ pct, h = 'h-1.5' }: { pct: number; h?: string }) {
+const ProgressBar = ({ pct, h = 'h-1.5' }: { pct: number; h?: string }) => {
   return (
     <div className={cn('w-full bg-muted overflow-hidden', h)}>
       <div className="h-full bg-primary transition-all" style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }} />
@@ -133,22 +134,22 @@ function ProgressBar({ pct, h = 'h-1.5' }: { pct: number; h?: string }) {
 
 // ── LZ row (single student) ────────────────────────────────────────────────
 
-function LZStudentRow({ lz, status, skipped }: {
+const LZStudentRow = ({ lz, status, skipped }: {
   lz: Lernziel
   status: Status | undefined
   skipped: boolean
-}) {
+}) => {
   return (
     <div className={cn('py-2 px-3 flex items-center justify-between gap-3', skipped && 'opacity-40')}>
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         <span className={cn(
-          'shrink-0 rounded px-1 py-0.5 text-[8px] font-bold leading-none',
+          'shrink-0 rounded px-1 py-0.5 text-4xs font-bold leading-none',
           categoryChipClasses(lz.kategorie),
         )}>
           {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
         </span>
         <span className="text-xs truncate">{lz.label}</span>
-        {skipped && <span className="text-[9px] text-rilz-foreground font-medium shrink-0">(RILZ)</span>}
+        {skipped && <span className="text-4xs text-rilz-foreground font-medium shrink-0">(RILZ)</span>}
       </div>
       {!skipped && <StatusCell status={status} readOnly onSelect={() => {}} />}
     </div>
@@ -167,7 +168,7 @@ const VIEW_OPTIONS: { key: StatView; label: string }[] = [
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-interface StudentAnalyticsProps {
+type StudentAnalyticsProps = {
   student: Schueler
   themen: Thema[]
   lernziele: Lernziel[]
@@ -175,7 +176,7 @@ interface StudentAnalyticsProps {
   klassId: string
 }
 
-export function StudentAnalytics({ student, themen, lernziele, faecher, klassId }: StudentAnalyticsProps) {
+export const StudentAnalytics = ({ student, themen, lernziele, faecher, klassId }: StudentAnalyticsProps) => {
   const { pruefungen, pruefungErgebnisse } = useData()
 
   const [view, setView] = useState<StatView>('gesamt')
@@ -355,12 +356,12 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
                 <table className="w-full text-sm border-collapse">
                   <thead>
                     <tr className="border-b border-border bg-muted">
-                      <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Fach</th>
-                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">Score</th>
-                      <th className="py-2 px-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-40">Verlauf</th>
-                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-12">G</th>
-                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-12">A</th>
-                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-10">LZ</th>
+                      <th className="py-2 px-3 text-left text-4xs font-mono uppercase tracking-widest text-muted-foreground">Fach</th>
+                      <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground w-16">Score</th>
+                      <th className="py-2 px-3 text-4xs font-mono uppercase tracking-widest text-muted-foreground w-40">Verlauf</th>
+                      <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground w-12">G</th>
+                      <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground w-12">A</th>
+                      <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground w-10">LZ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -369,18 +370,18 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
                       const isRilz = (student.rilzFachIds ?? []).includes(fk.fach.id)
                       return (
                         <tr key={fk.fach.id} className="border-b border-border last:border-b-0">
-                          <td className="py-2.5 px-3">
+                          <td className="py-2 px-3">
                             <div className="flex items-center gap-1.5">
                               <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
                               <span className="text-sm font-medium">{fk.fach.name}</span>
-                              {isRilz && <span className="text-[9px] font-bold bg-rilz-soft text-rilz-foreground rounded px-1">RILZ</span>}
+                              {isRilz && <span className="text-4xs font-bold bg-rilz-soft text-rilz-foreground rounded px-1">RILZ</span>}
                             </div>
                           </td>
-                          <td className={cn('py-2.5 px-3 text-right tabular-nums font-bold text-sm', scoreColor(fk.pct))}>{fk.pct}%</td>
-                          <td className="py-2.5 px-3"><ProgressBar pct={fk.pct} h="h-1.5" /></td>
-                          <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{fk.gTotal > 0 ? `${fk.gPct}%` : '—'}</td>
-                          <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{fk.aTotal > 0 ? `${fk.aPct}%` : '—'}</td>
-                          <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{fk.total}</td>
+                          <td className={cn('py-2 px-3 text-right tabular-nums font-bold text-sm', scoreColor(fk.pct))}>{fk.pct}%</td>
+                          <td className="py-2 px-3"><ProgressBar pct={fk.pct} h="h-1.5" /></td>
+                          <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{fk.gTotal > 0 ? `${fk.gPct}%` : '—'}</td>
+                          <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{fk.aTotal > 0 ? `${fk.aPct}%` : '—'}</td>
+                          <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{fk.total}</td>
                         </tr>
                       )
                     })}
@@ -427,29 +428,29 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className="border-b border-border bg-muted">
-                        <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Fach</th>
-                        <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">Score</th>
-                        <th className="py-2 px-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-40">Verlauf</th>
-                        <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-12">G</th>
-                        <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-12">A</th>
-                        <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-10">LZ</th>
+                        <th className="py-2 px-3 text-left text-4xs font-mono uppercase tracking-widest text-muted-foreground">Fach</th>
+                        <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground w-16">Score</th>
+                        <th className="py-2 px-3 text-4xs font-mono uppercase tracking-widest text-muted-foreground w-40">Verlauf</th>
+                        <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground w-12">G</th>
+                        <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground w-12">A</th>
+                        <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground w-10">LZ</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rows.map(({ fach, pct, gPct, aPct, total, fc, isRilz }) => (
                         <tr key={fach.id} className="border-b border-border last:border-b-0 hover:bg-accent transition-colors">
-                          <td className="py-2.5 px-3">
+                          <td className="py-2 px-3">
                             <div className="flex items-center gap-1.5">
                               <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
                               <span className="text-sm font-medium">{fach.name}</span>
-                              {isRilz && <span className="text-[9px] font-bold bg-rilz-soft text-rilz-foreground rounded px-1">RILZ</span>}
+                              {isRilz && <span className="text-4xs font-bold bg-rilz-soft text-rilz-foreground rounded px-1">RILZ</span>}
                             </div>
                           </td>
-                          <td className={cn('py-2.5 px-3 text-right tabular-nums font-bold text-sm', scoreColor(pct))}>{pct}%</td>
-                          <td className="py-2.5 px-3"><ProgressBar pct={pct} h="h-1.5" /></td>
-                          <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{gPct !== null ? `${gPct}%` : '—'}</td>
-                          <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{aPct !== null ? `${aPct}%` : '—'}</td>
-                          <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{total}</td>
+                          <td className={cn('py-2 px-3 text-right tabular-nums font-bold text-sm', scoreColor(pct))}>{pct}%</td>
+                          <td className="py-2 px-3"><ProgressBar pct={pct} h="h-1.5" /></td>
+                          <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{gPct !== null ? `${gPct}%` : '—'}</td>
+                          <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{aPct !== null ? `${aPct}%` : '—'}</td>
+                          <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{total}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -480,7 +481,7 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
                     <span className="text-xs text-muted-foreground">{selectedThema.fach.name}</span>
                   )}
                   {selectedThema.fach && (student.rilzFachIds ?? []).includes(selectedThema.fach.id) && (
-                    <span className="text-[9px] font-bold bg-rilz-soft text-rilz-foreground rounded px-1">RILZ</span>
+                    <span className="text-4xs font-bold bg-rilz-soft text-rilz-foreground rounded px-1">RILZ</span>
                   )}
                 </div>
                 <div className="flex items-center gap-3">
@@ -536,9 +537,9 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
               <div className="px-4 py-3 bg-muted border-b border-border">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold">{selectedPruefung.name}</span>
-                  <span className="text-[10px] bg-primary/10 text-primary rounded px-1.5 py-0.5 font-medium">
+                  <Badge variant="primary">
                     {selectedPruefung.punkteEnabled ? 'Punkte' : selectedPruefung.noteEnabled ? 'Note' : 'Status'}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                   <span>{selectedPruefung.datum}</span>
@@ -547,7 +548,7 @@ export function StudentAnalytics({ student, themen, lernziele, faecher, klassId 
 
               {/* Result */}
               <div className="px-4 py-3 border-b border-border">
-                <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Mein Ergebnis</p>
+                <p className="text-4xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Mein Ergebnis</p>
                 {selectedPruefung.punkteEnabled ? (
                   <div className="space-y-2">
                     <div className="flex items-baseline gap-1.5">

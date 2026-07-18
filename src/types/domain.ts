@@ -1,6 +1,6 @@
 export type Status = 'not_reached' | 'partially_reached' | 'reached'
 
-export interface StatusSnapshot {
+export type StatusSnapshot = {
   date: string
   lernzielStatus: Record<string, Status>
   // When set, only these IDs count toward the denominator (models new themen being added mid-semester)
@@ -15,20 +15,19 @@ export const STATUS_LABELS: Record<Status, string> = {
 
 export const STATUS_CYCLE: Status[] = ['not_reached', 'partially_reached', 'reached']
 
-export interface Fach {
+export type Fach = {
   id: string
   name: string
   colorIndex?: number
 }
 
-export interface TagKategorie {
+export type TagKategorie = {
   id: string
   name: string
   lpId?: string
-  tenantId: string
 }
 
-export interface Thema {
+export type Thema = {
   id: string
   fachId: string
   name: string
@@ -44,7 +43,7 @@ export interface Thema {
 
 export type LernzielKategorie = 'grundlegend' | 'anspruchsvoll'
 
-export interface Lernziel {
+export type Lernziel = {
   id: string
   themaId: string
   kategorie: LernzielKategorie
@@ -55,14 +54,14 @@ export interface Lernziel {
   beschreibung?: string     // optional short description
 }
 
-export interface LezioExportLernziel {
+export type LezioExportLernziel = {
   kategorie: LernzielKategorie
   label: string
   kriterien?: string[]
   beschreibung?: string
 }
 
-export interface LezioExport {
+export type LezioExport = {
   version: '1'
   exportedAt: string
   fachName: string
@@ -72,25 +71,19 @@ export interface LezioExport {
 
 export type LpRolle = 'klassenlehrperson' | 'fachlehrperson' | 'heilpaedagogin'
 
-export const LP_ROLLE_LABELS: Record<LpRolle, string> = {
-  klassenlehrperson: 'Klassenlehrperson',
-  fachlehrperson: 'Fachlehrperson',
-  heilpaedagogin: 'Heilpädagogin',
-}
-
-export interface LpZuweisung {
+export type LpZuweisung = {
   lpId: string
   fachIds: string[]
   rolle?: LpRolle
 }
 
-export interface KlasseBeurteilungSettings {
+export type KlasseBeurteilungSettings = {
   punkteEnabled: boolean
   noteEnabled: boolean
   anhangEnabled: boolean
 }
 
-export interface Klasse {
+export type Klasse = {
   id: string
   name: string
   assignedThemaIds: string[]
@@ -101,34 +94,34 @@ export interface Klasse {
 }
 
 // A single assessment attempt for a Lernziel
-export interface Versuch {
+export type Versuch = {
   date: string
   status: Status
   withHelp?: boolean
 }
 
-export interface AssessmentKommentar {
+export type AssessmentKommentar = {
   studentId: string
   lernzielId: string
   text: string
   createdAt: string  // ISO timestamp
 }
 
-export interface ThemaKommentar {
+export type ThemaKommentar = {
   studentId: string
   themaId: string
   text: string
   updatedAt: string  // ISO timestamp
 }
 
-export interface RilzLernziel {
+export type RilzLernziel = {
   id: string
   themaId: string
   label: string
   status: Status
 }
 
-export interface Schueler {
+export type Schueler = {
   id: string
   klassId: string
   vorname: string
@@ -212,7 +205,7 @@ export const PRUEFUNG_TYP_GRUPPEN: { gruppe: string; optionen: { value: Pruefung
   },
 ]
 
-export interface Pruefung {
+export type Pruefung = {
   id: string
   klasseId: string
   fachId: string
@@ -229,11 +222,10 @@ export interface Pruefung {
   erstelltVonId?: string
   nurRilz: boolean
   rilzSchuelerIds: string[]
-  tenantId: string
   createdAt: string
 }
 
-export interface VersuchSnapshot {
+export type VersuchSnapshot = {
   nr: number
   date: string           // 'YYYY-MM-DD'
   punkte?: number
@@ -242,7 +234,7 @@ export interface VersuchSnapshot {
   status?: Status
 }
 
-export interface PruefungErgebnis {
+export type PruefungErgebnis = {
   id: string
   pruefungId: string
   schuelerId: string
@@ -255,11 +247,10 @@ export interface PruefungErgebnis {
   kommentar?: string
   anhangUrls: string[]
   status?: Status
-  tenantId: string
   createdAt: string
 }
 
-export interface Kompetenz {
+export type Kompetenz = {
   id: string
   label: string
 }
@@ -274,7 +265,7 @@ export const SEED_COMPETENCIES: Kompetenz[] = [
 ]
 
 // Mock LP (teacher) — will be replaced by real auth later
-export interface Lehrperson {
+export type Lehrperson = {
   id: string
   name: string
   kuerzel: string  // e.g. "LM" for "Lukas Meier"

@@ -1,18 +1,18 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
-export function ModalRow({ label, displayValue, placeholder, open, onOpenChange, children }: {
+export const ModalRow = ({ label, displayValue, placeholder, open, onOpenChange, children }: {
   label: string
   displayValue?: string
   placeholder?: string
   open: boolean
   onOpenChange: (v: boolean) => void
   children: ReactNode
-}) {
+}) => {
   return (
     <div className="w-full min-w-0">
       <Popover open={open} onOpenChange={onOpenChange}>
@@ -24,7 +24,7 @@ export function ModalRow({ label, displayValue, placeholder, open, onOpenChange,
           )}>
             {displayValue ?? placeholder ?? '—'}
           </span>
-          <ChevronDown className="size-3 text-muted-foreground shrink-0" />
+          <Icon name="expand_more" size={12} className="text-muted-foreground shrink-0" />
         </PopoverTrigger>
         <PopoverContent className="p-1.5 w-52 max-h-[var(--available-height)] overflow-y-auto" align="start" side="bottom" collisionAvoidance={{ side: 'none', align: 'none' }}>
           {children}

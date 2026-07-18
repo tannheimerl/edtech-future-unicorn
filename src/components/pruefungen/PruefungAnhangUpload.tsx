@@ -1,20 +1,21 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { Plus, X, FileText, Loader2 } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { cn } from '@/lib/utils'
+import { toDisplaySrc } from '@/lib/attachments'
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf']
 const MAX_BYTES = 10 * 1024 * 1024
 
-interface Props {
+type Props = {
   urls: string[]
   onUpload: (file: File) => Promise<string | null>
   onDelete: (url: string) => Promise<void>
   disabled?: boolean
 }
 
-export function PruefungAnhangUpload({ urls, onUpload, onDelete, disabled }: Props) {
+export const PruefungAnhangUpload = ({ urls, onUpload, onDelete, disabled }: Props) => {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -41,23 +42,24 @@ export function PruefungAnhangUpload({ urls, onUpload, onDelete, disabled }: Pro
       {urls.map((url) => {
         const isPdf = url.toLowerCase().includes('.pdf') || url.includes('content-type=application%2Fpdf')
         const isDeleting = deleting === url
+        const displaySrc = toDisplaySrc(url)
         return (
           <div key={url} className="group relative">
             {isPdf ? (
               <a
-                href={url}
+                href={displaySrc}
                 target="_blank"
                 rel="noopener noreferrer"
                 title="PDF öffnen"
                 className="flex size-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground hover:bg-accent transition-colors"
               >
-                <FileText className="size-4" />
+                <Icon name="description" size={16} />
               </a>
             ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <a href={url} target="_blank" rel="noopener noreferrer">
+
+              <a href={displaySrc} target="_blank" rel="noopener noreferrer">
                 <img
-                  src={url}
+                  src={displaySrc}
                   alt="Anhang"
                   className="size-10 rounded-lg object-cover border border-border"
                 />
@@ -72,7 +74,7 @@ export function PruefungAnhangUpload({ urls, onUpload, onDelete, disabled }: Pro
                 isDeleting && 'flex opacity-50'
               )}
             >
-              {isDeleting ? <Loader2 className="size-2.5 animate-spin" /> : <X className="size-2.5" />}
+              {isDeleting ? <Icon name="progress_activity" size={10} className="animate-spin" /> : <Icon name="close" size={10} />}
             </button>
           </div>
         )
@@ -86,7 +88,7 @@ export function PruefungAnhangUpload({ urls, onUpload, onDelete, disabled }: Pro
           title="Datei anhängen (Bild oder PDF, max. 10 MB)"
           className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
         >
-          {uploading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+          {uploading ? <Icon name="progress_activity" size={16} className="animate-spin" /> : <Icon name="add" size={16} />}
         </button>
       )}
 

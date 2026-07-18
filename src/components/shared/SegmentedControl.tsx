@@ -3,14 +3,14 @@
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-export interface SegmentedOption<T extends string> {
+type SegmentedOption<T extends string> = {
   key: T
   label: string
   /** Optional override for the active state, e.g. category colors. */
   activeClass?: string
 }
 
-interface SegmentedControlProps<T extends string> {
+type SegmentedControlProps<T extends string> = {
   options: SegmentedOption<T>[]
   value: T
   onChange: (v: T) => void
@@ -25,14 +25,14 @@ interface SegmentedControlProps<T extends string> {
  * choices (Status, Lernziel-Kategorie …). All options stay visible — one click
  * to switch. Built on the shared Button component (default/outline variants).
  */
-export function SegmentedControl<T extends string>({
+export const SegmentedControl = <T extends string,>({
   options,
   value,
   onChange,
   label,
   size = 'xs',
   className,
-}: SegmentedControlProps<T>) {
+}: SegmentedControlProps<T>) => {
   return (
     <div className={cn('flex items-center gap-1.5', className)}>
       {label && (

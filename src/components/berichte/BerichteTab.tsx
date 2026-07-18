@@ -1,15 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, ChevronDown, ChevronRight, Download, FileText, Loader2, User, Users } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { cn, categoryChipClasses } from '@/lib/utils'
 import { generatePdfBlob, downloadZip, triggerDownload } from '@/lib/berichtUtils'
 import type { SchuelerBerichtPDFProps } from '@/components/berichte/SchuelerBerichtPDF'
 import { BerichtPreviewModal } from '@/components/berichte/BerichtPreviewModal'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 
-export function BerichteTab({ klassId }: { klassId: string }) {
+export const BerichteTab = ({ klassId }: { klassId: string }) => {
   const {
     getClass,
     getThemenForKlasse,
@@ -78,7 +79,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
 
   // ── Selection handlers ──────────────────────────────────────────────────
 
-  function selectFach(id: string) {
+  const selectFach = (id: string) => {
     setSelectedFachId(id)
     setSelectedThemaId(null)
     setExcludedLzIds(new Set())
@@ -89,7 +90,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
     setOpenStep(2)
   }
 
-  function selectThema(id: string) {
+  const selectThema = (id: string) => {
     const next = id === selectedThemaId ? null : id
     setSelectedThemaId(next)
     setExcludedLzIds(new Set())
@@ -100,13 +101,13 @@ export function BerichteTab({ klassId }: { klassId: string }) {
     if (next) setOpenStep(3)
   }
 
-  function selectStudentMode(mode: 'all' | 'individual') {
+  const selectStudentMode = (mode: 'all' | 'individual') => {
     setStudentMode(mode)
     if (mode === 'individual') setSelectedStudentIds(new Set())
     if (mode === 'all') setOpenStep(4)
   }
 
-  function toggleStudent(studentId: string) {
+  const toggleStudent = (studentId: string) => {
     setSelectedStudentIds(prev => {
       const next = new Set(prev)
       next.has(studentId) ? next.delete(studentId) : next.add(studentId)
@@ -114,7 +115,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
     })
   }
 
-  function toggleLz(lzId: string) {
+  const toggleLz = (lzId: string) => {
     setExcludedLzIds(prev => {
       const next = new Set(prev)
       next.has(lzId) ? next.delete(lzId) : next.add(lzId)
@@ -122,7 +123,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
     })
   }
 
-  function toggleStep(step: 1 | 2 | 3 | 4) {
+  const toggleStep = (step: 1 | 2 | 3 | 4) => {
     setOpenStep(prev => prev === step ? null : step)
   }
 
@@ -147,7 +148,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
     []
   const pCanDownload = !!pPruefung && pTargetStudents.length > 0 && !pIsGenerating
 
-  async function handlePruefungDownload() {
+  const handlePruefungDownload = async () => {
     if (!pCanDownload || !pPruefung || !pFach) return
     setPIsGenerating(true)
     try {
@@ -196,7 +197,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
 
   // ── PDF generation ──────────────────────────────────────────────────────
 
-  async function handleDownload() {
+  const handleDownload = async () => {
     if (!canDownload || !thema || !fach) return
     setIsGenerating(true)
     try {
@@ -352,14 +353,14 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                         onClick={() => { setPStudentMode('all'); setPOpenStep(3) }}
                         className="px-4 py-1.5"
                       >
-                        <Users className="size-3.5" /> Alle ({students.length})
+                        <Icon name="group" size={14} /> Alle ({students.length})
                       </Button>
                       <Button
                         variant={pStudentMode === 'individual' ? 'default' : 'outline'}
                         onClick={() => { setPStudentMode('individual'); setPSelectedStudentIds(new Set()) }}
                         className="px-4 py-1.5"
                       >
-                        <User className="size-3.5" /> Einzelne
+                        <Icon name="person" size={14} /> Einzelne
                       </Button>
                     </div>
                     {pStudentMode === 'individual' && (
@@ -405,7 +406,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                             pIncludePunkte ? 'bg-primary border-primary' : 'border-border',
                           )}
                         >
-                          {pIncludePunkte && <Check className="size-2.5 text-primary-foreground stroke-[3]" />}
+                          {pIncludePunkte && <Icon name="check" size={10} weight={700} className="text-primary-foreground" />}
                         </div>
                         Punkte
                       </label>
@@ -417,7 +418,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                             pIncludeNote ? 'bg-primary border-primary' : 'border-border',
                           )}
                         >
-                          {pIncludeNote && <Check className="size-2.5 text-primary-foreground stroke-[3]" />}
+                          {pIncludeNote && <Icon name="check" size={10} weight={700} className="text-primary-foreground" />}
                         </div>
                         Note
                       </label>
@@ -460,14 +461,14 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                                 )}
                               </div>
                             )}
-                            <textarea
+                            <Textarea
                               value={pReportKommentare[s.id] ?? ''}
                               onChange={e => setPReportKommentare(prev => ({ ...prev, [s.id]: e.target.value }))}
                               onClick={() => setPPreviewStudentId(s.id)}
                               placeholder="Klicken für Vorschau und Kommentar…"
                               rows={2}
                               readOnly
-                              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                              className="field-sizing-fixed resize-none cursor-pointer"
                             />
                           </div>
                         )
@@ -502,14 +503,14 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                   <Button
                     onClick={handlePruefungDownload}
                     disabled={!pCanDownload}
-                    className="gap-2 px-5 py-2.5"
+                    className="gap-2 px-5 py-2"
                   >
                     {pIsGenerating ? (
-                      <Loader2 className="size-4 animate-spin" />
+                      <Icon name="progress_activity" size={16} className="animate-spin" />
                     ) : pTargetStudents.length === 1 ? (
-                      <FileText className="size-4" />
+                      <Icon name="description" size={16} />
                     ) : (
-                      <Download className="size-4" />
+                      <Icon name="download" size={16} />
                     )}
                     {pIsGenerating
                       ? 'Wird erstellt…'
@@ -585,8 +586,8 @@ export function BerichteTab({ klassId }: { klassId: string }) {
             className="flex w-full h-auto justify-start rounded-none gap-2 px-4 py-2 text-left hover:bg-accent/20"
           >
             {lzOpen
-              ? <ChevronDown className="size-4 text-muted-foreground shrink-0" />
-              : <ChevronRight className="size-4 text-muted-foreground shrink-0" />}
+              ? <Icon name="expand_more" size={16} className="text-muted-foreground shrink-0" />
+              : <Icon name="chevron_right" size={16} className="text-muted-foreground shrink-0" />}
             <span className="text-sm font-medium">Lernziele anpassen</span>
             <span className="ml-auto text-xs text-muted-foreground">{activeLz.length} / {allLz.length}</span>
           </Button>
@@ -608,7 +609,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                       'flex size-4 shrink-0 items-center justify-center rounded-sm border-2 transition-all',
                       isIncluded ? 'border-primary bg-primary' : 'border-muted-foreground/30 bg-background',
                     )}>
-                      {isIncluded && <Check className="size-2.5 text-primary-foreground stroke-[3]" />}
+                      {isIncluded && <Icon name="check" size={10} weight={700} className="text-primary-foreground" />}
                     </div>
                     <span className="flex-1 text-sm">{lz.label}</span>
                     <span className={cn(
@@ -641,7 +642,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                 onClick={() => selectStudentMode('all')}
                 className="px-4 py-1.5"
               >
-                <Users className="size-3.5" />
+                <Icon name="group" size={14} />
                 Alle ({students.length})
               </Button>
               <Button
@@ -649,7 +650,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                 onClick={() => selectStudentMode('individual')}
                 className="px-4 py-1.5"
               >
-                <User className="size-3.5" />
+                <Icon name="person" size={14} />
                 Einzelne
               </Button>
             </div>
@@ -696,14 +697,14 @@ export function BerichteTab({ klassId }: { klassId: string }) {
                   {targetStudents.length > 1 && (
                     <p className="text-xs font-medium text-foreground">{s.vorname} {s.nachname}</p>
                   )}
-                  <textarea
+                  <Textarea
                     value={reportKommentare[s.id] ?? ''}
                     onChange={e => setReportKommentare(prev => ({ ...prev, [s.id]: e.target.value }))}
                     onClick={() => setPreviewStudentId(s.id)}
                     placeholder="Klicken für Vorschau und Kommentar…"
                     rows={3}
                     readOnly
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                    className="field-sizing-fixed resize-none cursor-pointer"
                   />
                   {hasInspiration && (
                     <div className="rounded-md bg-muted/50 px-3 py-2 space-y-1">
@@ -755,14 +756,14 @@ export function BerichteTab({ klassId }: { klassId: string }) {
           <Button
             onClick={handleDownload}
             disabled={!canDownload}
-            className="gap-2 px-5 py-2.5"
+            className="gap-2 px-5 py-2"
           >
             {isGenerating ? (
-              <Loader2 className="size-4 animate-spin" />
+              <Icon name="progress_activity" size={16} className="animate-spin" />
             ) : targetStudents.length === 1 ? (
-              <FileText className="size-4" />
+              <Icon name="description" size={16} />
             ) : (
-              <Download className="size-4" />
+              <Icon name="download" size={16} />
             )}
             {isGenerating
               ? 'Wird erstellt…'
@@ -787,7 +788,7 @@ export function BerichteTab({ klassId }: { klassId: string }) {
 
 // ── Step card component ───────────────────────────────────────────────────
 
-function StepCard({
+const StepCard = ({
   step,
   title,
   summary,
@@ -801,31 +802,31 @@ function StepCard({
   isOpen: boolean
   onToggle: () => void
   children: React.ReactNode
-}) {
+}) => {
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
       <Button
         variant="ghost"
         onClick={onToggle}
-        className="flex w-full h-auto justify-start rounded-none gap-2 px-4 py-2.5 text-left hover:bg-accent/20"
+        className="flex w-full h-auto justify-start rounded-none gap-2 px-4 py-2 text-left hover:bg-accent/20"
       >
         {step !== undefined && (
           <span className={cn(
-            'flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
+            'flex size-5 shrink-0 items-center justify-center rounded-full text-3xs font-bold',
             isOpen ? 'bg-primary text-primary-foreground' : summary ? 'bg-status-reached text-white' : 'bg-muted text-muted-foreground',
           )}>
             {summary && !isOpen ? '✓' : step}
           </span>
         )}
         {!step && (isOpen
-          ? <ChevronDown className="size-4 text-muted-foreground shrink-0" />
-          : <ChevronRight className="size-4 text-muted-foreground shrink-0" />)}
+          ? <Icon name="expand_more" size={16} className="text-muted-foreground shrink-0" />
+          : <Icon name="chevron_right" size={16} className="text-muted-foreground shrink-0" />)}
         <span className="text-sm font-medium">{title}</span>
         {!isOpen && summary && (
           <span className="ml-auto text-sm text-primary font-medium truncate max-w-[50%]">{summary}</span>
         )}
-        {step && isOpen && <ChevronDown className="size-4 text-muted-foreground shrink-0 ml-auto" />}
-        {step && !isOpen && !summary && <ChevronRight className="size-4 text-muted-foreground shrink-0 ml-auto" />}
+        {step && isOpen && <Icon name="expand_more" size={16} className="text-muted-foreground shrink-0 ml-auto" />}
+        {step && !isOpen && !summary && <Icon name="chevron_right" size={16} className="text-muted-foreground shrink-0 ml-auto" />}
       </Button>
       {isOpen && (
         <div className="px-4 pb-4 pt-3 border-t border-border">

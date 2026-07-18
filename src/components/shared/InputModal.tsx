@@ -6,18 +6,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal } from '@/components/shared/Modal'
 
-export function InputModal({ open, onOpenChange, title, label, placeholder, onSubmit }: {
+export const InputModal = ({ open, onOpenChange, title, label, placeholder, onSubmit }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   title: string
   label: string
   placeholder: string
   onSubmit: (v: string) => void
-}) {
+}) => {
   const [value, setValue] = useState('')
   useEffect(() => { if (open) setValue('') }, [open])
 
-  function submit(e?: React.FormEvent) {
+  const submit = (e?: React.FormEvent) => {
     e?.preventDefault()
     if (!value.trim()) return
     onSubmit(value.trim())

@@ -1,10 +1,7 @@
 'use client'
 
 import { Fragment, useEffect, useRef, useState } from 'react'
-import {
-  BookOpen, ChevronDown, ChevronLeft, ChevronRight, Download, PencilLine, Plus,
-  Upload, X, Check, Trash2,
-} from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +12,7 @@ import { FilterDropdown } from '@/components/shared/FilterDropdown'
 import { InputModal } from '@/components/shared/InputModal'
 import { Modal } from '@/components/shared/Modal'
 import { ModalRow } from '@/components/shared/ModalRow'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { ThemaAddPickerModal } from '@/components/shared/ThemaAddPickerModal'
 import { FachZuordnenRow } from '@/components/shared/FachZuordnenRow'
 import { SearchBar } from '@/components/shared/SearchBar'
@@ -42,7 +40,7 @@ const LS_KEY = 'lezio_lz_sichtbare_spalten'
 
 // ── Inline Lernziel section ───────────────────────────────────────────────
 
-function ThemaLZSection({ themaId }: { themaId: string }) {
+const ThemaLZSection = ({ themaId }: { themaId: string }) => {
   const { lernziele } = useData()
   const themaLZ = lernziele.filter(lz => lz.themaId === themaId)
   const grundlegendLZ = themaLZ.filter(lz => lz.kategorie === 'grundlegend')
@@ -53,15 +51,15 @@ function ThemaLZSection({ themaId }: { themaId: string }) {
       {/* Grundlegend */}
       <div className="border-b border-border/40">
         <div className="pl-10 pr-3 py-1 bg-muted/20">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
+          <span className="text-3xs font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
         </div>
         <div className="divide-y divide-border/30">
           {grundlegendLZ.length === 0 && (
-            <p className="pl-10 pr-3 py-1.5 text-[10px] text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
+            <p className="pl-10 pr-3 py-1.5 text-3xs text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
           )}
           {grundlegendLZ.map((lz, i) => (
             <div key={lz.id} className="flex items-center gap-2 pl-10 pr-3 py-1.5">
-              <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">{i + 1}</span>
+              <span className="w-4 shrink-0 text-3xs font-mono text-muted-foreground">{i + 1}</span>
               <span className="flex-1 text-xs leading-snug">{lz.label}</span>
             </div>
           ))}
@@ -71,15 +69,15 @@ function ThemaLZSection({ themaId }: { themaId: string }) {
       {/* Anspruchsvoll */}
       <div>
         <div className="pl-10 pr-3 py-1 bg-muted/20">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
+          <span className="text-3xs font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
         </div>
         <div className="divide-y divide-border/30">
           {anspruchsvollLZ.length === 0 && (
-            <p className="pl-10 pr-3 py-1.5 text-[10px] text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
+            <p className="pl-10 pr-3 py-1.5 text-3xs text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
           )}
           {anspruchsvollLZ.map((lz, i) => (
             <div key={lz.id} className="flex items-center gap-2 pl-10 pr-3 py-1.5">
-              <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">{i + 1}</span>
+              <span className="w-4 shrink-0 text-3xs font-mono text-muted-foreground">{i + 1}</span>
               <span className="flex-1 text-xs leading-snug">{lz.label}</span>
             </div>
           ))}
@@ -91,7 +89,7 @@ function ThemaLZSection({ themaId }: { themaId: string }) {
 
 // ── AddSpalteButton ───────────────────────────────────────────────────────
 
-function AddSpalteButton({
+const AddSpalteButton = ({
   aktiveKolonnen,
   tagKategorien,
   onAdd,
@@ -101,7 +99,7 @@ function AddSpalteButton({
   tagKategorien: TagKategorie[]
   onAdd: (id: string) => void
   onNewKategorie: () => void
-}) {
+}) => {
   const [open, setOpen] = useState(false)
   const atMax = aktiveKolonnen.length >= MAX_SPALTEN
 
@@ -120,7 +118,7 @@ function AddSpalteButton({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger className="flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors shrink-0">
-        <Plus className="size-3" />
+        <Icon name="add" size={12} />
         Spalte
         <span className="text-muted-foreground/50 tabular-nums">{aktiveKolonnen.length}/{MAX_SPALTEN}</span>
       </PopoverTrigger>
@@ -168,7 +166,7 @@ function AddSpalteButton({
                 onSelect={() => { onNewKategorie(); setOpen(false) }}
                 className="text-xs text-primary"
               >
-                <Plus className="size-3 mr-1.5" />
+                <Icon name="add" size={12} className="mr-1.5" />
                 Neue Kategorie erstellen
               </CommandItem>
             </CommandGroup>
@@ -181,11 +179,11 @@ function AddSpalteButton({
 
 // ── Thema Edit Modal ──────────────────────────────────────────────────────
 
-function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
+const ThemaEditModal = ({ themaId, onClose, onRequestDelete }: {
   themaId: string
   onClose: () => void
   onRequestDelete: () => void
-}) {
+}) => {
   const {
     themen, faecher, lernziele, updateThema, exportThema,
     tagKategorien, deleteTagKategorie, getTagWerte, createTagKategorie,
@@ -237,7 +235,7 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
 
   if (!thema) return null
 
-  function save() {
+  const save = () => {
     if (!localName.trim()) return
     updateThema(themaId, {
       name: localName.trim(),
@@ -253,29 +251,29 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
     onClose()
   }
 
-  function openRow(id: string, isOpen: boolean) {
+  const openRow = (id: string, isOpen: boolean) => {
     setOpenRowId(isOpen ? id : null)
   }
 
-  function setTagValue(katId: string, value: string) {
+  const setTagValue = (katId: string, value: string) => {
     setLocalTagValues(prev => ({ ...prev, [katId]: prev[katId] === value ? '' : value }))
     setOpenRowId(null)
   }
 
-  function renderSimpleOptions(
+  const renderSimpleOptions = (
     opts: { value: string; label: string }[],
     current: string,
     onSelect: (v: string) => void,
     clearLabel?: string
-  ) {
+  ) => {
     return (
       <div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto">
         {clearLabel && current && (
           <button
             onClick={() => { onSelect(''); setOpenRowId(null) }}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 text-left"
+            className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 text-left"
           >
-            <X className="size-3 shrink-0" />{clearLabel}
+            <Icon name="close" size={12} className="shrink-0" />{clearLabel}
           </button>
         )}
         {opts.map(opt => (
@@ -283,12 +281,12 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
             key={opt.value}
             onClick={() => { onSelect(opt.value); setOpenRowId(null) }}
             className={cn(
-              'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors text-left',
+              'flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors text-left',
               opt.value === current ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted/60 text-foreground'
             )}
           >
             {opt.value === current
-              ? <Check className="size-3 shrink-0" />
+              ? <Icon name="check" size={12} className="shrink-0" />
               : <span className="size-3 shrink-0" />
             }
             {opt.label}
@@ -302,35 +300,35 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
   const grundlegendLZ = themaLZ.filter(lz => lz.kategorie === 'grundlegend')
   const anspruchsvollLZ = themaLZ.filter(lz => lz.kategorie === 'anspruchsvoll')
 
-  function addLZG() {
+  const addLZG = () => {
     if (!newLZG.trim()) return
     createLernziel(themaId, newLZG.trim(), 'grundlegend')
     setNewLZG('')
   }
 
-  function addLZA() {
+  const addLZA = () => {
     if (!newLZA.trim()) return
     createLernziel(themaId, newLZA.trim(), 'anspruchsvoll')
     setNewLZA('')
   }
 
-  function saveLZ(id: string) {
+  const saveLZ = (id: string) => {
     if (!editLzLabel.trim()) return
     updateLernziel(id, { label: editLzLabel.trim(), kategorie: editLzKategorie })
     setEditLzId(null)
   }
 
-  function renderLZRow(lz: (typeof themaLZ)[number], idx: number) {
+  const renderLZRow = (lz: (typeof themaLZ)[number], idx: number) => {
     return (
       <div key={lz.id} className="group flex items-center gap-2 py-1.5 hover:bg-accent/20 transition-colors px-1">
-        <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">{idx + 1}</span>
+        <span className="w-4 shrink-0 text-3xs font-mono text-muted-foreground">{idx + 1}</span>
         {editLzId === lz.id ? (
           <>
             <div className="flex rounded border overflow-hidden shrink-0 h-6">
               {(['grundlegend', 'anspruchsvoll'] as LernzielKategorie[]).map(k => (
                 <button key={k} onClick={() => setEditLzKategorie(k)}
                   className={cn(
-                    'px-1.5 text-[9px] font-medium transition-colors',
+                    'px-1.5 text-4xs font-medium transition-colors',
                     editLzKategorie === k
                       ? k === 'grundlegend' ? 'bg-category-grundlegend text-white' : 'bg-category-anspruchsvoll text-white'
                       : 'bg-background text-muted-foreground hover:bg-muted',
@@ -344,10 +342,10 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
               onKeyDown={e => { if (e.key === 'Enter') saveLZ(lz.id); if (e.key === 'Escape') setEditLzId(null) }}
               className="h-6 text-xs flex-1 px-1.5" autoFocus />
             <Button size="icon-sm" variant="ghost" onClick={() => saveLZ(lz.id)}>
-              <Check className="size-3 text-status-reached" />
+              <Icon name="check" size={12} className="text-status-reached" />
             </Button>
             <Button size="icon-sm" variant="ghost" onClick={() => setEditLzId(null)}>
-              <X className="size-3" />
+              <Icon name="close" size={12} />
             </Button>
           </>
         ) : (
@@ -357,12 +355,12 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
               <Button size="icon-sm" variant="ghost"
                 onClick={() => { setEditLzId(lz.id); setEditLzLabel(lz.label); setEditLzKategorie(lz.kategorie) }}
                 aria-label="Bearbeiten">
-                <PencilLine className="size-3" />
+                <Icon name="edit" size={12} />
               </Button>
               <Button size="icon-sm" variant="ghost"
                 className="text-destructive/70 hover:text-destructive"
                 onClick={() => setDeleteLzId(lz.id)} aria-label="Löschen">
-                <Trash2 className="size-3" />
+                <Icon name="delete" size={12} />
               </Button>
             </div>
           </>
@@ -385,23 +383,23 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
                 onClick={onRequestDelete}
                 className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded-lg hover:bg-destructive/8"
               >
-                <Trash2 className="size-3.5" />
+                <Icon name="delete" size={14} />
                 Löschen
               </button>
               <div className="flex items-center gap-2">
                 <Button size="sm" variant="ghost" onClick={() => exportThema(themaId)} aria-label="Exportieren" className="text-muted-foreground">
-                  <Download className="size-3.5" />
+                  <Icon name="download" size={14} />
                 </Button>
                 <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
                 <Button size="sm" onClick={() => setEditStep('lernziele')} disabled={!localName.trim()}>
-                  Weiter <ChevronRight className="size-3.5 ml-0.5" />
+                  Weiter <Icon name="chevron_right" size={14} className="ml-0.5" />
                 </Button>
               </div>
             </div>
           ) : (
             <div className="flex items-center justify-between w-full gap-2">
               <Button size="sm" variant="ghost" onClick={() => setEditStep('meta')} className="text-muted-foreground">
-                <ChevronLeft className="size-3.5 mr-0.5" /> Zurück
+                <Icon name="chevron_left" size={14} className="mr-0.5" /> Zurück
               </Button>
               <div className="flex items-center gap-2">
                 <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
@@ -495,16 +493,16 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
                     <div className="border-t border-border/40 mt-0.5 pt-0.5">
                       <button
                         onClick={() => setAddValueKatId(kat.id)}
-                        className="flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-md text-xs text-primary hover:bg-primary/5 transition-colors"
+                        className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs text-primary hover:bg-primary/5 transition-colors"
                       >
-                        <Plus className="size-3 shrink-0" />
+                        <Icon name="add" size={12} className="shrink-0" />
                         Wert hinzufügen
                       </button>
                       <button
                         onClick={() => { setDeleteKatId(kat.id); setOpenRowId(null) }}
-                        className="flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
+                        className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
                       >
-                        <Trash2 className="size-3 shrink-0" />
+                        <Icon name="delete" size={12} className="shrink-0" />
                         Kategorie löschen
                       </button>
                     </div>
@@ -517,7 +515,7 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
                 onClick={() => setNewKatOpen(true)}
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-3 py-1.5 w-full"
               >
-                <Plus className="size-3" />
+                <Icon name="add" size={12} />
                 Kategorie hinzufügen
               </button>
             </div>
@@ -530,11 +528,11 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
             {/* Grundlegend */}
             <div className="border-b border-border/40">
               <div className="py-1 bg-muted/20 px-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
+                <span className="text-3xs font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
               </div>
               <div className="divide-y divide-border/30">
                 {grundlegendLZ.length === 0 && (
-                  <p className="py-1.5 px-1 text-[10px] text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
+                  <p className="py-1.5 px-1 text-3xs text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
                 )}
                 {grundlegendLZ.map((lz, i) => renderLZRow(lz, i))}
               </div>
@@ -543,7 +541,7 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
                   onKeyDown={e => e.key === 'Enter' && addLZG()}
                   placeholder="Grundlegendes Lernziel…" className="h-6 text-xs flex-1" />
                 <Button size="icon-sm" variant="outline" onClick={addLZG} disabled={!newLZG.trim()}>
-                  <Plus className="size-3" />
+                  <Icon name="add" size={12} />
                 </Button>
               </div>
             </div>
@@ -551,11 +549,11 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
             {/* Anspruchsvoll */}
             <div>
               <div className="py-1 bg-muted/20 px-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
+                <span className="text-3xs font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
               </div>
               <div className="divide-y divide-border/30">
                 {anspruchsvollLZ.length === 0 && (
-                  <p className="py-1.5 px-1 text-[10px] text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
+                  <p className="py-1.5 px-1 text-3xs text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
                 )}
                 {anspruchsvollLZ.map((lz, i) => renderLZRow(lz, i))}
               </div>
@@ -564,7 +562,7 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
                   onKeyDown={e => e.key === 'Enter' && addLZA()}
                   placeholder="Anspruchsvolles Lernziel…" className="h-6 text-xs flex-1" />
                 <Button size="icon-sm" variant="outline" onClick={addLZA} disabled={!newLZA.trim()}>
-                  <Plus className="size-3" />
+                  <Icon name="add" size={12} />
                 </Button>
               </div>
             </div>
@@ -613,8 +611,8 @@ function ThemaEditModal({ themaId, onClose, onRequestDelete }: {
 
 // ── Page ──────────────────────────────────────────────────────────────────
 
-export default function LernzielePage() {
-  const { faecher, themen, lernziele, createFach, exportThema, exportFach, importThemaData, deleteThema, deleteFach, tagKategorien, createTagKategorie, getTagWerte } = useData()
+const LernzielePage = () => {
+  const { faecher, themen, lernziele, createFach, exportThema, exportFach, importThemaData, deleteThema, deleteFach, tagKategorien, createTagKategorie, getTagWerte, loadError, reloadData } = useData()
 
   const [aktiveKolonnen, setAktiveKolonnen] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(LS_KEY) ?? '["fach","typ"]') }
@@ -640,44 +638,44 @@ export default function LernzielePage() {
   const [deleteThemaId, setDeleteThemaId] = useState<string | null>(null)
   const [deleteFachId, setDeleteFachId] = useState<string | null>(null)
 
-  function toggleThema(id: string) {
+  const toggleThema = (id: string) => {
     setExpandedThemen(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
 
-  function toggleFach(id: string) {
+  const toggleFach = (id: string) => {
     setCollapsedFaecher(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
 
-  function handleFachCreated(name: string) {
+  const handleFachCreated = (name: string) => {
     const newFachId = createFach(name)
     setFachCreateOpen(false)
     setThemaCreateFachId(newFachId)
   }
 
-  function handleFachOnlyCreated(name: string) {
+  const handleFachOnlyCreated = (name: string) => {
     createFach(name)
     setFachCreateOpen(false)
   }
 
-  function handlePickerNeuErstellen() {
+  const handlePickerNeuErstellen = () => {
     setThemaCreateFachId(themaPickerFachId)
     setThemaPickerFachId(null)
   }
 
-  function handlePickerImportieren() {
+  const handlePickerImportieren = () => {
     setThemaPickerFachId(null)
     // 50ms defer: Radix Dialog must unmount before native file dialog opens
     setTimeout(() => fileInputRef.current?.click(), 50)
   }
 
-  function addKolonne(id: string) {
+  const addKolonne = (id: string) => {
     if (aktiveKolonnen.length >= MAX_SPALTEN || aktiveKolonnen.includes(id)) return
     const next = [...aktiveKolonnen, id]
     setAktiveKolonnen(next)
     localStorage.setItem(LS_KEY, JSON.stringify(next))
   }
 
-  function removeKolonne(id: string) {
+  const removeKolonne = (id: string) => {
     const next = aktiveKolonnen.filter(k => k !== id)
     setAktiveKolonnen(next)
     localStorage.setItem(LS_KEY, JSON.stringify(next))
@@ -714,20 +712,20 @@ export default function LernzielePage() {
 
   const hasActiveFilters = q || Object.values(kolonnenFilter).some(v => v !== '')
 
-  function showImportFeedback(ok: boolean, msg: string) {
+  const showImportFeedback = (ok: boolean, msg: string) => {
     setImportFeedback({ ok, msg })
     setTimeout(() => setImportFeedback(null), 4000)
   }
 
   // Importiert alle Themen mit aufgelösten fachIds (normKey → fachId).
-  function runImport(items: { data: LezioExport }[], fachByKey: Record<string, string>) {
+  const runImport = (items: { data: LezioExport }[], fachByKey: Record<string, string>) => {
     for (const { data } of items) {
       const fachId = fachByKey[normalizeFachName(data.fachName)]
       if (fachId) importThemaData(data, fachId)
     }
   }
 
-  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
     e.target.value = ''
     if (files.length === 0) return
@@ -766,7 +764,7 @@ export default function LernzielePage() {
     if (errors > 0) showImportFeedback(false, `${errors} Datei(en) konnten nicht gelesen werden.`)
   }
 
-  function handleZuordnenConfirm() {
+  const handleZuordnenConfirm = () => {
     const fachByKey: Record<string, string> = {}
     let neueFaecher = 0
     for (const { name } of distinctFaecher) {
@@ -785,54 +783,69 @@ export default function LernzielePage() {
     showImportFeedback(true, importDoneMsg(count, neueFaecher, 0))
   }
 
-  function closeZuordnen() {
+  const closeZuordnen = () => {
     setFachZuordnenOpen(false)
     setImportItems([])
     setDistinctFaecher([])
     setFachChoice({})
   }
 
-  function renderChips(thema: Thema) {
+  const renderChips = (thema: Thema) => {
     const fachIdList = faecher.map(f => f.id)
     return aktiveKolonnen.flatMap((spalteId, idx) => {
       if (spalteId === 'fach') {
         const fach = faecher.find(f => f.id === thema.fachId)
         if (!fach) return []
         const color = getFachColor(thema.fachId, fachIdList, fach?.colorIndex)
-        return [<span key="fach" className={cn('shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium', color.bg)}>{fach.name}</span>]
+        return [<span key="fach" className={cn('shrink-0 rounded-full px-1.5 py-0.5 text-3xs font-medium', color.bg)}>{fach.name}</span>]
       }
       if (spalteId === 'typ') {
         return thema.typ === 'rilz'
-          ? [<span key="typ" className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium bg-rilz-soft text-rilz-foreground">RILZ</span>]
-          : [<span key="typ" className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">Standard</span>]
+          ? [<span key="typ" className="shrink-0 rounded px-1.5 py-0.5 text-3xs font-medium bg-rilz-soft text-rilz-foreground">RILZ</span>]
+          : [<span key="typ" className="shrink-0 rounded px-1.5 py-0.5 text-3xs font-medium bg-muted text-muted-foreground">Standard</span>]
       }
       if (spalteId === 'stufe') {
         if (!thema.stufe?.length) return []
-        return [<span key="stufe" className="shrink-0 text-[10px] rounded px-1.5 py-0.5 bg-muted text-muted-foreground">Kl. {thema.stufe[0]}</span>]
+        return [<span key="stufe" className="shrink-0 text-3xs rounded px-1.5 py-0.5 bg-muted text-muted-foreground">Kl. {thema.stufe[0]}</span>]
       }
       const vals = thema.tags?.[spalteId]
       if (!vals?.length) return []
       return vals.map(v => (
-        <span key={`${idx}-${v}`} className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-accent text-accent-foreground">{v}</span>
+        <span key={`${idx}-${v}`} className="shrink-0 rounded-full px-1.5 py-0.5 text-3xs font-medium bg-accent text-accent-foreground">{v}</span>
       ))
     })
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-8">
+    <div className="page-container py-8">
 
-      {/* Empty state */}
+      {/* Empty / load-error state */}
       {faecher.length === 0 && (
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-accent">
-            <BookOpen className="size-8 text-accent-foreground" />
-          </div>
-          <div>
-            <p className="font-semibold">Noch keine Fächer angelegt</p>
-            <p className="mt-1 text-sm text-muted-foreground">Erstelle dein erstes Fach, um Lernziele zu verwalten.</p>
-          </div>
-          <Button onClick={() => { setFachCreateMode('withThema'); setFachCreateOpen(true) }}>Erstes Fach erstellen</Button>
-        </div>
+        loadError ? (
+          <EmptyState
+            size="lg"
+            icon={<Icon name="cloud_off" size={24} className="text-accent-foreground" />}
+            title="Daten konnten nicht geladen werden"
+            description="Prüfe deine Internetverbindung und versuche es erneut."
+            action={
+              <Button variant="outline" onClick={() => reloadData()}>
+                Erneut laden
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            size="lg"
+            icon={<Icon name="menu_book" size={24} className="text-accent-foreground" />}
+            title="Noch keine Fächer angelegt"
+            description="Erstelle dein erstes Fach, um Lernziele zu verwalten."
+            action={
+              <Button onClick={() => { setFachCreateMode('withThema'); setFachCreateOpen(true) }}>
+                Erstes Fach erstellen
+              </Button>
+            }
+          />
+        )
       )}
 
       {faecher.length > 0 && (
@@ -901,7 +914,7 @@ export default function LernzielePage() {
                 onClick={() => { setSearch(''); setKolonnenFilter({}) }}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                <X className="size-3" /> Filter zurücksetzen
+                <Icon name="close" size={12} /> Filter zurücksetzen
               </button>
             )}
 
@@ -920,7 +933,7 @@ export default function LernzielePage() {
                 </span>
               )}
               <Button size="sm" className="h-auto" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="size-3.5" /> Importieren
+                <Icon name="upload" size={14} /> Importieren
               </Button>
             </>}
           />
@@ -935,7 +948,7 @@ export default function LernzielePage() {
               <p className="text-sm font-medium text-muted-foreground">Noch keine Themen angelegt</p>
               {newThemaFachId && (
                 <Button size="sm" variant="outline" onClick={() => setThemaPickerFachId(newThemaFachId)}>
-                  <Plus className="size-3" /> Erstes Thema erstellen
+                  <Icon name="add" size={12} /> Erstes Thema erstellen
                 </Button>
               )}
             </div>
@@ -957,8 +970,8 @@ export default function LernzielePage() {
                         className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
                       >
                         {fachCollapsed
-                          ? <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
-                          : <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
+                          ? <Icon name="chevron_right" size={14} className="text-muted-foreground shrink-0" />
+                          : <Icon name="expand_more" size={14} className="text-muted-foreground shrink-0" />
                         }
                         <span className="text-xs font-semibold uppercase tracking-wider text-foreground flex-1 text-left">
                           {fach.name}
@@ -972,7 +985,7 @@ export default function LernzielePage() {
                         aria-label={`${fach.name} exportieren`}
                         className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground"
                       >
-                        <Download className="size-3.5" />
+                        <Icon name="download" size={14} />
                       </Button>
                       <Button
                         size="icon-sm"
@@ -981,7 +994,7 @@ export default function LernzielePage() {
                         aria-label={`${fach.name} löschen`}
                         className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-destructive"
                       >
-                        <Trash2 className="size-3.5" />
+                        <Icon name="delete" size={14} />
                       </Button>
                     </div>
 
@@ -999,8 +1012,8 @@ export default function LernzielePage() {
                                       onClick={() => toggleThema(thema.id)}
                                     >
                                       {isExpanded
-                                        ? <ChevronDown className="size-3 text-muted-foreground shrink-0" />
-                                        : <ChevronRight className="size-3 text-muted-foreground shrink-0" />
+                                        ? <Icon name="expand_more" size={12} className="text-muted-foreground shrink-0" />
+                                        : <Icon name="chevron_right" size={12} className="text-muted-foreground shrink-0" />
                                       }
                                       <span className="text-sm font-medium truncate">{thema.name}</span>
                                       {renderChips(thema)}
@@ -1014,7 +1027,7 @@ export default function LernzielePage() {
                                         onClick={e => { e.stopPropagation(); setEditThemaId(thema.id) }}
                                         aria-label="Thema bearbeiten"
                                       >
-                                        <PencilLine className="size-3.5" />
+                                        <Icon name="edit" size={14} />
                                       </Button>
                                       <Button
                                         size="icon-sm"
@@ -1023,7 +1036,7 @@ export default function LernzielePage() {
                                         onClick={e => { e.stopPropagation(); exportThema(thema.id) }}
                                         aria-label="Thema exportieren"
                                       >
-                                        <Download className="size-3" />
+                                        <Icon name="download" size={12} />
                                       </Button>
                                     </div>
                                   </div>
@@ -1034,7 +1047,7 @@ export default function LernzielePage() {
                             })}
 
                         {fachThemen.length === 0 && (
-                          <div className="flex items-center gap-1.5 px-3 py-2.5 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground">
                             {hasActiveFilters ? 'Keine Themen entsprechen den Filtern.' : 'Noch keine Themen angelegt.'}
                           </div>
                         )}
@@ -1042,7 +1055,7 @@ export default function LernzielePage() {
                         <button
                           onClick={() => setThemaPickerFachId(fach.id)}
                           className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-accent/20 transition-colors">
-                          <Plus className="size-3" /> Thema hinzufügen
+                          <Icon name="add" size={12} /> Thema hinzufügen
                         </button>
                       </div>
                     )}
@@ -1055,9 +1068,9 @@ export default function LernzielePage() {
           {/* Neues Fach — ganz unten in der Lernzielsammlung */}
           <button
             onClick={() => { setFachCreateMode('only'); setFachCreateOpen(true) }}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border py-2.5 text-xs text-muted-foreground hover:text-primary hover:bg-accent/20 transition-colors"
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border py-2 text-xs text-muted-foreground hover:text-primary hover:bg-accent/20 transition-colors"
           >
-            <Plus className="size-3" /> Neues Fach
+            <Icon name="add" size={12} /> Neues Fach
           </button>
         </>
       )}
@@ -1156,3 +1169,5 @@ export default function LernzielePage() {
     </div>
   )
 }
+
+export default LernzielePage

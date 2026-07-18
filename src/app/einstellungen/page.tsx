@@ -1,30 +1,53 @@
 'use client'
 
-import { Check } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { FACH_COLORS, getFachColor, cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/shared/EmptyState'
+import { DatenbankSettings } from '@/components/einstellungen/DatenbankSettings'
 import Link from 'next/link'
 
 const COLOR_LABELS = ['Blau', 'Violett', 'Grün', 'Rot', 'Gelb', 'Türkis', 'Pink', 'Indigo']
 
-export default function EinstellungenPage() {
-  const { faecher, updateFachColor } = useData()
+const EinstellungenPage = () => {
+  const { faecher, updateFachColor, loadError, reloadData } = useData()
   const allFachIds = faecher.map(f => f.id)
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-8">
+    <div className="page-container py-8">
       <div className="mb-6">
         <p className="text-lg font-semibold text-foreground">Passe Lezio nach deinen Wünschen an.</p>
       </div>
 
       <div className="max-w-2xl">
+        <DatenbankSettings onDataChanged={reloadData} />
+      </div>
+
+      <div className="max-w-2xl">
         {faecher.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">Noch keine Fächer vorhanden.</p>
-            <Link href="/lernziele" className="text-sm text-primary hover:underline mt-1 inline-block">
-              Fächer in der Lernzielsammlung erstellen →
-            </Link>
-          </div>
+          loadError ? (
+            <EmptyState
+              icon={<Icon name="cloud_off" size={20} className="text-accent-foreground" />}
+              title="Daten konnten nicht geladen werden"
+              description="Prüfe deine Internetverbindung und versuche es erneut."
+              action={
+                <Button variant="outline" size="sm" onClick={() => reloadData()}>
+                  Erneut laden
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={<Icon name="palette" size={20} className="text-accent-foreground" />}
+              title="Noch keine Fächer vorhanden"
+              description={
+                <Link href="/lernziele" className="text-primary hover:underline">
+                  Fächer in der Lernzielsammlung erstellen →
+                </Link>
+              }
+            />
+          )
         ) : (
           <ul className="divide-y divide-border">
             {faecher.map((fach) => {
@@ -53,7 +76,7 @@ export default function EinstellungenPage() {
                           )}
                         >
                           {isActive && (
-                            <Check className="absolute inset-0 m-auto size-3 text-white drop-shadow" strokeWidth={3} />
+                            <Icon name="check" size={12} weight={700} className="absolute inset-0 m-auto text-white drop-shadow" />
                           )}
                         </button>
                       )
@@ -68,3 +91,5 @@ export default function EinstellungenPage() {
     </div>
   )
 }
+
+export default EinstellungenPage

@@ -3,13 +3,13 @@
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
-interface UnderlineTabsProps<T extends string> {
+type UnderlineTabsProps<T extends string> = {
   options: { key: T; label: string }[]
   value: T
   onChange: (v: T) => void
 }
 
-export function UnderlineTabs<T extends string>({ options, value, onChange }: UnderlineTabsProps<T>) {
+export const UnderlineTabs = <T extends string,>({ options, value, onChange }: UnderlineTabsProps<T>) => {
   return (
     <div className="flex border-b border-border -mx-1">
       {options.map(o => (

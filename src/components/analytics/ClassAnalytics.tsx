@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { cn, getFachColor, sv, scoreColor, categoryChipClasses } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
 import { FilterDropdown } from '@/components/shared/FilterDropdown'
 import { SegmentedControl } from '@/components/shared/SegmentedControl'
@@ -15,29 +15,29 @@ import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach } from '@/types
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function studentLZScore(student: Schueler, ids: string[]): number {
+const studentLZScore = (student: Schueler, ids: string[]): number => {
   if (ids.length === 0) return 0
   return (ids.reduce((sum, id) => sum + sv(student.lernzielStatus[id] ?? 'not_reached'), 0) / ids.length) * 100
 }
 
-function isSpecial(s: Schueler): boolean {
+const isSpecial = (s: Schueler): boolean => {
   return !!(s.bvsa || s.rilzFachIds?.length)
 }
 
-function isLZSkipped(lz: Lernziel, student: Schueler, themen: Thema[]): boolean {
+const isLZSkipped = (lz: Lernziel, student: Schueler, themen: Thema[]): boolean => {
   if (lz.kategorie !== 'anspruchsvoll') return false
   if (!student.rilzFachIds?.length) return false
   const thema = themen.find(t => t.id === lz.themaId)
   return !!thema && student.rilzFachIds.includes(thema.fachId)
 }
 
-function studentLZScoreAdjusted(student: Schueler, lzList: Lernziel[], themen: Thema[]): number {
+const studentLZScoreAdjusted = (student: Schueler, lzList: Lernziel[], themen: Thema[]): number => {
   const applicable = lzList.filter(lz => !isLZSkipped(lz, student, themen))
   if (applicable.length === 0) return 0
   return (applicable.reduce((sum, lz) => sum + sv(student.lernzielStatus[lz.id] ?? 'not_reached'), 0) / applicable.length) * 100
 }
 
-function sName(s: Schueler): string {
+const sName = (s: Schueler): string => {
   return `${s.vorname} ${s.nachname}`
 }
 
@@ -57,12 +57,12 @@ const KAT_LABELS: Record<KatFilter, string> = {
 
 // ── Filter bar ─────────────────────────────────────────────────────────────
 
-function FilterBar({
+const FilterBar = ({
   katFilter, onKatChange,
 }: {
   katFilter: KatFilter
   onKatChange: (k: KatFilter) => void
-}) {
+}) => {
   return (
     <SegmentedControl<KatFilter>
       label="Lernziel-Kategorie"
@@ -79,7 +79,7 @@ function FilterBar({
 
 // ── Section label ──────────────────────────────────────────────────────────
 
-function SectionLabel({ label }: { label: string }) {
+const SectionLabel = ({ label }: { label: string }) => {
   return (
     <div className="pb-1 border-b border-border/40">
       <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">{label}</span>
@@ -89,32 +89,32 @@ function SectionLabel({ label }: { label: string }) {
 
 // ── KPI tile ───────────────────────────────────────────────────────────────
 
-function KpiTile({
+const KpiTile = ({
   label, value, sub, valueClass,
 }: {
   label: string
   value: string | number
   sub?: string
   valueClass?: string
-}) {
+}) => {
   return (
     <div className="bg-card border border-border rounded-md px-4 py-3">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">{label}</p>
+      <p className="text-3xs font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">{label}</p>
       <p className={cn('text-2xl font-bold tabular-nums tracking-tight leading-none', valueClass ?? 'text-foreground')}>
         {value}
       </p>
-      {sub && <p className="text-[10px] text-muted-foreground/70 mt-1.5 leading-tight">{sub}</p>}
+      {sub && <p className="text-3xs text-muted-foreground/70 mt-1.5 leading-tight">{sub}</p>}
     </div>
   )
 }
 
 // ── LZ aggregate status bar ────────────────────────────────────────────────
 
-function LZStatusBar({
+const LZStatusBar = ({
   reached, partial, notReached,
 }: {
   reached: number; partial: number; notReached: number
-}) {
+}) => {
   const total = reached + partial + notReached
   if (total === 0) return null
   const rp = (reached / total) * 100
@@ -127,7 +127,7 @@ function LZStatusBar({
         {pp > 0 && <div style={{ width: `${pp}%` }} className="h-full bg-status-partial transition-all" />}
         {np > 0 && <div style={{ width: `${np}%` }} className="h-full bg-status-none-soft transition-all" />}
       </div>
-      <div className="flex gap-4 text-[10px] text-muted-foreground">
+      <div className="flex gap-4 text-3xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="inline-block size-1.5 bg-status-reached shrink-0" />
           {reached} erreicht
@@ -147,11 +147,11 @@ function LZStatusBar({
 
 // ── Distribution bar ───────────────────────────────────────────────────────
 
-function DistributionBar({
+const DistributionBar = ({
   excellent, progressing, struggling, total,
 }: {
   excellent: number; progressing: number; struggling: number; total: number
-}) {
+}) => {
   if (total === 0) return null
   const ep = (excellent / total) * 100
   const pp = (progressing / total) * 100
@@ -161,21 +161,21 @@ function DistributionBar({
       <div className="flex h-3 w-full overflow-hidden bg-muted">
         {ep > 0 && (
           <div style={{ width: `${ep}%` }} className="h-full bg-status-reached flex items-center justify-center transition-all">
-            {ep > 10 && <span className="text-white text-[9px] font-bold tabular-nums">{excellent}</span>}
+            {ep > 10 && <span className="text-white text-4xs font-bold tabular-nums">{excellent}</span>}
           </div>
         )}
         {pp > 0 && (
           <div style={{ width: `${pp}%` }} className="h-full bg-status-partial flex items-center justify-center transition-all">
-            {pp > 10 && <span className="text-white text-[9px] font-bold tabular-nums">{progressing}</span>}
+            {pp > 10 && <span className="text-white text-4xs font-bold tabular-nums">{progressing}</span>}
           </div>
         )}
         {sp > 0 && (
           <div style={{ width: `${sp}%` }} className="h-full bg-status-not-reached flex items-center justify-center transition-all">
-            {sp > 10 && <span className="text-white text-[9px] font-bold tabular-nums">{struggling}</span>}
+            {sp > 10 && <span className="text-white text-4xs font-bold tabular-nums">{struggling}</span>}
           </div>
         )}
       </div>
-      <div className="flex gap-5 text-[10px] text-muted-foreground">
+      <div className="flex gap-5 text-3xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="size-1.5 bg-status-reached inline-block shrink-0" />
           {excellent} sehr gut (≥75%)
@@ -195,7 +195,7 @@ function DistributionBar({
 
 // ── Blue progress bar ──────────────────────────────────────────────────────
 
-function ProgressBar({ pct, h = 'h-1.5' }: { pct: number; h?: string }) {
+const ProgressBar = ({ pct, h = 'h-1.5' }: { pct: number; h?: string }) => {
   return (
     <div className={cn('w-full bg-muted overflow-hidden', h)}>
       <div className="h-full bg-primary transition-all" style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }} />
@@ -205,28 +205,28 @@ function ProgressBar({ pct, h = 'h-1.5' }: { pct: number; h?: string }) {
 
 // ── Student ranking table ──────────────────────────────────────────────────
 
-function StudentRankingTable({
+const StudentRankingTable = ({
   students, sort, onSortChange, onRowClick,
 }: {
   students: ScoredStudent[]
   sort: StudentSort
   onSortChange: (s: StudentSort) => void
   onRowClick?: (studentId: string) => void
-}) {
+}) => {
   const sorted = [...students].sort(
     sort === 'score'
       ? (a, b) => b.score - a.score
       : (a, b) => sName(a).localeCompare(sName(b)),
   )
 
-  function ColHeader({ field, children }: { field: StudentSort; children: React.ReactNode }) {
+  const ColHeader = ({ field, children }: { field: StudentSort; children: React.ReactNode }) => {
     return (
       <Button
         onClick={() => onSortChange(field)}
         variant="ghost"
         size="xs"
         className={cn(
-          'h-auto px-0 font-mono text-[9px] uppercase tracking-widest hover:bg-transparent',
+          'h-auto px-0 font-mono text-4xs uppercase tracking-widest hover:bg-transparent',
           sort === field ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
         )}
       >
@@ -240,7 +240,7 @@ function StudentRankingTable({
       <table className="w-full text-sm border-collapse">
         <thead className="sticky top-0 bg-card z-10 border-b border-border">
           <tr>
-            <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-8">#</th>
+            <th className="py-2 px-3 text-left text-4xs font-mono uppercase tracking-widest text-muted-foreground w-8">#</th>
             <th className="py-2 px-2 text-left"><ColHeader field="name">Name</ColHeader></th>
             <th className="py-2 px-2 text-right"><ColHeader field="score">Score</ColHeader></th>
             <th className="py-2 px-2 w-20"></th>
@@ -257,7 +257,7 @@ function StudentRankingTable({
                 onClick={() => onRowClick?.(s.id)}
               >
                 <td className="py-2 px-3">
-                  <span className="inline-flex items-center justify-center size-5 rounded text-[10px] font-bold tabular-nums bg-muted text-muted-foreground">
+                  <span className="inline-flex items-center justify-center size-5 rounded text-3xs font-bold tabular-nums bg-muted text-muted-foreground">
                     {i + 1}
                   </span>
                 </td>
@@ -267,10 +267,10 @@ function StudentRankingTable({
                 <td className="py-2 px-3 text-right">
                   <div className="flex items-center justify-end gap-1">
                     {s.rilzFachIds?.length
-                      ? <span className="text-[9px] font-bold bg-rilz-soft text-rilz-foreground rounded px-1 py-0.5">RILZ</span>
+                      ? <span className="text-4xs font-bold bg-rilz-soft text-rilz-foreground rounded px-1 py-0.5">RILZ</span>
                       : null}
                     {s.bvsa
-                      ? <span className="text-[9px] font-bold bg-primary/10 text-primary rounded px-1 py-0.5">bVSA</span>
+                      ? <span className="text-4xs font-bold bg-primary/10 text-primary rounded px-1 py-0.5">bVSA</span>
                       : null}
                   </div>
                 </td>
@@ -285,7 +285,7 @@ function StudentRankingTable({
 
 // ── LZ performance row ─────────────────────────────────────────────────────
 
-function LZRow({
+const LZRow = ({
   label, kategorie, reached, partial, total,
 }: {
   label: string
@@ -293,14 +293,14 @@ function LZRow({
   reached: number
   partial: number
   total: number
-}) {
+}) => {
   const pct = total === 0 ? 0 : Math.round(((reached + partial * 0.5) / total) * 100)
   return (
     <div className="py-1.5 px-2 hover:bg-accent transition-colors">
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span className={cn(
-            'shrink-0 rounded px-1 py-0.5 text-[8px] font-bold leading-none',
+            'shrink-0 rounded px-1 py-0.5 text-4xs font-bold leading-none',
             categoryChipClasses(kategorie),
           )}>
             {kategorie === 'grundlegend' ? 'G' : 'A'}
@@ -308,7 +308,7 @@ function LZRow({
           <span className="text-xs truncate">{label}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0 text-xs">
-          <span className="text-[10px] tabular-nums text-muted-foreground">
+          <span className="text-3xs tabular-nums text-muted-foreground">
             <span className="text-status-reached font-medium">{reached}</span>/{total}
           </span>
           <span className={cn('font-bold tabular-nums w-8 text-right', scoreColor(pct))}>{pct}%</span>
@@ -330,7 +330,7 @@ const VIEW_OPTIONS: { key: StatView; label: string }[] = [
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-interface ClassAnalyticsProps {
+type ClassAnalyticsProps = {
   klassId: string
   students: Schueler[]
   themen: Thema[]
@@ -338,16 +338,10 @@ interface ClassAnalyticsProps {
   faecher: Fach[]
 }
 
-export function ClassAnalytics({
+export const ClassAnalytics = ({
   klassId, students, themen, lernziele, faecher,
-}: ClassAnalyticsProps) {
+}: ClassAnalyticsProps) => {
   const { pruefungen, pruefungErgebnisse } = useData()
-  const router = useRouter()
-
-  function navigateToStudent(studentId: string, fachIds: string[] = []) {
-    const params = fachIds.length > 0 ? `?fachIds=${fachIds.join(',')}` : ''
-    router.push(`/klassen/${klassId}/schueler/${studentId}${params}`)
-  }
 
   const [view, setView] = useState<StatView>('gesamt')
   const [selectedFachIds, setSelectedFachIds] = useState<string[]>([])
@@ -592,7 +586,7 @@ export function ClassAnalytics({
 
           {/* KPI tiles */}
           <div className="space-y-3">
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <KpiTile
                 label="Ø Score"
                 value={`${Math.round(avgScore)}%`}
@@ -616,7 +610,6 @@ export function ClassAnalytics({
                 students={scopeScored}
                 sort={studentSort}
                 onSortChange={setStudentSort}
-                onRowClick={id => navigateToStudent(id)}
               />
             </div>
           </div>
@@ -633,12 +626,12 @@ export function ClassAnalytics({
                 <table className="w-full text-sm border-collapse">
                   <thead>
                     <tr className="border-b border-border bg-muted">
-                      <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Fach</th>
-                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">Ø</th>
-                      <th className="py-2 px-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-40">Verlauf</th>
-                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">G</th>
-                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-16">A</th>
-                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground w-12">LZ</th>
+                      <th className="py-2 px-3 text-left text-4xs font-mono uppercase tracking-widest text-muted-foreground">Fach</th>
+                      <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground w-16">Ø</th>
+                      <th className="py-2 px-3 text-4xs font-mono uppercase tracking-widest text-muted-foreground w-40">Verlauf</th>
+                      <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground w-16">G</th>
+                      <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground w-16">A</th>
+                      <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground w-12">LZ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -674,17 +667,17 @@ export function ClassAnalytics({
 
                       return (
                         <tr key={fach.id} className="border-b border-border last:border-b-0 hover:bg-accent transition-colors">
-                          <td className="py-2.5 px-3">
+                          <td className="py-2 px-3">
                             <div className="flex items-center gap-1.5">
                               <span className={cn('size-2 rounded-full shrink-0', fc.dot)} />
                               <span className="text-sm font-medium">{fach.name}</span>
                             </div>
                           </td>
-                          <td className={cn('py-2.5 px-3 text-right tabular-nums font-bold text-sm', scoreColor(avgPct))}>{avgPct}%</td>
-                          <td className="py-2.5 px-3"><ProgressBar pct={avgPct} h="h-1.5" /></td>
-                          <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{avgG !== null ? `${avgG}%` : '—'}</td>
-                          <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{avgA !== null ? `${avgA}%` : '—'}</td>
-                          <td className="py-2.5 px-3 text-right tabular-nums text-xs text-muted-foreground">{fachAllLZ.length}</td>
+                          <td className={cn('py-2 px-3 text-right tabular-nums font-bold text-sm', scoreColor(avgPct))}>{avgPct}%</td>
+                          <td className="py-2 px-3"><ProgressBar pct={avgPct} h="h-1.5" /></td>
+                          <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{avgG !== null ? `${avgG}%` : '—'}</td>
+                          <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{avgA !== null ? `${avgA}%` : '—'}</td>
+                          <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{fachAllLZ.length}</td>
                         </tr>
                       )
                     })}
@@ -706,7 +699,6 @@ export function ClassAnalytics({
                     students={scopeScored}
                     sort={studentSort}
                     onSortChange={setStudentSort}
-                    onRowClick={id => navigateToStudent(id, selectedFachIds)}
                   />
                 </div>
               </div>
@@ -773,7 +765,6 @@ export function ClassAnalytics({
                           students={themaAsScored}
                           sort={studentSort}
                           onSortChange={setStudentSort}
-                          onRowClick={id => navigateToStudent(id, selectedThema?.fach ? [selectedThema.fach.id] : [])}
                         />
                       </div>
                     </div>
@@ -799,9 +790,9 @@ export function ClassAnalytics({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">{selectedPruefung.name}</span>
-                    <span className="text-[10px] bg-primary/10 text-primary rounded px-1.5 py-0.5 font-medium">
+                    <Badge variant="primary">
                       {selectedPruefung.punkteEnabled ? 'Punkte' : selectedPruefung.noteEnabled ? 'Note' : 'Status'}
-                    </span>
+                    </Badge>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                     <span>{selectedPruefung.datum}</span>
@@ -837,7 +828,7 @@ export function ClassAnalytics({
                 <div className="px-4 py-3 border-b border-border flex flex-col sm:flex-row gap-6">
                   {selectedPruefung.punkteEnabled && pointsDistribution && (
                     <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Punkteverteilung</p>
+                      <p className="text-4xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Punkteverteilung</p>
                       <DistributionBars
                         buckets={pointsDistribution.buckets}
                         domainMin={pointsDistribution.min}
@@ -849,7 +840,7 @@ export function ClassAnalytics({
                   )}
                   {selectedPruefung.noteEnabled && gradeDistribution.length > 0 && (
                     <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Notenverteilung</p>
+                      <p className="text-4xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Notenverteilung</p>
                       <DistributionBars
                         buckets={gradeDistribution}
                         domainMin={1}
@@ -875,8 +866,8 @@ export function ClassAnalytics({
                 <table className="w-full text-xs border-collapse">
                   <thead className="sticky top-0 bg-card border-b border-border">
                     <tr>
-                      <th className="py-2 px-3 text-left text-[9px] font-mono uppercase tracking-widest text-muted-foreground">Schüler</th>
-                      <th className="py-2 px-3 text-right text-[9px] font-mono uppercase tracking-widest text-muted-foreground">
+                      <th className="py-2 px-3 text-left text-4xs font-mono uppercase tracking-widest text-muted-foreground">Schüler</th>
+                      <th className="py-2 px-3 text-right text-4xs font-mono uppercase tracking-widest text-muted-foreground">
                         {selectedPruefung.punkteEnabled ? 'Punkte' : selectedPruefung.noteEnabled ? 'Note' : 'Status'}
                       </th>
                       {selectedPruefung.punkteEnabled && selectedPruefung.maxPunkte && <th className="py-2 px-3 w-32"></th>}
@@ -886,8 +877,7 @@ export function ClassAnalytics({
                     {pruefungStudentRows.map(({ student, ergebnis }) => (
                       <tr
                         key={student.id}
-                        className="border-b border-border last:border-b-0 hover:bg-accent transition-colors cursor-pointer"
-                        onClick={() => navigateToStudent(student.id, selectedPruefung?.fachId ? [selectedPruefung.fachId] : [])}
+                        className="border-b border-border last:border-b-0 hover:bg-accent transition-colors"
                       >
                         <td className="py-2 px-3 font-medium">{sName(student)}</td>
                         <td className="py-2 px-3 text-right font-bold tabular-nums">

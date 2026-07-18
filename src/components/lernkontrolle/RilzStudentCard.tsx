@@ -1,24 +1,75 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Check, Minus, X } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { cn, getFachColor } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { AddLzRow } from './RilzBeurteilungView'
+import { Badge } from '@/components/ui/badge'
 import type { Schueler, Thema, Lernziel, Status, RilzLernziel } from '@/types/domain'
 import { STATUS_CYCLE } from '@/types/domain'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 
+// Inline "add RILZ Lernziel" row shown beneath each ad-hoc theme group
+const AddLzRow = ({
+  onAdd,
+}: {
+  onAdd: (label: string) => void
+}) => {
+  const [editing, setEditing] = useState(false)
+  const [label, setLabel] = useState('')
+
+  if (!editing) {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setEditing(true)}
+        className="gap-1.5 px-3 py-2 h-auto text-muted-foreground hover:text-foreground w-full justify-start"
+      >
+        <Icon name="add" size={14} />
+        Lernziel hinzufügen
+      </Button>
+    )
+  }
+
+  const confirm = () => {
+    const trimmed = label.trim()
+    if (trimmed) { onAdd(trimmed); setLabel('') }
+    setEditing(false)
+  }
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-2">
+      <input
+        autoFocus
+        className="flex-1 text-sm border border-border rounded px-2 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+        placeholder="Lernziel beschreiben …"
+        value={label}
+        onChange={e => setLabel(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') confirm(); if (e.key === 'Escape') { setEditing(false); setLabel('') } }}
+      />
+      <Button
+        variant="default"
+        size="icon-sm"
+        onClick={confirm}
+        className="size-7 shrink-0"
+      >
+        <Icon name="check" size={14} />
+      </Button>
+    </div>
+  )
+}
+
 // Square status cell — same visual as main grid, for class grundlegend Lernziele
-function StatusCell({
+const StatusCell = ({
   status,
   onSelect,
 }: {
   status: Status | undefined
   onSelect: (s: Status | undefined) => void
-}) {
-  function next(s: Status | undefined): Status | undefined {
+}) => {
+  const next = (s: Status | undefined): Status | undefined => {
     if (s === undefined) return 'reached'
     if (s === 'reached') return 'partially_reached'
     if (s === 'partially_reached') return 'not_reached'
@@ -42,9 +93,9 @@ function StatusCell({
                                            'bg-status-none-soft text-status-none-fg',
         )}
       >
-        {status === 'reached'           && <Check className="size-3 stroke-[2.5]" />}
-        {status === 'partially_reached' && <Minus className="size-3 stroke-[2.5]" />}
-        {status === 'not_reached'       && <X className="size-3 stroke-[2.5]" />}
+        {status === 'reached'           && <Icon name="check" size={12} weight={600} />}
+        {status === 'partially_reached' && <Icon name="remove" size={12} weight={600} />}
+        {status === 'not_reached'       && <Icon name="close" size={12} weight={600} />}
         {status === undefined           && <span className="size-1.5 rounded-full bg-status-none-fg" />}
       </button>
     </div>
@@ -52,14 +103,14 @@ function StatusCell({
 }
 
 // Square status cell for RILZ Lernziele — cycles without undefined
-function RilzStatusCell({
+const RilzStatusCell = ({
   status,
   onSelect,
 }: {
   status: Status
   onSelect: (s: Status) => void
-}) {
-  function next(s: Status): Status {
+}) => {
+  const next = (s: Status): Status => {
     return STATUS_CYCLE[(STATUS_CYCLE.indexOf(s) + 1) % STATUS_CYCLE.length]
   }
   return (
@@ -78,16 +129,16 @@ function RilzStatusCell({
                                            'bg-status-not-reached-soft text-status-not-reached-fg',
         )}
       >
-        {status === 'reached'           && <Check className="size-3 stroke-[2.5]" />}
-        {status === 'partially_reached' && <Minus className="size-3 stroke-[2.5]" />}
-        {status === 'not_reached'       && <X className="size-3 stroke-[2.5]" />}
+        {status === 'reached'           && <Icon name="check" size={12} weight={600} />}
+        {status === 'partially_reached' && <Icon name="remove" size={12} weight={600} />}
+        {status === 'not_reached'       && <Icon name="close" size={12} weight={600} />}
       </button>
     </div>
   )
 }
 
 // Editable column header for a RILZ Lernziel
-function RilzLzHeader({ lz, studentId }: { lz: RilzLernziel; studentId: string }) {
+const RilzLzHeader = ({ lz, studentId }: { lz: RilzLernziel; studentId: string }) => {
   const { updateRilzLernzielLabel, deleteRilzLernziel } = useData()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(lz.label)
@@ -102,9 +153,9 @@ function RilzLzHeader({ lz, studentId }: { lz: RilzLernziel; studentId: string }
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center justify-between gap-0.5">
-        <span className="rounded px-1 py-px text-[9px] font-semibold bg-rilz-soft text-rilz-foreground shrink-0">
+        <Badge variant="rilz" size="sm">
           RILZ
-        </span>
+        </Badge>
         <Button
           variant="ghost"
           size="icon-xs"
@@ -112,13 +163,13 @@ function RilzLzHeader({ lz, studentId }: { lz: RilzLernziel; studentId: string }
           className="size-3.5 text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 shrink-0"
           title="Lernziel löschen"
         >
-          <X className="size-2.5" />
+          <Icon name="close" size={10} />
         </Button>
       </div>
       {editing ? (
         <input
           autoFocus
-          className="w-full text-[11px] border border-border rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full text-2xs border border-border rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onBlur={confirm}
@@ -129,7 +180,7 @@ function RilzLzHeader({ lz, studentId }: { lz: RilzLernziel; studentId: string }
         />
       ) : (
         <span
-          className="text-[11px] font-medium text-foreground leading-snug cursor-pointer hover:text-rilz-foreground"
+          className="text-2xs font-medium text-foreground leading-snug cursor-pointer hover:text-rilz-foreground"
           onClick={() => { setDraft(lz.label); setEditing(true) }}
           title="Klicken zum Bearbeiten"
         >
@@ -140,7 +191,7 @@ function RilzLzHeader({ lz, studentId }: { lz: RilzLernziel; studentId: string }
   )
 }
 
-export function RilzStudentCard({
+export const RilzStudentCard = ({
   student,
   selectedThemen,
   grundlegendLernziele,
@@ -152,7 +203,7 @@ export function RilzStudentCard({
   grundlegendLernziele: Lernziel[]
   faecher: { id: string; name: string; colorIndex?: number }[]
   rilzLibraryThemen?: Thema[]
-}) {
+}) => {
   const {
     addRilzLernziel,
     updateLernzielStatus,
@@ -198,7 +249,7 @@ export function RilzStudentCard({
   const allRilzLibraryLz = colGroups.flatMap(g => g.rilzLibraryLz)
   const totalCols        = allClassLz.length + allRilzLz.length + allRilzLibraryLz.length
 
-  function computePct(): number {
+  const computePct = (): number => {
     if (totalCols === 0) return 0
     const classSum = allClassLz.reduce((acc, lz) => {
       const st = (student.lernzielStatus[lz.id] as Status | undefined) ?? 'not_reached'
@@ -222,7 +273,7 @@ export function RilzStudentCard({
     <div className="rounded-2xl border border-rilz-border bg-card overflow-hidden">
 
       {/* Student header */}
-      <div className="flex items-center gap-2.5 px-4 py-3 bg-rilz-soft border-b border-rilz-border">
+      <div className="flex items-center gap-2 px-4 py-3 bg-rilz-soft border-b border-rilz-border">
         <div className={cn(
           'size-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0',
           getAvatarColor(student.vorname + ' ' + student.nachname),
@@ -237,13 +288,13 @@ export function RilzStudentCard({
               if (!fach) return null
               const fc = getFachColor(fach.id, faecher.map(f => f.id), fach.colorIndex)
               return (
-                <span key={fachId} className={cn('rounded px-1 py-px text-[9px] font-semibold', fc.bg, fc.text)}>
+                <span key={fachId} className={cn('rounded px-1 py-px text-4xs font-semibold', fc.bg, fc.text)}>
                   RILZ {fach.name}
                 </span>
               )
             })}
             {student.bvsa && (
-              <span className="rounded px-1 py-px text-[9px] font-semibold bg-category-bvsa-soft text-category-bvsa-fg">bVSA</span>
+              <Badge variant="bvsa" size="sm">bVSA</Badge>
             )}
           </div>
         </div>
@@ -276,7 +327,7 @@ export function RilzStudentCard({
                       >
                         <span className="flex items-center justify-center gap-1">
                           {g.fach && (
-                            <span className="flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <span className="flex items-center gap-0.5 text-4xs font-semibold uppercase tracking-wide text-muted-foreground">
                               <span className={cn('size-1.5 rounded-full shrink-0', getFachColor(g.fach.id, allFachIds, g.fach.colorIndex).dot)} />
                               {g.fach.name}
                             </span>
@@ -294,7 +345,7 @@ export function RilzStudentCard({
               <tr className="border-b border-border bg-muted/20">
                 <th className="sticky left-0 z-10 bg-card w-32 min-w-32 border-r border-border px-2 py-1.5 align-bottom">
                   {!showThemeGroupHeader && colGroups[0]?.fach && (
-                    <span className="flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <span className="flex items-center gap-0.5 text-4xs font-semibold uppercase tracking-wide text-muted-foreground">
                       <span className={cn('size-1.5 rounded-full shrink-0', getFachColor(colGroups[0].fach.id, allFachIds, colGroups[0].fach.colorIndex).dot)} />
                       {colGroups[0].fach.name}
                     </span>
@@ -319,8 +370,8 @@ export function RilzStudentCard({
                               style={{ width: 88, minWidth: 88 }}
                             >
                               <div className="flex flex-col gap-0.5">
-                                <span className="rounded px-1 py-px text-[9px] font-semibold bg-rilz-soft text-rilz-foreground self-start">RILZ</span>
-                                <span className="text-[11px] font-medium text-foreground leading-snug">{lz.label}</span>
+                                <Badge variant="rilz" size="sm" className="self-start">RILZ</Badge>
+                                <span className="text-2xs font-medium text-foreground leading-snug">{lz.label}</span>
                               </div>
                             </th>
                           )
@@ -342,8 +393,8 @@ export function RilzStudentCard({
                                 style={{ width: 72, minWidth: 72 }}
                               >
                                 <div className="flex flex-col gap-0.5">
-                                  <span className="rounded px-1 py-px text-[9px] font-semibold bg-category-grundlegend-soft text-category-grundlegend-fg self-start">G</span>
-                                  <span className="text-[11px] font-medium text-foreground leading-snug">{lz.label}</span>
+                                  <Badge variant="grundlegend" size="sm" className="self-start">G</Badge>
+                                  <span className="text-2xs font-medium text-foreground leading-snug">{lz.label}</span>
                                 </div>
                               </th>
                             )
@@ -477,7 +528,7 @@ export function RilzStudentCard({
           {colGroups.filter(g => g.mode === 'adhoc').map(g => (
             <div key={g.thema.id}>
               {colGroups.filter(g => g.mode === 'adhoc').length > 1 && (
-                <p className="px-3 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-rilz-foreground">
+                <p className="px-3 pt-1.5 text-3xs font-semibold uppercase tracking-wide text-rilz-foreground">
                   {g.thema.name}
                 </p>
               )}

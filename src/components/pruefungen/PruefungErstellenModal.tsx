@@ -1,24 +1,27 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronRight, ChevronLeft } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { Modal } from '@/components/shared/Modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Select } from '@/components/ui/select'
 import { useData } from '@/contexts/DataContext'
 import { cn } from '@/lib/utils'
 import type { PruefungTyp } from '@/types/domain'
 import { PRUEFUNG_TYP_GRUPPEN } from '@/types/domain'
 
-interface Props {
+type Props = {
   open: boolean
   onOpenChange: (v: boolean) => void
   klassId: string
   onCreated: (pruefungId: string) => void
 }
 
-export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated }: Props) {
+export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated }: Props) => {
   const { getClass, faecher, themen, lernziele, createPruefung, currentLpId, getStudentsForClass } = useData()
 
   const [step, setStep] = useState(1)
@@ -154,13 +157,13 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
           <>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
             <Button onClick={() => setStep(2)} disabled={!canProceedStep1}>
-              Weiter <ChevronRight className="ml-1 size-4" />
+              Weiter <Icon name="chevron_right" size={16} className="ml-1" />
             </Button>
           </>
         ) : (
           <>
             <Button variant="outline" onClick={() => setStep(1)}>
-              <ChevronLeft className="mr-1 size-4" /> Zurück
+              <Icon name="chevron_left" size={16} className="mr-1" /> Zurück
             </Button>
             <Button onClick={handleCreate}>
               Lernzielkontrolle erstellen
@@ -174,11 +177,10 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
         <div className="grid gap-4 max-h-[65vh] overflow-y-auto pr-1">
           <div className="grid gap-1.5">
             <Label htmlFor="prf-typ">Art der Leistung</Label>
-            <select
+            <Select
               id="prf-typ"
               value={typ}
               onChange={(e) => setTyp(e.target.value as PruefungTyp)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               {PRUEFUNG_TYP_GRUPPEN.map(({ gruppe, optionen }) => (
                 <optgroup key={gruppe} label={gruppe}>
@@ -187,7 +189,7 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
                   ))}
                 </optgroup>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="grid gap-1.5">
@@ -203,13 +205,13 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
 
           <div className="grid gap-1.5">
             <Label htmlFor="prf-beschreibung">Beschreibung (optional)</Label>
-            <textarea
+            <Textarea
               id="prf-beschreibung"
               value={beschreibung}
               onChange={(e) => setBeschreibung(e.target.value)}
               placeholder="Kurze Beschreibung der Aufgabe oder des Leistungsnachweises..."
               rows={2}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 resize-none"
+              className="field-sizing-fixed resize-none"
             />
           </div>
 
@@ -382,7 +384,7 @@ export function PruefungErstellenModal({ open, onOpenChange, klassId, onCreated 
                 <div>
                   <p className="text-sm font-medium leading-none flex items-center gap-1.5">
                     Lernzielstatus
-                    <span className="rounded-full bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground">Standard</span>
+                    <Badge className="rounded-full py-px">Standard</Badge>
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">Erreicht / Teilweise erreicht / Nicht erreicht</p>
                 </div>

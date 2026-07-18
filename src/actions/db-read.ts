@@ -1,170 +1,166 @@
-'use server'
-
-import { cookies } from 'next/headers'
-import { supabaseAdmin } from '@/lib/supabase-server'
-import { resolveTenantId, TENANT_COOKIE } from '@/lib/tenants'
+import { asc } from 'drizzle-orm'
+import { getDrizzle } from '@/lib/drizzle/client'
+import * as schema from '@/lib/drizzle/schema'
 import type {
   Fach, Thema, Lernziel, LernzielKategorie, Lehrperson,
   Klasse, KlasseBeurteilungSettings, Schueler, AssessmentKommentar, ThemaKommentar,
   Pruefung, PruefungErgebnis, VersuchSnapshot, Status, TagKategorie,
 } from '@/types/domain'
 
-export async function getCurrentTenantId(): Promise<string> {
-  const cookieStore = await cookies()
-  return resolveTenantId(cookieStore.get(TENANT_COOKIE)?.value)
+const parseArr = <T>(v: unknown): T[] => {
+  if (v == null) return []
+  try { return JSON.parse(v as string) as T[] } catch { return [] }
 }
 
-export async function fetchAllData() {
-  const tenantId = await getCurrentTenantId()
+const parseObj = <T extends object>(v: unknown, fallback: T): T => {
+  if (v == null) return fallback
+  try { return JSON.parse(v as string) as T } catch { return fallback }
+}
+
+const bool = (v: unknown): boolean => v === 1 || v === true
+
+export const fetchAllData = async () => {
+  const db = getDrizzle()
 
   const [
-    { data: dbFaecher,          error: e1 },
-    { data: dbThemen,           error: e2 },
-    { data: dbLernziele,        error: e3 },
-    { data: dbLehrpersonen,     error: e4 },
-    { data: dbKlassen,          error: e5 },
-    { data: dbKlasseThemen,     error: e6 },
-    { data: dbLpZuweisungen,    error: e7 },
-    { data: dbSchueler,         error: e8 },
-    { data: dbLernzielStatus,   error: e9 },
-    { data: dbRilzLernziele,    error: e10 },
-    { data: dbKommentare,       error: e11 },
-    { data: dbThemaKommentare,  error: e12 },
-    { data: dbPruefungen,       error: e13 },
-    { data: dbPruefungErg,      error: e14 },
-    { data: dbTagKategorien,    error: e15 },
+    dbFaecher, dbThemen, dbLernziele, dbLehrpersonen, dbKlassen,
+    dbKlasseThemen, dbLpZuweisungen, dbSchueler, dbLernzielStatus,
+    dbRilzLernziele, dbKommentare, dbThemaKommentare,
+    dbPruefungen, dbPruefungErg, dbTagKategorien,
   ] = await Promise.all([
-    supabaseAdmin.from('dim_faecher').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('dim_themen').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('dim_lernziele').select('*').eq('tenant_id', tenantId),
-    // Lehrpersonen bleiben geteilte Identitäts-Referenz (kein Schreibpfad in der App).
-    supabaseAdmin.from('dim_lehrpersonen').select('*').in('tenant_id', ['shared', tenantId]),
-    supabaseAdmin.from('dim_klassen').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('bridge_klasse_themen').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('bridge_lp_zuweisungen').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('dim_schueler').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('fact_lernziel_status').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('fact_rilz_lernziele').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('fact_kommentare').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('fact_thema_kommentare').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('fact_pruefungen').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('fact_pruefung_ergebnisse').select('*').eq('tenant_id', tenantId),
-    supabaseAdmin.from('dim_tag_kategorien').select('*').eq('tenant_id', tenantId).order('position'),
+    db.select().from(schema.dimFaecher),
+    db.select().from(schema.dimThemen),
+    db.select().from(schema.dimLernziele),
+    db.select().from(schema.dimLehrpersonen),
+    db.select().from(schema.dimKlassen),
+    db.select().from(schema.bridgeKlasseThemen),
+    db.select().from(schema.bridgeLpZuweisungen),
+    db.select().from(schema.dimSchueler),
+    db.select().from(schema.factLernzielStatus),
+    db.select().from(schema.factRilzLernziele),
+    db.select().from(schema.factKommentare),
+    db.select().from(schema.factThemaKommentare),
+    db.select().from(schema.factPruefungen),
+    db.select().from(schema.factPruefungErgebnisse),
+    db.select().from(schema.dimTagKategorien).orderBy(asc(schema.dimTagKategorien.position)),
   ])
 
-  for (const [label, err] of [
-    ['dim_faecher', e1], ['dim_themen', e2], ['dim_lernziele', e3],
-    ['dim_lehrpersonen', e4], ['dim_klassen', e5], ['bridge_klasse_themen', e6],
-    ['bridge_lp_zuweisungen', e7], ['dim_schueler', e8], ['fact_lernziel_status', e9],
-    ['fact_rilz_lernziele', e10], ['fact_kommentare', e11], ['fact_thema_kommentare', e12],
-    ['fact_pruefungen', e13], ['fact_pruefung_ergebnisse', e14], ['dim_tag_kategorien', e15],
-  ] as const) {
-    if (err) console.error(`fetchAllData ${label}:`, err.message)
-  }
-
-  const faecher: Fach[] = (dbFaecher ?? []).map((f) => ({
+  const faecher: Fach[] = dbFaecher.map((f) => ({
     id: f.id, name: f.name,
-    ...(f.color_index != null ? { colorIndex: f.color_index as number } : {}),
+    ...(f.colorIndex != null ? { colorIndex: f.colorIndex } : {}),
   }))
 
-  const themen: Thema[] = (dbThemen ?? []).map((t) => ({
-    id: t.id, fachId: t.fach_id, name: t.name,
+  const themen: Thema[] = dbThemen.map((t) => ({
+    id: t.id, fachId: t.fachId, name: t.name,
     ...(t.typ ? { typ: t.typ as 'standard' | 'rilz' } : {}),
-    ...(t.standard_thema_id ? { standardThemaId: t.standard_thema_id } : {}),
-    ...(t.faellig_am ? { faelligAm: t.faellig_am } : {}),
-    ...(t.stufe ? { stufe: t.stufe } : {}),
-    ...(t.zyklus ? { zyklus: t.zyklus } : {}),
+    ...(t.standardThemaId ? { standardThemaId: t.standardThemaId } : {}),
+    ...(t.faelligAm ? { faelligAm: t.faelligAm } : {}),
+    ...(t.stufe ? { stufe: parseArr<number>(t.stufe) } : {}),
+    ...(t.zyklus ? { zyklus: parseArr<number>(t.zyklus) } : {}),
     ...(t.autor ? { autor: t.autor } : {}),
-    ...(t.autor_lp_id ? { autorLpId: t.autor_lp_id } : {}),
-    ...(t.tags && Object.keys(t.tags).length > 0 ? { tags: t.tags as Record<string, string[]> } : {}),
+    ...(t.autorLpId ? { autorLpId: t.autorLpId } : {}),
+    ...(() => {
+      const tags = parseObj<Record<string, string[]>>(t.tags, {})
+      return Object.keys(tags).length > 0 ? { tags } : {}
+    })(),
   }))
 
-  const lernziele: Lernziel[] = (dbLernziele ?? []).map((l) => ({
-    id: l.id, themaId: l.thema_id, kategorie: l.kategorie as LernzielKategorie, label: l.label,
-    ...(l.kriterien ? { kriterien: l.kriterien } : {}),
-    ...(l.stufe ? { stufe: l.stufe } : {}),
+  const lernziele: Lernziel[] = dbLernziele.map((l) => ({
+    id: l.id, themaId: l.themaId,
+    kategorie: l.kategorie as LernzielKategorie, label: l.label,
+    ...(l.kriterien ? { kriterien: parseArr<string>(l.kriterien) } : {}),
+    ...(l.stufe ? { stufe: parseArr<number>(l.stufe) } : {}),
     ...(l.beschreibung ? { beschreibung: l.beschreibung } : {}),
   }))
 
-  const lehrpersonen: Lehrperson[] = (dbLehrpersonen ?? []).map((lp) => ({
+  const lehrpersonen: Lehrperson[] = dbLehrpersonen.map((lp) => ({
     id: lp.id, name: lp.name, kuerzel: lp.kuerzel,
   }))
 
-  const classes: Klasse[] = (dbKlassen ?? []).map((k) => ({
+  const classes: Klasse[] = dbKlassen.map((k) => ({
     id: k.id, name: k.name,
     ...(k.schuljahr ? { schuljahr: k.schuljahr } : {}),
-    ...(k.vorgaenger_klasse_id ? { vorgaengerKlasseId: k.vorgaenger_klasse_id } : {}),
-    assignedThemaIds: (dbKlasseThemen ?? [])
-      .filter((kt) => kt.klasse_id === k.id)
-      .map((kt) => kt.thema_id),
-    lpZuweisungen: (dbLpZuweisungen ?? [])
-      .filter((z) => z.klasse_id === k.id)
-      .map((z) => ({ lpId: z.lp_id, fachIds: z.fach_ids ?? [], ...(z.rolle ? { rolle: z.rolle } : {}) })),
-    ...(k.settings ? { beurteilungSettings: k.settings as KlasseBeurteilungSettings } : {}),
+    ...(k.vorgaengerKlasseId ? { vorgaengerKlasseId: k.vorgaengerKlasseId } : {}),
+    assignedThemaIds: dbKlasseThemen
+      .filter((kt) => kt.klasseId === k.id)
+      .map((kt) => kt.themaId),
+    lpZuweisungen: dbLpZuweisungen
+      .filter((z) => z.klasseId === k.id)
+      .map((z) => ({
+        lpId: z.lpId,
+        fachIds: parseArr<string>(z.fachIds),
+        ...(z.rolle ? { rolle: z.rolle } : {}),
+      })),
+    ...(k.settings ? { beurteilungSettings: parseObj<KlasseBeurteilungSettings>(k.settings, {} as KlasseBeurteilungSettings) } : {}),
   }))
 
-  const students: Schueler[] = (dbSchueler ?? []).map((s) => ({
-    id: s.id, klassId: s.klasse_id,
-    vorname: s.vorname, nachname: s.nachname,
-    note: s.note ?? '',
-    bvsa: s.bvsa ?? false,
-    rilzFachIds: s.rilz_fach_ids ?? [],
-    rilzThemaIds: s.rilz_thema_ids ?? [],
-    competencyStatus: s.competency_status ?? {},
+  const students: Schueler[] = dbSchueler.map((sc) => ({
+    id: sc.id, klassId: sc.klasseId,
+    vorname: sc.vorname, nachname: sc.nachname,
+    note: sc.note ?? '',
+    bvsa: bool(sc.bvsa),
+    rilzFachIds: parseArr<string>(sc.rilzFachIds),
+    rilzThemaIds: parseArr<string>(sc.rilzThemaIds),
+    competencyStatus: parseObj<Record<string, Status>>(sc.competencyStatus, {}),
     lernzielStatus: Object.fromEntries(
-      (dbLernzielStatus ?? [])
-        .filter((ls) => ls.schueler_id === s.id)
-        .map((ls) => [ls.lernziel_id, ls.status])
+      dbLernzielStatus
+        .filter((ls) => ls.schuelerId === sc.id)
+        .map((ls) => [ls.lernzielId, ls.status])
     ),
-    lernzielVersuche: s.lernziel_versuche ?? {},
-    progressHistory: s.progress_history ?? [],
-    rilzLernziele: (dbRilzLernziele ?? [])
-      .filter((rl) => rl.schueler_id === s.id)
-      .map((rl) => ({ id: rl.id, themaId: rl.thema_id, label: rl.label, status: rl.status })),
+    lernzielVersuche: parseObj(sc.lernzielVersuche, {}),
+    progressHistory: parseArr(sc.progressHistory),
+    rilzLernziele: dbRilzLernziele
+      .filter((rl) => rl.schuelerId === sc.id)
+      .map((rl) => ({
+        id: rl.id, themaId: rl.themaId,
+        label: rl.label, status: rl.status,
+      })),
   }))
 
-  const kommentare: AssessmentKommentar[] = (dbKommentare ?? []).map((k) => ({
-    studentId: k.schueler_id, lernzielId: k.lernziel_id, text: k.text, createdAt: k.created_at,
+  const kommentare: AssessmentKommentar[] = dbKommentare.map((k) => ({
+    studentId: k.schuelerId, lernzielId: k.lernzielId,
+    text: k.text, createdAt: k.createdAt,
   }))
 
-  const themaKommentare: ThemaKommentar[] = (dbThemaKommentare ?? []).map((k) => ({
-    studentId: k.schueler_id, themaId: k.thema_id, text: k.text, updatedAt: k.updated_at,
+  const themaKommentare: ThemaKommentar[] = dbThemaKommentare.map((k) => ({
+    studentId: k.schuelerId, themaId: k.themaId,
+    text: k.text, updatedAt: k.updatedAt,
   }))
 
-  const pruefungen: Pruefung[] = (dbPruefungen ?? []).map((p) => ({
-    id: p.id, klasseId: p.klasse_id, fachId: p.fach_id,
+  const pruefungen: Pruefung[] = dbPruefungen.map((p) => ({
+    id: p.id, klasseId: p.klasseId, fachId: p.fachId,
     name: p.name, datum: p.datum,
-    lernzielIds: p.lernziel_ids ?? [],
+    lernzielIds: parseArr<string>(p.lernzielIds),
     typ: (p.typ ?? 'pruefung_schriftlich') as Pruefung['typ'],
     ...(p.beschreibung ? { beschreibung: p.beschreibung } : {}),
     status: (p.status ?? 'laufend') as Pruefung['status'],
-    punkteEnabled: p.punkte_enabled ?? false,
-    noteEnabled: p.note_enabled ?? false,
-    anhangEnabled: p.anhang_enabled ?? false,
-    ...(p.max_punkte != null ? { maxPunkte: p.max_punkte } : {}),
-    ...(p.erstellt_von_id ? { erstelltVonId: p.erstellt_von_id } : {}),
-    nurRilz: p.nur_rilz ?? false,
-    rilzSchuelerIds: p.rilz_schueler_ids ?? [],
-    tenantId: p.tenant_id, createdAt: p.created_at,
+    punkteEnabled: bool(p.punkteEnabled),
+    noteEnabled: bool(p.noteEnabled),
+    anhangEnabled: bool(p.anhangEnabled),
+    ...(p.maxPunkte != null ? { maxPunkte: p.maxPunkte } : {}),
+    ...(p.erstelltVonId ? { erstelltVonId: p.erstelltVonId } : {}),
+    nurRilz: bool(p.nurRilz),
+    rilzSchuelerIds: parseArr<string>(p.rilzSchuelerIds),
+    createdAt: p.createdAt as string,
   }))
 
-  const pruefungErgebnisse: PruefungErgebnis[] = (dbPruefungErg ?? []).map((e) => ({
-    id: e.id, pruefungId: e.pruefung_id, schuelerId: e.schueler_id,
+  const pruefungErgebnisse: PruefungErgebnis[] = dbPruefungErg.map((e) => ({
+    id: e.id, pruefungId: e.pruefungId, schuelerId: e.schuelerId,
     ...(e.punkte != null ? { punkte: e.punkte } : {}),
     ...(e.note ? { note: e.note } : {}),
-    anzahlVersuche: e.anzahl_versuche ?? 1,
-    zweiterVersuchAusstehend: e.zweiter_versuch_ausstehend ?? false,
-    abgeschlossen: e.abgeschlossen ?? false,
-    versuchSnapshots: (e.versuch_snapshots as VersuchSnapshot[]) ?? [],
+    anzahlVersuche: e.anzahlVersuche ?? 1,
+    zweiterVersuchAusstehend: bool(e.zweiterVersuchAusstehend),
+    abgeschlossen: bool(e.abgeschlossen),
+    versuchSnapshots: parseArr<VersuchSnapshot>(e.versuchSnapshots),
     ...(e.kommentar ? { kommentar: e.kommentar } : {}),
-    anhangUrls: e.anhang_urls ?? [],
-    ...(e.status ? { status: e.status as Status } : {}),
-    tenantId: e.tenant_id, createdAt: e.created_at,
+    anhangUrls: parseArr<string>(e.anhangUrls),
+    ...(e.status ? { status: e.status } : {}),
+    createdAt: e.createdAt as string,
   }))
 
-  const tagKategorien: TagKategorie[] = (dbTagKategorien ?? []).map((k) => ({
-    id: k.id, name: k.name, tenantId: k.tenant_id,
-    ...(k.lp_id ? { lpId: k.lp_id } : {}),
+  const tagKategorien: TagKategorie[] = dbTagKategorien.map((k) => ({
+    id: k.id, name: k.name,
+    ...(k.lpId ? { lpId: k.lpId } : {}),
   }))
 
   return { faecher, themen, lernziele, lehrpersonen, classes, students, kommentare, themaKommentare, pruefungen, pruefungErgebnisse, tagKategorien }

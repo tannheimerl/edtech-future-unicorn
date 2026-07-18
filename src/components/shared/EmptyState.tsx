@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 
-interface EmptyStateProps {
+type EmptyStateProps = {
   icon?: React.ReactNode
   title: string
   description?: React.ReactNode
@@ -9,14 +9,14 @@ interface EmptyStateProps {
   className?: string
 }
 
-export function EmptyState({
+export const EmptyState = ({
   icon,
   title,
   description,
   action,
   size = 'md',
   className,
-}: EmptyStateProps) {
+}: EmptyStateProps) => {
   const padding = size === 'sm' ? 'py-8' : size === 'lg' ? 'py-20' : 'py-12'
 
   return (

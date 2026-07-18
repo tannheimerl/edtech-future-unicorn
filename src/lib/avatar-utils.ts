@@ -1,4 +1,4 @@
-export const AVATAR_COLORS = [
+const AVATAR_COLORS = [
   'bg-indigo-100 text-indigo-700',
   'bg-emerald-100 text-emerald-700',
   'bg-amber-100 text-amber-700',
@@ -9,13 +9,13 @@ export const AVATAR_COLORS = [
   'bg-orange-100 text-orange-700',
 ]
 
-export function getInitials(name: string): string {
+export const getInitials = (name: string): string => {
   const parts = name.trim().split(/\s+/)
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
   return name.slice(0, 2).toUpperCase()
 }
 
-export function getAvatarColor(name: string): string {
+export const getAvatarColor = (name: string): string => {
   let hash = 0
   for (let i = 0; i < name.length; i++) {
     hash = ((hash << 5) - hash) + name.charCodeAt(i)

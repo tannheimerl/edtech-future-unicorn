@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, CalendarDays, BookOpen, ChevronLeft, ClipboardList, Trash2, RotateCcw } from 'lucide-react'
+import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -13,11 +13,11 @@ import { BeurteilungGrid } from './BeurteilungGrid'
 import { LernkontrolleTab } from '@/components/lernkontrolle/LernkontrolleTab'
 import { cn } from '@/lib/utils'
 
-interface Props {
+type Props = {
   klassId: string
 }
 
-export function BeurteilungTab({ klassId }: Props) {
+export const BeurteilungTab = ({ klassId }: Props) => {
   const {
     getClass, getPruefungenForKlasse, getPruefungErgebnisse,
     getStudentsForClass, faecher, deletePruefung, updatePruefung,
@@ -62,7 +62,7 @@ export function BeurteilungTab({ klassId }: Props) {
               onClick={() => setActivePruefungId(null)}
               className="gap-1 text-muted-foreground"
             >
-              <ChevronLeft className="size-4" />
+              <Icon name="chevron_left" size={16} />
               Beurteilung
             </Button>
             <span className="text-muted-foreground/40">/</span>
@@ -83,7 +83,7 @@ export function BeurteilungTab({ klassId }: Props) {
       <div className="flex items-center gap-2">
         {mode === 'pruefung' && !activePruefungId && (
           <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
-            <Plus className="size-4" /> Neue Lernzielkontrolle
+            <Icon name="add" size={16} /> Neue Lernzielkontrolle
           </Button>
         )}
       </div>
@@ -155,12 +155,12 @@ export function BeurteilungTab({ klassId }: Props) {
       {/* Karten-Grid oder EmptyState */}
       {pruefungen.length === 0 ? (
         <EmptyState
-          icon={<ClipboardList className="size-6 text-muted-foreground" />}
+          icon={<Icon name="assignment" size={24} className="text-muted-foreground" />}
           title="Noch keine Lernzielkontrollen"
           description="Erstelle eine Lernzielkontrolle aus den Lernzielen dieser Klasse."
           action={
             <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
-              <Plus className="size-4" /> Neue Lernzielkontrolle
+              <Icon name="add" size={16} /> Neue Lernzielkontrolle
             </Button>
           }
         />
@@ -205,7 +205,7 @@ export function BeurteilungTab({ klassId }: Props) {
                   className="absolute right-3 top-3 hidden text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover:flex"
                   title="Lernzielkontrolle löschen"
                 >
-                  <Trash2 className="size-3.5" />
+                  <Icon name="delete" size={14} />
                 </Button>
 
                 <div className="flex items-start justify-between gap-2 pr-6">
@@ -229,12 +229,12 @@ export function BeurteilungTab({ klassId }: Props) {
 
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <CalendarDays className="size-3.5" />
+                    <Icon name="calendar_month" size={14} />
                     {new Date(p.datum).toLocaleDateString('de-CH')}
                   </span>
                   {fach && (
                     <span className="flex items-center gap-1">
-                      <BookOpen className="size-3.5" />
+                      <Icon name="menu_book" size={14} />
                       {fach.name}
                     </span>
                   )}
@@ -252,13 +252,13 @@ export function BeurteilungTab({ klassId }: Props) {
                   )}
                   {pending2nd > 0 && (
                     <div className="flex items-center gap-1 text-xs font-medium text-status-partial">
-                      <RotateCcw className="size-3" />
+                      <Icon name="restart_alt" size={12} />
                       <span>{pending2nd} 2. Versuch ausstehend</span>
                     </div>
                   )}
                   {pending3rd > 0 && (
                     <div className="flex items-center gap-1 text-xs font-medium text-status-partial">
-                      <RotateCcw className="size-3" />
+                      <Icon name="restart_alt" size={12} />
                       <span>{pending3rd} 3. Versuch ausstehend</span>
                     </div>
                   )}

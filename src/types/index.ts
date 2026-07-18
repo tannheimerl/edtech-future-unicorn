@@ -1,10 +1,10 @@
 import type { ReactNode } from "react"
 
-export interface WithChildren {
+export type WithChildren = {
   children: ReactNode
 }
 
-export interface WithClassName {
+export type WithClassName = {
   className?: string
 }
 

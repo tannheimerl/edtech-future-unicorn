@@ -1,4 +1,5 @@
 import type { Schueler, Thema, Lernziel, Fach } from '@/types/domain'
+import { sv } from '@/lib/utils'
 
 /**
  * Ein Thema zählt erst in Statistiken, wenn ein Fälligkeitsdatum gesetzt ist
@@ -6,11 +7,11 @@ import type { Schueler, Thema, Lernziel, Fach } from '@/types/domain'
  * zukünftig fällige (i. d. R. noch unbewertete) Themen in die Auswertung ein.
  * @param today aktuelles Datum im Format `YYYY-MM-DD`
  */
-export function themaCountsInStats(t: Thema, today: string): boolean {
+export const themaCountsInStats = (t: Thema, today: string): boolean => {
   return !!t.faelligAm && t.faelligAm <= today
 }
 
-export interface ThemaKpi {
+type ThemaKpi = {
   thema: Thema
   fachId: string
   pct: number
@@ -26,7 +27,7 @@ export interface ThemaKpi {
   aTotal: number
 }
 
-export interface FachKpi {
+type FachKpi = {
   fach: Fach
   pct: number
   reached: number
@@ -40,7 +41,7 @@ export interface FachKpi {
   aTotal: number
 }
 
-export interface StudentKpis {
+export type StudentKpis = {
   gesamtPct: number
   totalLz: number
   openLz: number
@@ -57,12 +58,12 @@ export interface StudentKpis {
   themaKpis: ThemaKpi[]
 }
 
-export function computeStudentKpis(
+export const computeStudentKpis = (
   student: Schueler,
   assignedThemen: Thema[],
   allLernziele: Lernziel[],
   faecher: Fach[],
-): StudentKpis {
+): StudentKpis => {
   const allLZ = assignedThemen.flatMap((t) =>
     allLernziele.filter((lz) => lz.themaId === t.id)
   )
@@ -177,5 +178,73 @@ export function computeStudentKpis(
     notReached,
     fachKpis,
     themaKpis,
+  }
+}
+
+/** RILZ/BVSA-Schüler:innen werden aus dem Klassendurchschnitt ausgeklammert, da ihr Anspruchsniveau nicht vergleichbar ist. */
+export const isSpecialStudent = (s: Pick<Schueler, 'bvsa' | 'rilzFachIds'>): boolean => {
+  return !!(s.bvsa || s.rilzFachIds?.length)
+}
+
+export type KlasseStatsResult = {
+  avgScore: number
+  atRisk: number
+  excellent: number
+  reachedPct: number
+  partialPct: number
+  hasData: boolean
+}
+
+/** Aggregierte Fortschritts-Kennzahlen einer Klasse für die Klassenkarte auf /klassen. */
+export const computeKlasseStats = (
+  students: Schueler[],
+  classThemen: Thema[],
+  lernziele: Lernziel[],
+): KlasseStatsResult => {
+  const allLZ = classThemen.flatMap((t) => lernziele.filter((lz) => lz.themaId === t.id))
+  const allLZIds = allLZ.map((lz) => lz.id)
+  const regularStudents = students.filter((s) => !isSpecialStudent(s))
+
+  let avgScore = 0
+  let atRisk = 0
+  let excellent = 0
+
+  if (allLZIds.length > 0 && regularStudents.length > 0) {
+    const scores = regularStudents.map((s) => {
+      const applicable = allLZ.filter((lz) => {
+        if (lz.kategorie !== 'anspruchsvoll') return true
+        if (!s.rilzFachIds?.length) return true
+        const thema = classThemen.find((t) => t.id === lz.themaId)
+        return !thema || !s.rilzFachIds.includes(thema.fachId)
+      })
+      if (applicable.length === 0) return 0
+      return (
+        (applicable.reduce((sum, lz) => sum + sv(s.lernzielStatus[lz.id] ?? 'not_reached'), 0) /
+          applicable.length) *
+        100
+      )
+    })
+    avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+    atRisk = scores.filter((sc) => sc < 25).length
+    excellent = scores.filter((sc) => sc >= 75).length
+  }
+
+  const reached = allLZIds.reduce(
+    (sum, id) => sum + regularStudents.filter((s) => s.lernzielStatus[id] === 'reached').length,
+    0,
+  )
+  const partial = allLZIds.reduce(
+    (sum, id) => sum + regularStudents.filter((s) => s.lernzielStatus[id] === 'partially_reached').length,
+    0,
+  )
+  const total = allLZIds.length * (regularStudents.length || 1)
+
+  return {
+    avgScore,
+    atRisk,
+    excellent,
+    reachedPct: total > 0 ? (reached / total) * 100 : 0,
+    partialPct: total > 0 ? (partial / total) * 100 : 0,
+    hasData: allLZIds.length > 0,
   }
 }
