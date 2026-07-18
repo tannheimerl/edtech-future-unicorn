@@ -18,10 +18,31 @@ import { themaCountsInStats, computeKlasseStats } from "@/lib/student-kpis";
 
 // ── Klasse stats ──────────────────────────────────────────────────────────
 
-const KeineSchuelerHinweis = () => (
-  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-    <Icon name="group" size={12} />
-    <span>Keine Schüler</span>
+const MetricPill = ({
+  value,
+  label,
+  valueClassName,
+  className,
+}: {
+  value: React.ReactNode;
+  label: string;
+  valueClassName?: string;
+  className?: string;
+}) => (
+  <div
+    className={`flex min-w-0 flex-1 items-center gap-3 rounded-lg bg-muted/60 px-4 py-3 ring-1 ring-border/40 ${className ?? ""}`}
+  >
+    <span className={`text-base font-bold tabular-nums ${valueClassName ?? ""}`}>
+      {value}
+    </span>
+    <span className="truncate text-sm text-muted-foreground">{label}</span>
+  </div>
+);
+
+const GroupBadge = ({ count }: { count: number }) => (
+  <div className="flex h-fit shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium">
+    <Icon name="group" size={14} className="text-muted-foreground" />
+    <span className="tabular-nums">{count}</span>
   </div>
 );
 
@@ -30,66 +51,81 @@ const KlasseStats = ({ klassId }: { klassId: string }) => {
   const students = getStudentsForClass(klassId);
 
   if (students.length === 0) {
-    return <KeineSchuelerHinweis />;
+    return (
+      <div className="flex flex-1 items-center gap-3 rounded-lg bg-muted/60 px-4 py-3 text-sm text-muted-foreground ring-1 ring-border/40">
+        <Icon name="group" size={14} />
+        <span>Keine Schüler</span>
+      </div>
+    );
   }
 
   const today = new Date().toISOString().slice(0, 10);
   const classThemen = getThemenForKlasse(klassId).filter((t) =>
     themaCountsInStats(t, today),
   );
-  const { avgScore, atRisk, excellent, reachedPct, partialPct, hasData } =
-    computeKlasseStats(students, classThemen, lernziele);
+  const { avgScore, atRisk, excellent, hasData } = computeKlasseStats(
+    students,
+    classThemen,
+    lernziele,
+  );
 
   return (
-    <div className="space-y-3">
-      {/* Progress bar */}
-      <div>
-        <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted/70">
-          {reachedPct > 0 && (
-            <div
-              className="bg-status-reached transition-all"
-              style={{ width: `${reachedPct}%` }}
-            />
-          )}
-          {partialPct > 0 && (
-            <div
-              className="bg-status-partial transition-all"
-              style={{ width: `${partialPct}%` }}
-            />
-          )}
-        </div>
-      </div>
+    <div className="flex-1 space-y-2">
+      <MetricPill
+        value={hasData ? `${avgScore}%` : "—"}
+        label="Durchschnittliche Lernziel-Erreichung"
+        valueClassName={
+          avgScore >= 75
+            ? "text-status-reached"
+            : avgScore >= 25
+              ? "text-status-partial"
+              : "text-status-not-reached"
+        }
+      />
+      <MetricPill
+        value={excellent}
+        label="Sehr gute Schüler*innen"
+        valueClassName="text-status-reached"
+      />
+      <MetricPill
+        value={atRisk}
+        label="Förderbedarf erkannt"
+        valueClassName={atRisk > 0 ? "text-status-not-reached" : "text-muted-foreground"}
+      />
+    </div>
+  );
+};
 
-      {/* Metric row */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="bg-muted/60 rounded-md px-2 py-2 text-center ring-1 ring-border/40">
-          <p className="text-3xs font-mono uppercase tracking-normal leading-none text-muted-foreground mb-0.5">
-            Ø Score
-          </p>
-          <p
-            className={`text-base font-bold tabular-nums ${avgScore >= 75 ? "text-status-reached" : avgScore >= 25 ? "text-status-partial" : "text-status-not-reached"}`}
-          >
-            {hasData ? `${avgScore}%` : "—"}
-          </p>
-        </div>
-        <div className="bg-muted/60 rounded-md px-2 py-2 text-center ring-1 ring-border/40">
-          <p className="text-3xs font-mono uppercase tracking-normal leading-none text-muted-foreground mb-0.5">
-            Sehr gut
-          </p>
-          <p className="text-base font-bold tabular-nums text-status-reached">
-            {excellent}
-          </p>
-        </div>
-        <div className="bg-muted/60 rounded-md px-2 py-2 text-center ring-1 ring-border/40">
-          <p className="text-3xs font-mono uppercase tracking-normal leading-none text-muted-foreground mb-0.5">
-            Förderbedarf
-          </p>
-          <p
-            className={`text-base font-bold tabular-nums ${atRisk > 0 ? "text-status-not-reached" : "text-muted-foreground"}`}
-          >
-            {atRisk}
-          </p>
-        </div>
+const LernzielProgress = ({ klassId }: { klassId: string }) => {
+  const { getStudentsForClass, getThemenForKlasse, lernziele } = useData();
+  const students = getStudentsForClass(klassId);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const classThemen = getThemenForKlasse(klassId).filter((t) =>
+    themaCountsInStats(t, today),
+  );
+  const { reachedPct, partialPct } = computeKlasseStats(
+    students,
+    classThemen,
+    lernziele,
+  );
+
+  return (
+    <div>
+      <p className="mb-2 text-sm text-muted-foreground">Lernziel-Fortschritt</p>
+      <div className="flex h-2.5 w-full max-w-[220px] overflow-hidden rounded-full bg-muted/70">
+        {reachedPct > 0 && (
+          <div
+            className="bg-status-reached transition-all"
+            style={{ width: `${reachedPct}%` }}
+          />
+        )}
+        {partialPct > 0 && (
+          <div
+            className="bg-status-partial transition-all"
+            style={{ width: `${partialPct}%` }}
+          />
+        )}
       </div>
     </div>
   );
@@ -170,7 +206,18 @@ const KlassenPage = () => {
   } | null>(null);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-8">
+    <div className="page-container py-8">
+      {/* Header */}
+      <div className="mb-6 flex items-center justify-between">
+        <h1>Deine Klassen</h1>
+        {myClasses.length > 0 && (
+          <Button variant="outline" className="rounded-full" onClick={() => setCreateOpen(true)}>
+            <Icon name="add" size={16} />
+            Neue Klasse erstellen
+          </Button>
+        )}
+      </div>
+
       {/* Empty / load-error state */}
       {myClasses.length === 0 && (
         <div>
@@ -206,8 +253,8 @@ const KlassenPage = () => {
         </div>
       )}
 
-      {/* Class grid */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Class list */}
+      <div className="space-y-4">
         {myClasses.map((klasse) => {
           const students = getStudentsForClass(klasse.id);
           const offeneNachpruefungen = getPruefungenForKlasse(
@@ -220,67 +267,65 @@ const KlassenPage = () => {
           return (
             <div
               key={klasse.id}
-              className="group cursor-pointer rounded-2xl border border-border bg-card p-4 transition-all duration-150 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5"
-              onClick={() => router.push(`/klassen/${klasse.id}`)}
+              className="group cursor-pointer rounded-2xl border border-border bg-card p-6 transition-all duration-150 hover:shadow-md hover:border-primary/30"
+              onClick={() => router.push(`/klassen/detail?klassId=${klasse.id}`)}
             >
-              {/* Card header */}
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div>
-                  <h2 className="text-base font-bold tracking-tight">
+              <div className="flex items-center gap-6">
+                {/* Left column: name + progress */}
+                <div className="flex h-full min-w-[160px] shrink-0 flex-col justify-between gap-6 self-stretch">
+                  <h4>
                     {klasse.name}
-                  </h2>
+                  </h4>
+                  <LernzielProgress klassId={klasse.id} />
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <div className="flex items-center gap-1 text-xs font-semibold text-primary/70 bg-accent rounded-md px-2 py-1">
-                    <Icon name="group" size={12} />
-                    <span className="tabular-nums font-medium">
-                      {students.length}
-                    </span>
-                  </div>
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <Popover
-                      open={openMenuId === klasse.id}
-                      onOpenChange={(isOpen: boolean) =>
-                        setOpenMenuId(isOpen ? klasse.id : null)
-                      }
+
+                {/* Right column: badge + metrics */}
+                <div className="flex min-w-0 flex-1 items-start gap-2">
+                  <GroupBadge count={students.length} />
+                  <KlasseStats klassId={klasse.id} />
+                </div>
+
+                {/* Actions */}
+                <div
+                  className="flex shrink-0 items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Popover
+                    open={openMenuId === klasse.id}
+                    onOpenChange={(isOpen: boolean) =>
+                      setOpenMenuId(isOpen ? klasse.id : null)
+                    }
+                  >
+                    <PopoverTrigger
+                      className="flex size-8 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground"
+                      aria-label="Optionen"
                     >
-                      <PopoverTrigger
-                        className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground"
-                        aria-label="Optionen"
+                      <Icon name="more_horiz" size={16} />
+                    </PopoverTrigger>
+                    <PopoverContent align="end" side="bottom" className="w-44 p-1">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          setDeleteTarget({
+                            id: klasse.id,
+                            name: klasse.name,
+                          });
+                        }}
                       >
-                        <Icon name="more_horiz" size={16} />
-                      </PopoverTrigger>
-                      <PopoverContent
-                        align="end"
-                        side="bottom"
-                        className="w-44 p-1"
-                      >
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="w-full justify-start"
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            setDeleteTarget({
-                              id: klasse.id,
-                              name: klasse.name,
-                            });
-                          }}
-                        >
-                          <Icon name="delete" size={14} />
-                          Klasse löschen
-                        </Button>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                        <Icon name="delete" size={14} />
+                        Klasse löschen
+                      </Button>
+                    </PopoverContent>
+                  </Popover>
+                  <Icon name="chevron_right" size={20} className="text-primary" />
                 </div>
               </div>
 
-              <div className="border-t border-border/60 -mx-4 mb-3" />
-              {/* Stats */}
-              <KlasseStats klassId={klasse.id} />
               {offeneNachpruefungen.length > 0 && (
-                <div className="mt-3 flex items-center gap-1.5 rounded-md bg-status-partial-soft px-2 py-1.5 text-xs font-medium text-status-partial-fg">
+                <div className="mt-4 flex items-center gap-1.5 rounded-md bg-status-partial-soft px-2 py-1.5 text-xs font-medium text-status-partial-fg">
                   <Icon name="restart_alt" size={12} className="shrink-0" />
                   <span>
                     {offeneNachpruefungen.length} offene
@@ -291,16 +336,6 @@ const KlassenPage = () => {
             </div>
           );
         })}
-
-        {/* Add new class card */}
-        <Button
-          variant="secondary"
-          size="icon"
-          onClick={() => setCreateOpen(true)}
-          className="size-10 text-muted-foreground"
-        >
-          <Icon name="add" size={20} />
-        </Button>
       </div>
 
       {/* Create modal */}
@@ -309,7 +344,7 @@ const KlassenPage = () => {
         onOpenChange={setCreateOpen}
         onSubmit={(name) => {
           const id = createClass(name);
-          router.push(`/klassen/${id}`);
+          router.push(`/klassen/detail?klassId=${id}`);
         }}
       />
 

@@ -1,264 +1,239 @@
-'use server'
-
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { getDb, upsert, toInt } from '@/lib/db'
+import { uploadPruefungAnhang, deletePruefungAnhang } from '@/lib/attachments'
 import type { Fach, Thema, Lernziel, Klasse, Schueler, AssessmentKommentar, ThemaKommentar, RilzLernziel, Status, Pruefung, PruefungErgebnis, KlasseBeurteilungSettings, TagKategorie } from '@/types/domain'
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-const log = (label: string, error: { message: string } | null) => {
-  if (error) {
-    console.error(`db-write ${label}:`, error.message)
-    throw new Error(label)
-  }
-}
 
 // ── Klassen ──────────────────────────────────────────────────────────────────
 
 export const dbSaveKlasse = async (klasse: Klasse) => {
-  const { error } = await supabaseAdmin.from('dim_klassen').upsert({
+  const db = await getDb()
+  await upsert(db, 'dim_klassen', {
     id: klasse.id, name: klasse.name,
     schuljahr: klasse.schuljahr ?? null,
     vorgaenger_klasse_id: klasse.vorgaengerKlasseId ?? null,
-    settings: klasse.beurteilungSettings ?? null,
-  }, { onConflict: 'id' })
-  log('dbSaveKlasse', error)
+    settings: klasse.beurteilungSettings ? JSON.stringify(klasse.beurteilungSettings) : null,
+  })
 
-  // Sync bridge_klasse_themen
-  await supabaseAdmin.from('bridge_klasse_themen')
-    .delete().eq('klasse_id', klasse.id)
-  if (klasse.assignedThemaIds.length > 0) {
-    const { error: eKT } = await supabaseAdmin.from('bridge_klasse_themen').insert(
-      klasse.assignedThemaIds.map((themaId) => ({ klasse_id: klasse.id, thema_id: themaId }))
+  await db.execute('DELETE FROM bridge_klasse_themen WHERE klasse_id = $1', [klasse.id])
+  for (const themaId of klasse.assignedThemaIds) {
+    await db.execute(
+      'INSERT INTO bridge_klasse_themen (klasse_id, thema_id) VALUES ($1, $2)',
+      [klasse.id, themaId]
     )
-    log('bridge_klasse_themen insert', eKT)
   }
 
-  // Sync bridge_lp_zuweisungen
-  await supabaseAdmin.from('bridge_lp_zuweisungen')
-    .delete().eq('klasse_id', klasse.id)
-  const zuweisungen = klasse.lpZuweisungen ?? []
-  if (zuweisungen.length > 0) {
-    const { error: eLPZ } = await supabaseAdmin.from('bridge_lp_zuweisungen').insert(
-      zuweisungen.map((z) => ({
-        klasse_id: klasse.id, lp_id: z.lpId,
-        fach_ids: z.fachIds, rolle: z.rolle ?? null,
-      }))
+  await db.execute('DELETE FROM bridge_lp_zuweisungen WHERE klasse_id = $1', [klasse.id])
+  for (const z of klasse.lpZuweisungen ?? []) {
+    await db.execute(
+      'INSERT INTO bridge_lp_zuweisungen (id, klasse_id, lp_id, fach_ids, rolle) VALUES ($1, $2, $3, $4, $5)',
+      [crypto.randomUUID(), klasse.id, z.lpId, JSON.stringify(z.fachIds), z.rolle ?? null]
     )
-    log('bridge_lp_zuweisungen insert', eLPZ)
   }
 }
 
 export const dbSaveBeurteilungSettings = async (klassId: string, settings: KlasseBeurteilungSettings) => {
-  const { error } = await supabaseAdmin.from('dim_klassen')
-    .update({ settings })
-    .eq('id', klassId)
-  log('dbSaveBeurteilungSettings', error)
+  const db = await getDb()
+  await db.execute('UPDATE dim_klassen SET settings = $1 WHERE id = $2', [JSON.stringify(settings), klassId])
 }
 
 export const dbDeleteKlasse = async (id: string) => {
-  const { error } = await supabaseAdmin.from('dim_klassen').delete().eq('id', id)
-  log('dbDeleteKlasse', error)
+  const db = await getDb()
+  await db.execute('DELETE FROM dim_klassen WHERE id = $1', [id])
 }
 
 // ── Schüler ───────────────────────────────────────────────────────────────────
 
 export const dbSaveSchueler = async (s: Schueler) => {
-  const { error } = await supabaseAdmin.from('dim_schueler').upsert({
+  const db = await getDb()
+  await upsert(db, 'dim_schueler', {
     id: s.id, klasse_id: s.klassId,
     vorname: s.vorname, nachname: s.nachname,
-    note: s.note ?? '', bvsa: s.bvsa ?? false,
-    rilz_fach_ids: s.rilzFachIds ?? [],
-    rilz_thema_ids: s.rilzThemaIds ?? [],
-    competency_status: s.competencyStatus ?? {},
-    lernziel_versuche: s.lernzielVersuche ?? {},
-    progress_history: s.progressHistory ?? [],
-  }, { onConflict: 'id' })
-  log('dbSaveSchueler', error)
+    note: s.note ?? '', bvsa: toInt(s.bvsa ?? false),
+    rilz_fach_ids: JSON.stringify(s.rilzFachIds ?? []),
+    rilz_thema_ids: JSON.stringify(s.rilzThemaIds ?? []),
+    competency_status: JSON.stringify(s.competencyStatus ?? {}),
+    lernziel_versuche: JSON.stringify(s.lernzielVersuche ?? {}),
+    progress_history: JSON.stringify(s.progressHistory ?? []),
+  })
 }
 
 export const dbDeleteSchueler = async (id: string) => {
-  const { error } = await supabaseAdmin.from('dim_schueler').delete().eq('id', id)
-  log('dbDeleteSchueler', error)
+  const db = await getDb()
+  await db.execute('DELETE FROM dim_schueler WHERE id = $1', [id])
 }
 
 // ── Lernziel-Status ───────────────────────────────────────────────────────────
 
 export const dbSaveLernzielStatus = async (schueler_id: string, lernziel_id: string, status: Status) => {
-  const { error } = await supabaseAdmin.from('fact_lernziel_status').upsert(
-    { schueler_id, lernziel_id, status },
-    { onConflict: 'schueler_id,lernziel_id' }
-  )
-  log('dbSaveLernzielStatus', error)
+  const db = await getDb()
+  await upsert(db, 'fact_lernziel_status', { schueler_id, lernziel_id, status }, ['schueler_id', 'lernziel_id'])
 }
 
 export const dbDeleteLernzielStatus = async (schueler_id: string, lernziel_id: string) => {
-  const { error } = await supabaseAdmin.from('fact_lernziel_status')
-    .delete().eq('schueler_id', schueler_id).eq('lernziel_id', lernziel_id)
-  log('dbDeleteLernzielStatus', error)
+  const db = await getDb()
+  await db.execute(
+    'DELETE FROM fact_lernziel_status WHERE schueler_id = $1 AND lernziel_id = $2',
+    [schueler_id, lernziel_id]
+  )
 }
 
 // ── RILZ Lernziele ────────────────────────────────────────────────────────────
 
 export const dbSaveRilzLernziel = async (schueler_id: string, rlz: RilzLernziel) => {
-  const { error } = await supabaseAdmin.from('fact_rilz_lernziele').upsert(
-    { id: rlz.id, schueler_id, thema_id: rlz.themaId, label: rlz.label, status: rlz.status },
-    { onConflict: 'id' }
-  )
-  log('dbSaveRilzLernziel', error)
+  const db = await getDb()
+  await upsert(db, 'fact_rilz_lernziele', {
+    id: rlz.id, schueler_id, thema_id: rlz.themaId, label: rlz.label, status: rlz.status,
+  })
 }
 
 export const dbDeleteRilzLernziel = async (id: string) => {
-  const { error } = await supabaseAdmin.from('fact_rilz_lernziele').delete().eq('id', id)
-  log('dbDeleteRilzLernziel', error)
+  const db = await getDb()
+  await db.execute('DELETE FROM fact_rilz_lernziele WHERE id = $1', [id])
 }
 
 // ── Kommentare ────────────────────────────────────────────────────────────────
 
 export const dbSaveKommentar = async (k: AssessmentKommentar) => {
-  const { error } = await supabaseAdmin.from('fact_kommentare').upsert(
-    { schueler_id: k.studentId, lernziel_id: k.lernzielId, text: k.text, created_at: k.createdAt },
-    { onConflict: 'schueler_id,lernziel_id' }
-  )
-  log('dbSaveKommentar', error)
+  const db = await getDb()
+  await upsert(db, 'fact_kommentare', {
+    schueler_id: k.studentId, lernziel_id: k.lernzielId, text: k.text, created_at: k.createdAt,
+  }, ['schueler_id', 'lernziel_id'])
 }
 
 export const dbDeleteKommentar = async (studentId: string, lernzielId: string) => {
-  const { error } = await supabaseAdmin.from('fact_kommentare')
-    .delete().eq('schueler_id', studentId).eq('lernziel_id', lernzielId)
-  log('dbDeleteKommentar', error)
+  const db = await getDb()
+  await db.execute(
+    'DELETE FROM fact_kommentare WHERE schueler_id = $1 AND lernziel_id = $2',
+    [studentId, lernzielId]
+  )
 }
 
 export const dbSaveThemaKommentar = async (k: ThemaKommentar) => {
-  const { error } = await supabaseAdmin.from('fact_thema_kommentare').upsert(
-    { schueler_id: k.studentId, thema_id: k.themaId, text: k.text, updated_at: k.updatedAt },
-    { onConflict: 'schueler_id,thema_id' }
-  )
-  log('dbSaveThemaKommentar', error)
+  const db = await getDb()
+  await upsert(db, 'fact_thema_kommentare', {
+    schueler_id: k.studentId, thema_id: k.themaId, text: k.text, updated_at: k.updatedAt,
+  }, ['schueler_id', 'thema_id'])
 }
 
 export const dbDeleteThemaKommentar = async (studentId: string, themaId: string) => {
-  const { error } = await supabaseAdmin.from('fact_thema_kommentare')
-    .delete().eq('schueler_id', studentId).eq('thema_id', themaId)
-  log('dbDeleteThemaKommentar', error)
+  const db = await getDb()
+  await db.execute(
+    'DELETE FROM fact_thema_kommentare WHERE schueler_id = $1 AND thema_id = $2',
+    [studentId, themaId]
+  )
 }
 
 // ── Fächer ────────────────────────────────────────────────────────────────────
 
 export const dbSaveFach = async (f: Fach) => {
-  const { error } = await supabaseAdmin.from('dim_faecher').upsert(
-    { id: f.id, name: f.name, color_index: f.colorIndex ?? null },
-    { onConflict: 'id' }
-  )
-  log('dbSaveFach', error)
+  const db = await getDb()
+  await upsert(db, 'dim_faecher', { id: f.id, name: f.name, color_index: f.colorIndex ?? null })
 }
 
 export const dbDeleteFach = async (id: string) => {
-  const { error } = await supabaseAdmin.from('dim_faecher').delete().eq('id', id)
-  log('dbDeleteFach', error)
+  const db = await getDb()
+  await db.execute('DELETE FROM dim_faecher WHERE id = $1', [id])
 }
 
 // ── Themen ────────────────────────────────────────────────────────────────────
 
 export const dbSaveThema = async (t: Thema) => {
-  const { error } = await supabaseAdmin.from('dim_themen').upsert({
+  const db = await getDb()
+  await upsert(db, 'dim_themen', {
     id: t.id, fach_id: t.fachId, name: t.name,
     typ: t.typ ?? 'standard',
     standard_thema_id: t.standardThemaId ?? null,
     faellig_am: t.faelligAm ?? null,
-    stufe: t.stufe ?? null,
-    zyklus: t.zyklus ?? null,
+    stufe: t.stufe ? JSON.stringify(t.stufe) : null,
+    zyklus: t.zyklus ? JSON.stringify(t.zyklus) : null,
     autor: t.autor ?? null,
     autor_lp_id: t.autorLpId ?? null,
-    tags: t.tags ?? {},
-  }, { onConflict: 'id' })
-  log('dbSaveThema', error)
+    tags: JSON.stringify(t.tags ?? {}),
+  })
 }
 
 // ── Tag-Kategorien ────────────────────────────────────────────────────────────
 
 export const dbSaveTagKategorie = async (kat: TagKategorie) => {
-  const { error } = await supabaseAdmin.from('dim_tag_kategorien').upsert({
-    id: kat.id, name: kat.name, lp_id: kat.lpId ?? null,
-  }, { onConflict: 'id' })
-  log('dbSaveTagKategorie', error)
+  const db = await getDb()
+  await upsert(db, 'dim_tag_kategorien', { id: kat.id, name: kat.name, lp_id: kat.lpId ?? null })
 }
 
 export const dbDeleteTagKategorie = async (id: string) => {
-  const { error } = await supabaseAdmin.from('dim_tag_kategorien').delete().eq('id', id)
-  log('dbDeleteTagKategorie', error)
+  const db = await getDb()
+  await db.execute('DELETE FROM dim_tag_kategorien WHERE id = $1', [id])
 }
 
 export const dbDeleteThema = async (id: string) => {
+  const db = await getDb()
   // dim_lernziele.thema_id und fact_rilz_lernziele.thema_id haben KEIN
   // ON DELETE CASCADE — diese Kinder müssen zuerst weg, sonst verweigert
-  // Postgres das Löschen des Themas (und es taucht nach Refresh wieder auf).
-  await supabaseAdmin.from('fact_rilz_lernziele').delete().eq('thema_id', id)
+  // SQLite das Löschen des Themas (und es taucht nach Refresh wieder auf).
+  await db.execute('DELETE FROM fact_rilz_lernziele WHERE thema_id = $1', [id])
   // RILZ-Themen, die dieses Thema als Standard referenzieren, entkoppeln.
-  await supabaseAdmin.from('dim_themen').update({ standard_thema_id: null }).eq('standard_thema_id', id)
+  await db.execute('UPDATE dim_themen SET standard_thema_id = NULL WHERE standard_thema_id = $1', [id])
   // Lernziele löschen — deren fact_lernziel_status/fact_kommentare cascaden via lernziel_id.
-  await supabaseAdmin.from('dim_lernziele').delete().eq('thema_id', id)
+  await db.execute('DELETE FROM dim_lernziele WHERE thema_id = $1', [id])
   // Thema selbst — bridge_klasse_themen & fact_thema_kommentare cascaden via thema_id.
-  const { error } = await supabaseAdmin.from('dim_themen').delete().eq('id', id)
-  log('dbDeleteThema', error)
+  await db.execute('DELETE FROM dim_themen WHERE id = $1', [id])
 }
 
 // ── Lernziele ─────────────────────────────────────────────────────────────────
 
 export const dbSaveLernziel = async (l: Lernziel) => {
-  const { error } = await supabaseAdmin.from('dim_lernziele').upsert({
+  const db = await getDb()
+  await upsert(db, 'dim_lernziele', {
     id: l.id, thema_id: l.themaId, kategorie: l.kategorie, label: l.label,
-    kriterien: l.kriterien ?? null,
-    stufe: l.stufe ?? null,
+    kriterien: l.kriterien ? JSON.stringify(l.kriterien) : null,
+    stufe: l.stufe ? JSON.stringify(l.stufe) : null,
     beschreibung: l.beschreibung ?? null,
-  }, { onConflict: 'id' })
-  log('dbSaveLernziel', error)
+  })
 }
 
 export const dbDeleteLernziel = async (id: string) => {
-  const { error } = await supabaseAdmin.from('dim_lernziele').delete().eq('id', id)
-  log('dbDeleteLernziel', error)
+  const db = await getDb()
+  await db.execute('DELETE FROM dim_lernziele WHERE id = $1', [id])
 }
 
 // ── Prüfungen ─────────────────────────────────────────────────────────────────
 
 export const dbSavePruefung = async (p: Pruefung) => {
-  const { error } = await supabaseAdmin.from('fact_pruefungen').upsert({
+  const db = await getDb()
+  await upsert(db, 'fact_pruefungen', {
     id: p.id, klasse_id: p.klasseId, fach_id: p.fachId,
     name: p.name, datum: p.datum,
-    lernziel_ids: p.lernzielIds,
+    lernziel_ids: JSON.stringify(p.lernzielIds),
     typ: p.typ,
     beschreibung: p.beschreibung ?? null,
     status: p.status,
-    punkte_enabled: p.punkteEnabled,
-    note_enabled: p.noteEnabled,
-    anhang_enabled: p.anhangEnabled,
+    punkte_enabled: toInt(p.punkteEnabled),
+    note_enabled: toInt(p.noteEnabled),
+    anhang_enabled: toInt(p.anhangEnabled),
     max_punkte: p.maxPunkte ?? null,
     erstellt_von_id: p.erstelltVonId ?? null,
-    nur_rilz: p.nurRilz,
-    rilz_schueler_ids: p.rilzSchuelerIds,
-  }, { onConflict: 'id' })
-  log('dbSavePruefung', error)
+    nur_rilz: toInt(p.nurRilz),
+    rilz_schueler_ids: JSON.stringify(p.rilzSchuelerIds),
+  })
 }
 
 export const dbDeletePruefung = async (id: string) => {
-  const { error } = await supabaseAdmin.from('fact_pruefungen').delete().eq('id', id)
-  log('dbDeletePruefung', error)
+  const db = await getDb()
+  await db.execute('DELETE FROM fact_pruefungen WHERE id = $1', [id])
 }
 
 export const dbSavePruefungErgebnis = async (e: PruefungErgebnis) => {
-  const { error } = await supabaseAdmin.from('fact_pruefung_ergebnisse').upsert({
+  const db = await getDb()
+  await upsert(db, 'fact_pruefung_ergebnisse', {
     id: e.id, pruefung_id: e.pruefungId, schueler_id: e.schuelerId,
     punkte: e.punkte ?? null,
     note: e.note ?? null,
     anzahl_versuche: e.anzahlVersuche,
-    zweiter_versuch_ausstehend: e.zweiterVersuchAusstehend,
-    abgeschlossen: e.abgeschlossen,
-    versuch_snapshots: e.versuchSnapshots,
+    zweiter_versuch_ausstehend: toInt(e.zweiterVersuchAusstehend),
+    abgeschlossen: toInt(e.abgeschlossen),
+    versuch_snapshots: JSON.stringify(e.versuchSnapshots),
     kommentar: e.kommentar ?? null,
-    anhang_urls: e.anhangUrls,
+    anhang_urls: JSON.stringify(e.anhangUrls),
     status: e.status ?? null,
-  }, { onConflict: 'id' })
-  log('dbSavePruefungErgebnis', error)
+  })
 }
 
 export const dbUploadPruefungAnhang = async (
@@ -266,21 +241,14 @@ export const dbUploadPruefungAnhang = async (
   schuelerId: string,
   file: File,
 ): Promise<string | null> => {
-  const ext = file.name.split('.').pop() ?? 'bin'
-  const path = `${pruefungId}/${schuelerId}/${crypto.randomUUID()}.${ext}`
-  const arrayBuffer = await file.arrayBuffer()
-  const { error } = await supabaseAdmin.storage
-    .from('lezio-anhaenge')
-    .upload(path, arrayBuffer, { contentType: file.type, upsert: false })
-  if (error) { log('dbUploadPruefungAnhang', error); return null }
-  const { data } = supabaseAdmin.storage.from('lezio-anhaenge').getPublicUrl(path)
-  return data.publicUrl
+  try {
+    return await uploadPruefungAnhang(pruefungId, schuelerId, file)
+  } catch (err) {
+    console.error('dbUploadPruefungAnhang', err)
+    return null
+  }
 }
 
 export const dbDeletePruefungAnhang = async (url: string): Promise<void> => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const prefix = `${supabaseUrl}/storage/v1/object/public/lezio-anhaenge/`
-  const path = url.startsWith(prefix) ? url.slice(prefix.length) : url
-  const { error } = await supabaseAdmin.storage.from('lezio-anhaenge').remove([path])
-  log('dbDeletePruefungAnhang', error)
+  await deletePruefungAnhang(url)
 }

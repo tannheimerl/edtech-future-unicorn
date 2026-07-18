@@ -10,7 +10,7 @@ type FooterProps = {
 export const Footer = ({ siteName = "Lezio", className }: FooterProps) => {
   return (
     <footer className={cn("w-full mt-auto border-t border-border/60", className)}>
-      <div className="mx-auto flex h-7 max-w-7xl items-center px-6">
+      <div className="page-container flex h-7 items-center">
         <p className="text-xs text-muted-foreground">
           &copy; {new Date().getFullYear()} {siteName}
         </p>

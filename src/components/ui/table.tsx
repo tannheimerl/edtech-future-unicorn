@@ -5,13 +5,13 @@ import { cn } from "@/lib/utils"
 
 /*
   Reusable table primitives. Styling mirrors the Schüler admin table
-  (see /klassen/[klassId] → "Schüler" tab) so every list/data table across
+  (see /klassen/detail → "Schüler" tab) so every list/data table across
   the app shares one look:
 
     • card container   → rounded-2xl border bg-card
-    • header row       → bg-muted/40, border-b, xs muted labels
+    • header row       → bg-muted, border-b, bold labels
     • body rows        → divided, hover:bg-accent/30
-    • cells            → px-3 py-1.5, text-sm
+    • cells            → px-4 py-3, text-sm
 
   Compose as:
     <Table>
@@ -74,7 +74,7 @@ const TableHeader = ({
   return (
     <thead
       data-slot="table-header"
-      className={cn("bg-muted/40 select-none", className)}
+      className={cn("bg-muted select-none", className)}
       {...props}
     >
       <tr className="border-b border-border">{children}</tr>
@@ -120,7 +120,7 @@ const TableHead = ({
     <th
       data-slot="table-head"
       className={cn(
-        "px-3 py-1.5 align-middle text-xs font-medium text-muted-foreground whitespace-nowrap",
+        "px-4 py-3 align-middle text-sm font-semibold text-foreground whitespace-nowrap",
         alignText[align],
         className,
       )}
@@ -137,7 +137,7 @@ const TableCell = ({
   return (
     <td
       data-slot="table-cell"
-      className={cn("px-3 py-1.5 align-middle", alignText[align], className)}
+      className={cn("px-4 py-3 align-middle", alignText[align], className)}
       {...props}
     />
   )
@@ -167,7 +167,7 @@ const TableSortHeader = ({
         type="button"
         onClick={onClick}
         className={cn(
-          "flex w-full items-center gap-0.5 px-3 py-1.5 transition-colors hover:text-foreground",
+          "flex w-full items-center gap-0.5 px-4 py-3 transition-colors hover:text-foreground",
           alignJustify[align],
         )}
       >

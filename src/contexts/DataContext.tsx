@@ -3,9 +3,9 @@
 /*
   ── Backend integration ────────────────────────────────────────────────────────
   Write-through cache: local React state is the source of truth for the UI;
-  every mutation also fires a server action to persist the change in Supabase.
-  On mount, data is loaded from Supabase (fetchAllData). The context interface
-  is unchanged so no view component needs updating.
+  every mutation also fires a query to persist the change in the local SQLite
+  database (src/lib/db.ts). On mount, data is loaded from SQLite (fetchAllData).
+  The context interface is unchanged so no view component needs updating.
 
   State lives here; the mutations/queries themselves are split by domain into
   src/hooks/data/*, each taking the relevant state + setters as arguments.
@@ -80,7 +80,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [tagKategorien, setTagKategorien] = useState<TagKategorie[]>([])
   const competencies = SEED_COMPETENCIES
 
-  // Reload all data from Supabase into context state. Used on mount and to
+  // Reload all data from SQLite into context state. Used on mount and to
   // resync the optimistic UI with the DB after a failed write.
   const reloadData = useCallback(() => {
     return fetchAllData()
@@ -104,7 +104,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       })
   }, [])
 
-  // Load all data from Supabase on mount
+  // Load all data from SQLite on mount
   useEffect(() => {
     reloadData().finally(() => setIsLoading(false))
   }, [reloadData])

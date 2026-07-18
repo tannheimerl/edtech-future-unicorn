@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { Icon } from "@/components/ui/Icon"
 import { cn } from '@/lib/utils'
+import { toDisplaySrc } from '@/lib/attachments'
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf']
 const MAX_BYTES = 10 * 1024 * 1024
@@ -41,11 +42,12 @@ export const PruefungAnhangUpload = ({ urls, onUpload, onDelete, disabled }: Pro
       {urls.map((url) => {
         const isPdf = url.toLowerCase().includes('.pdf') || url.includes('content-type=application%2Fpdf')
         const isDeleting = deleting === url
+        const displaySrc = toDisplaySrc(url)
         return (
           <div key={url} className="group relative">
             {isPdf ? (
               <a
-                href={url}
+                href={displaySrc}
                 target="_blank"
                 rel="noopener noreferrer"
                 title="PDF öffnen"
@@ -54,10 +56,10 @@ export const PruefungAnhangUpload = ({ urls, onUpload, onDelete, disabled }: Pro
                 <Icon name="description" size={16} />
               </a>
             ) : (
-               
-              <a href={url} target="_blank" rel="noopener noreferrer">
+
+              <a href={displaySrc} target="_blank" rel="noopener noreferrer">
                 <img
-                  src={url}
+                  src={displaySrc}
                   alt="Anhang"
                   className="size-10 rounded-lg object-cover border border-border"
                 />

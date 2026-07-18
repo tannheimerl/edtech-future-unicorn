@@ -5,6 +5,7 @@ import { useData } from '@/contexts/DataContext'
 import { FACH_COLORS, getFachColor, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { DatenbankSettings } from '@/components/einstellungen/DatenbankSettings'
 import Link from 'next/link'
 
 const COLOR_LABELS = ['Blau', 'Violett', 'Grün', 'Rot', 'Gelb', 'Türkis', 'Pink', 'Indigo']
@@ -14,9 +15,13 @@ const EinstellungenPage = () => {
   const allFachIds = faecher.map(f => f.id)
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-8">
+    <div className="page-container py-8">
       <div className="mb-6">
         <p className="text-lg font-semibold text-foreground">Passe Lezio nach deinen Wünschen an.</p>
+      </div>
+
+      <div className="max-w-2xl">
+        <DatenbankSettings onDataChanged={reloadData} />
       </div>
 
       <div className="max-w-2xl">

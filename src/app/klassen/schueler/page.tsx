@@ -1,7 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+// TODO: This page is currently unlinked/hidden (no route navigates here anymore).
+// Delete it once the Schüler detail view is replaced with its successor functionality.
+
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useData } from '@/contexts/DataContext'
 import { StudentAnalytics } from '@/components/analytics/StudentAnalytics'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
@@ -31,9 +34,10 @@ const StackedBar = ({ reached, partial, total }: { reached: number; partial: num
 // ── Page ─────────────────────────────────────────────────────────────────
 
 const SchuelerDetailPage = () => {
-  const { klassId, studentId } = useParams<{ klassId: string; studentId: string }>()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const klassId = searchParams.get('klassId') ?? ''
+  const studentId = searchParams.get('studentId') ?? ''
   const {
     getClass,
     getStudent,
@@ -67,7 +71,7 @@ const SchuelerDetailPage = () => {
 
   if (!student || !klasse || !kpis) {
     return (
-      <div className="mx-auto w-full max-w-7xl px-6 py-8 text-sm text-muted-foreground">
+      <div className="page-container py-8 text-sm text-muted-foreground">
         Schüler nicht gefunden.{' '}
         <button className="underline text-primary" onClick={() => router.push('/klassen')}>
           Zur Übersicht
@@ -91,7 +95,7 @@ const SchuelerDetailPage = () => {
   const selectedThemaKpi = filteredThemaKpis.find(tk => tk.thema.id === selectedLzThemaId)
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-5">
+    <div className="page-container py-5">
       {/* Zone A: Header */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-4">
@@ -101,7 +105,7 @@ const SchuelerDetailPage = () => {
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="heading-page">{fullName}</h1>
+            <h1>{fullName}</h1>
             <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
               <span className="text-sm text-muted-foreground">{klasse.name}</span>
               {student.bvsa && (
@@ -147,13 +151,13 @@ const SchuelerDetailPage = () => {
         {assignedThemen.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Noch keine Themen zugewiesen.{' '}
-            <a href={`/klassen/${klassId}`} className="underline text-primary">Themen zuweisen</a>
+            <a href={`/klassen/detail?klassId=${klassId}`} className="underline text-primary">Themen zuweisen</a>
           </p>
         ) : (
           <div>
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h2 className="text-sm font-semibold">Lernziele</h2>
+                <h6>Lernziele</h6>
                 <p className="text-xs text-muted-foreground">Zugewiesene Themen dieser Klasse</p>
               </div>
               <div className="flex rounded-lg border border-border overflow-hidden">
@@ -343,4 +347,10 @@ const SchuelerDetailPage = () => {
   )
 }
 
-export default SchuelerDetailPage
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <SchuelerDetailPage />
+    </Suspense>
+  )
+}

@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+// TODO: This page is currently unlinked/hidden (no route navigates here anymore).
+// Delete it once the Schüler detail view is replaced with its successor functionality.
+
+import { Suspense, useState, useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { Button } from '@/components/ui/button'
@@ -22,7 +25,9 @@ const STATUS_TEXT: Record<Status, string> = {
 }
 
 const BerichtPage = () => {
-  const { klassId, studentId } = useParams<{ klassId: string; studentId: string }>()
+  const searchParams = useSearchParams()
+  const klassId = searchParams.get('klassId') ?? ''
+  const studentId = searchParams.get('studentId') ?? ''
   const router = useRouter()
   const { getClass, getStudent, getThemenForKlasse, getLernzieleForThema, getFachForThema, faecher, kommentare } = useData()
 
@@ -74,7 +79,7 @@ const BerichtPage = () => {
 
   if (!student || !klasse) {
     return (
-      <div className="mx-auto w-full max-w-7xl px-6 py-8 text-sm text-muted-foreground">
+      <div className="page-container py-8 text-sm text-muted-foreground">
         Schüler nicht gefunden.{' '}
         <Button variant="link" className="h-auto p-0 underline" onClick={() => router.push('/klassen')}>Zur Übersicht</Button>
       </div>
@@ -82,12 +87,12 @@ const BerichtPage = () => {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-5">
+    <div className="page-container py-5">
       {/* Non-print: breadcrumb + controls */}
       <div className="print:hidden">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Bericht erstellen</h1>
+            <h1>Bericht erstellen</h1>
             <p className="text-sm text-muted-foreground">{student.vorname} {student.nachname} · {klasse.name}</p>
           </div>
           <Button onClick={() => window.print()}>
@@ -97,7 +102,7 @@ const BerichtPage = () => {
 
         {/* Filter controls */}
         <div className="rounded-2xl border border-border bg-card p-4 mb-6 space-y-4">
-          <h2 className="text-sm font-semibold">Berichtsoptionen</h2>
+          <h6>Berichtsoptionen</h6>
           <div className="flex flex-wrap gap-6">
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Lernziele</p>
@@ -145,7 +150,7 @@ const BerichtPage = () => {
         {/* Report header */}
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold">{student.vorname} {student.nachname}</h1>
+            <h2>{student.vorname} {student.nachname}</h2>
             <p className="text-sm text-muted-foreground">{klasse.name} · {klasse.schuljahr ?? ''}</p>
           </div>
           <p className="text-sm text-muted-foreground shrink-0">{today}</p>
@@ -159,7 +164,7 @@ const BerichtPage = () => {
               <div key={`${fach}-${thema}`} className="space-y-2 print:break-inside-avoid">
                 <div className="flex items-baseline gap-2">
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{fach}</span>
-                  <h2 className="text-base font-semibold">{thema}</h2>
+                  <h6>{thema}</h6>
                 </div>
                 <div className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
                   {lernziele.map(({ lz, status, kommentar }) => (
@@ -204,4 +209,10 @@ const BerichtPage = () => {
   )
 }
 
-export default BerichtPage
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <BerichtPage />
+    </Suspense>
+  )
+}

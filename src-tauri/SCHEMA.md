@@ -2,12 +2,18 @@
 
 > Dieses Dokument immer aktuell halten wenn eine Migration hinzugefügt wird.
 > Migrationsreihenfolge: `migrations/001_init.sql`
+>
+> Lokale SQLite-Datenbank (Tauri, `tauri-plugin-sql`), Datei `lezio.db` im
+> App-Datenverzeichnis. Kein Server, kein Mandant, single-user Desktop-App.
+> `TEXT (JSON)` / `TEXT (JSON-Array)` bedeutet: als JSON-String in einer
+> TEXT-Spalte gespeichert, beim Lesen/Schreiben in `src/actions/db-read.ts`
+> bzw. `db-write.ts` (de)serialisiert. `INTEGER (0/1)` sind Booleans.
 
 ---
 
 ## Architektur-Übersicht
 
-- **Single-Tenant**: eine gemeinsame Datenbasis, keine Mandantentrennung
+- **Single-Tenant**: eine gemeinsame lokale Datenbasis, keine Mandantentrennung
 - **Naming**: `dim_` = Stammdaten · `fact_` = Transaktionsdaten · `bridge_` = M:N-Verknüpfungen
 - **IDs**: `TEXT PRIMARY KEY` (meist UUIDs oder sprechende Keys wie `k1`, `f1`, `lp1`)
 
@@ -35,8 +41,8 @@ fact_pruefungen (→ dim_klassen, dim_faecher)
 |--------|-----|-----------|
 | id | TEXT PK | z.B. `'f1'` |
 | name | TEXT NOT NULL | z.B. `'Deutsch'` |
-| color_index | SMALLINT | Index in FACH_COLORS (0–7), NULL = positions-basiert |
-| created_at | TIMESTAMPTZ | |
+| color_index | INTEGER | Index in FACH_COLORS (0–7), NULL = positions-basiert |
+| created_at | TEXT (ISO-Timestamp) | |
 
 ---
 
@@ -49,12 +55,12 @@ fact_pruefungen (→ dim_klassen, dim_faecher)
 | typ | TEXT | `'standard'` \| `'rilz'`, default `'standard'` |
 | standard_thema_id | TEXT → dim_themen | Nur bei RILZ-Themen: Eltern-Thema |
 | faellig_am | TEXT | ISO YYYY-MM-DD |
-| stufe | INTEGER[] | Jahrgangsstufen, z.B. `[5, 6]` |
-| zyklus | INTEGER[] | z.B. `[2]` |
+| stufe | TEXT (JSON-Array, int) | Jahrgangsstufen, z.B. `[5, 6]` |
+| zyklus | TEXT (JSON-Array, int) | z.B. `[2]` |
 | autor | TEXT | |
 | autor_lp_id | TEXT → dim_lehrpersonen | |
-| tags | JSONB | Default `{}` — Key: tag-kategorie-id, Value: Tag-Label |
-| created_at | TIMESTAMPTZ | |
+| tags | TEXT (JSON) | Default `{}` — Key: tag-kategorie-id, Value: Tag-Label |
+| created_at | TEXT (ISO-Timestamp) | |
 
 ---
 
@@ -65,10 +71,10 @@ fact_pruefungen (→ dim_klassen, dim_faecher)
 | thema_id | TEXT → dim_themen | |
 | kategorie | TEXT NOT NULL | `'grundlegend'` \| `'anspruchsvoll'` |
 | label | TEXT NOT NULL | |
-| kriterien | TEXT[] | |
-| stufe | INTEGER[] | |
+| kriterien | TEXT (JSON-Array) | |
+| stufe | TEXT (JSON-Array, int) | |
 | beschreibung | TEXT | |
-| created_at | TIMESTAMPTZ | |
+| created_at | TEXT (ISO-Timestamp) | |
 
 ---
 
@@ -78,7 +84,7 @@ fact_pruefungen (→ dim_klassen, dim_faecher)
 | id | TEXT PK | z.B. `'lp1'` |
 | name | TEXT NOT NULL | |
 | kuerzel | TEXT NOT NULL | z.B. `'LM'` für Lukas Meier |
-| created_at | TIMESTAMPTZ | |
+| created_at | TEXT (ISO-Timestamp) | |
 
 ---
 
@@ -89,8 +95,8 @@ fact_pruefungen (→ dim_klassen, dim_faecher)
 | name | TEXT NOT NULL | z.B. `'5a'` |
 | schuljahr | TEXT | |
 | vorgaenger_klasse_id | TEXT → dim_klassen | Für Klassenübergabe |
-| settings | JSONB | Beurteilungs-Einstellungen pro Fach |
-| created_at | TIMESTAMPTZ | |
+| settings | TEXT (JSON) | Beurteilungs-Einstellungen pro Fach |
+| created_at | TEXT (ISO-Timestamp) | |
 
 ---
 
@@ -102,13 +108,13 @@ fact_pruefungen (→ dim_klassen, dim_faecher)
 | vorname | TEXT NOT NULL | |
 | nachname | TEXT NOT NULL | |
 | note | TEXT | Freitext-Notiz |
-| bvsa | BOOLEAN | Besonderer Förderbedarf (Bericht auch ohne Noten) |
-| rilz_fach_ids | TEXT[] | Fächer mit reduzierten Lernzielen |
-| rilz_thema_ids | TEXT[] | RILZ-Themen aus der Bibliothek |
-| competency_status | JSONB | `Record<kompetenzId, Status>` |
-| lernziel_versuche | JSONB | `Record<lzId, Versuch[]>` — Übungsversuche |
-| progress_history | JSONB | `StatusSnapshot[]` — Verlauf |
-| created_at | TIMESTAMPTZ | |
+| bvsa | INTEGER (0/1) | Besonderer Förderbedarf (Bericht auch ohne Noten) |
+| rilz_fach_ids | TEXT (JSON-Array) | Fächer mit reduzierten Lernzielen |
+| rilz_thema_ids | TEXT (JSON-Array) | RILZ-Themen aus der Bibliothek |
+| competency_status | TEXT (JSON) | `Record<kompetenzId, Status>` |
+| lernziel_versuche | TEXT (JSON) | `Record<lzId, Versuch[]>` — Übungsversuche |
+| progress_history | TEXT (JSON) | `StatusSnapshot[]` — Verlauf |
+| created_at | TEXT (ISO-Timestamp) | |
 
 ---
 
@@ -119,7 +125,7 @@ fact_pruefungen (→ dim_klassen, dim_faecher)
 | name | TEXT NOT NULL | z.B. `'Lehrplan 21'` |
 | lp_id | TEXT → dim_lehrpersonen | Erstellt von |
 | position | INTEGER | Sortierreihenfolge, default 0 |
-| created_at | TIMESTAMPTZ | |
+| created_at | TEXT (ISO-Timestamp) | |
 
 ---
 
@@ -139,7 +145,7 @@ fact_pruefungen (→ dim_klassen, dim_faecher)
 | id | TEXT PK | UUID |
 | klasse_id | TEXT → dim_klassen (CASCADE) | |
 | lp_id | TEXT → dim_lehrpersonen | |
-| fach_ids | TEXT[] | Fächer die diese LP in dieser Klasse unterrichtet |
+| fach_ids | TEXT (JSON-Array) | Fächer die diese LP in dieser Klasse unterrichtet |
 | rolle | TEXT | `'klassenlehrperson'` \| `'fachlehrperson'` \| `'heilpaedagogin'` |
 
 **Constraint:** `UNIQUE (klasse_id, lp_id)`
@@ -152,7 +158,7 @@ fact_pruefungen (→ dim_klassen, dim_faecher)
 | schueler_id | TEXT → dim_schueler (CASCADE) | PK |
 | lernziel_id | TEXT → dim_lernziele (CASCADE) | PK |
 | status | TEXT | `'not_reached'` \| `'partially_reached'` \| `'reached'` |
-| updated_at | TIMESTAMPTZ | |
+| updated_at | TEXT (ISO-Timestamp) | |
 
 ---
 
@@ -166,7 +172,7 @@ Ad-hoc RILZ-Lernziele, die von der Heilpädagogin direkt auf einen Schüler gesc
 | thema_id | TEXT → dim_themen | |
 | label | TEXT NOT NULL | Freitext |
 | status | TEXT | `'not_reached'` \| `'partially_reached'` \| `'reached'` |
-| created_at | TIMESTAMPTZ | |
+| created_at | TEXT (ISO-Timestamp) | |
 
 ---
 
@@ -202,18 +208,18 @@ Freitext-Kommentar pro Schüler + Thema (Beobachtungsnotiz).
 | fach_id | TEXT → dim_faecher | |
 | name | TEXT NOT NULL | |
 | datum | TEXT NOT NULL | ISO YYYY-MM-DD |
-| lernziel_ids | TEXT[] | Verknüpfte Lernziele |
-| max_punkte | NUMERIC | |
+| lernziel_ids | TEXT (JSON-Array) | Verknüpfte Lernziele |
+| max_punkte | REAL | |
 | erstellt_von_id | TEXT → dim_lehrpersonen | |
 | status | TEXT | `'laufend'` \| `'abgeschlossen'`, default `'laufend'` |
-| punkte_enabled | BOOLEAN | Default FALSE |
-| note_enabled | BOOLEAN | Default FALSE |
-| anhang_enabled | BOOLEAN | Default FALSE |
+| punkte_enabled | INTEGER (0/1) | Default FALSE |
+| note_enabled | INTEGER (0/1) | Default FALSE |
+| anhang_enabled | INTEGER (0/1) | Default FALSE |
 | typ | TEXT | Prüfungstyp (z.B. `'pruefung_schriftlich'`), default `'pruefung_schriftlich'` |
 | beschreibung | TEXT | |
-| nur_rilz | BOOLEAN | Nur für RILZ-Schüler, default FALSE |
-| rilz_schueler_ids | TEXT[] | Explizite RILZ-Schüler-IDs |
-| created_at | TIMESTAMPTZ | |
+| nur_rilz | INTEGER (0/1) | Nur für RILZ-Schüler, default FALSE |
+| rilz_schueler_ids | TEXT (JSON-Array) | Explizite RILZ-Schüler-IDs |
+| created_at | TEXT (ISO-Timestamp) | |
 
 ---
 
@@ -223,16 +229,16 @@ Freitext-Kommentar pro Schüler + Thema (Beobachtungsnotiz).
 | id | TEXT PK | UUID |
 | pruefung_id | TEXT → fact_pruefungen (CASCADE) | |
 | schueler_id | TEXT → dim_schueler (CASCADE) | |
-| punkte | NUMERIC | |
+| punkte | REAL | |
 | note | TEXT | Schweizer Note, z.B. `'5.5'` |
 | anzahl_versuche | INTEGER | Default 1 |
 | kommentar | TEXT | |
-| anhang_urls | TEXT[] | Storage-Pfade |
+| anhang_urls | TEXT (JSON-Array) | Storage-Pfade |
 | status | TEXT | `'not_reached'` \| `'partially_reached'` \| `'reached'` |
-| zweiter_versuch_ausstehend | BOOLEAN | Default FALSE |
-| versuch_snapshots | JSONB | `VersuchSnapshot[]` — Punkte/Note je Versuch |
-| abgeschlossen | BOOLEAN | Default FALSE |
-| created_at | TIMESTAMPTZ | |
+| zweiter_versuch_ausstehend | INTEGER (0/1) | Default FALSE |
+| versuch_snapshots | TEXT (JSON) | `VersuchSnapshot[]` — Punkte/Note je Versuch |
+| abgeschlossen | INTEGER (0/1) | Default FALSE |
+| created_at | TEXT (ISO-Timestamp) | |
 
 **Constraint:** `UNIQUE (pruefung_id, schueler_id)`
 
@@ -240,6 +246,8 @@ Freitext-Kommentar pro Schüler + Thema (Beobachtungsnotiz).
 
 ## Storage
 
-| Bucket | Zugriff | Pfad-Konvention |
-|--------|---------|-----------------|
-| `lezio-anhaenge` | privat | `{pruefung_id}/{schueler_id}/{filename}` |
+Prüfungs-Anhänge liegen lokal im App-Datenverzeichnis (`$APPDATA/lezio-anhaenge/`,
+siehe `src/lib/attachments.ts`), Pfad-Konvention `{pruefung_id}/{schueler_id}/{uuid}.{ext}`.
+`anhang_urls` speichert dafür `local-file://<absoluter-pfad>`-Referenzen, die
+beim Anzeigen via `convertFileSrc` in eine `asset://`-URL umgewandelt werden
+(freigegeben über `assetProtocol.scope` in `tauri.conf.json`).

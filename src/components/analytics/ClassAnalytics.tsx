@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { cn, getFachColor, sv, scoreColor, categoryChipClasses } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -343,12 +342,6 @@ export const ClassAnalytics = ({
   klassId, students, themen, lernziele, faecher,
 }: ClassAnalyticsProps) => {
   const { pruefungen, pruefungErgebnisse } = useData()
-  const router = useRouter()
-
-  const navigateToStudent = (studentId: string, fachIds: string[] = []) => {
-    const params = fachIds.length > 0 ? `?fachIds=${fachIds.join(',')}` : ''
-    router.push(`/klassen/${klassId}/schueler/${studentId}${params}`)
-  }
 
   const [view, setView] = useState<StatView>('gesamt')
   const [selectedFachIds, setSelectedFachIds] = useState<string[]>([])
@@ -617,7 +610,6 @@ export const ClassAnalytics = ({
                 students={scopeScored}
                 sort={studentSort}
                 onSortChange={setStudentSort}
-                onRowClick={id => navigateToStudent(id)}
               />
             </div>
           </div>
@@ -707,7 +699,6 @@ export const ClassAnalytics = ({
                     students={scopeScored}
                     sort={studentSort}
                     onSortChange={setStudentSort}
-                    onRowClick={id => navigateToStudent(id, selectedFachIds)}
                   />
                 </div>
               </div>
@@ -774,7 +765,6 @@ export const ClassAnalytics = ({
                           students={themaAsScored}
                           sort={studentSort}
                           onSortChange={setStudentSort}
-                          onRowClick={id => navigateToStudent(id, selectedThema?.fach ? [selectedThema.fach.id] : [])}
                         />
                       </div>
                     </div>
@@ -887,8 +877,7 @@ export const ClassAnalytics = ({
                     {pruefungStudentRows.map(({ student, ergebnis }) => (
                       <tr
                         key={student.id}
-                        className="border-b border-border last:border-b-0 hover:bg-accent transition-colors cursor-pointer"
-                        onClick={() => navigateToStudent(student.id, selectedPruefung?.fachId ? [selectedPruefung.fachId] : [])}
+                        className="border-b border-border last:border-b-0 hover:bg-accent transition-colors"
                       >
                         <td className="py-2 px-3 font-medium">{sName(student)}</td>
                         <td className="py-2 px-3 text-right font-bold tabular-nums">

@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { ClassAnalytics } from '@/components/analytics/ClassAnalytics'
@@ -117,25 +117,30 @@ const TabBar = ({
     { key: 'lernziele',        label: 'Lernziele' },
     { key: 'berichte',         label: 'Berichte' },
   ]
-  const leading = editingTitle ? (
-    <div className="flex items-center pr-2 mr-1 border-r border-border shrink-0">
-      {editNode}
-    </div>
-  ) : (
-    <span className="flex items-center gap-1 pl-1 pr-3 mr-1 border-r border-border shrink-0">
-      <span className="text-sm font-semibold whitespace-nowrap">{title}</span>
-      <button
-        onClick={onEditTitle}
-        className="text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="Klassenname bearbeiten"
-      >
-        <Icon name="edit_square" size={14} />
-      </button>
-    </span>
-  )
   return (
-    <div className="overflow-x-auto scrollbar-hide mb-2">
-      <PillTabs options={tabs} value={active} onChange={onChange} leading={leading} />
+    <div className="mb-4">
+      {/* Title banner */}
+      <div className="rounded-2xl bg-muted px-6 py-6 mb-4">
+        {editingTitle ? editNode : (
+          <span className="flex items-center gap-2">
+            <span className="text-xl text-muted-foreground">
+              Klasse <span className="font-bold text-foreground">{title}</span>
+            </span>
+            <button
+              onClick={onEditTitle}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Klassenname bearbeiten"
+            >
+              <Icon name="edit_square" size={16} />
+            </button>
+          </span>
+        )}
+      </div>
+
+      {/* Tab strip */}
+      <div className="overflow-x-auto scrollbar-hide">
+        <PillTabs variant="underline" options={tabs} value={active} onChange={onChange} />
+      </div>
     </div>
   )
 }
@@ -148,7 +153,7 @@ const SettingsCard = ({ title, children, action }: {
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">{title}</h3>
+        <h6>{title}</h6>
         {action}
       </div>
       {children}
@@ -1388,7 +1393,8 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
 // ── Page ──────────────────────────────────────────────────────────────────
 
 const KlasseDetailPage = () => {
-  const { klassId } = useParams<{ klassId: string }>()
+  const searchParams = useSearchParams()
+  const klassId = searchParams.get('klassId') ?? ''
   const router = useRouter()
   const {
     getClass,
@@ -1446,7 +1452,7 @@ const KlasseDetailPage = () => {
 
   if (!klasse) {
     return (
-      <div className="mx-auto w-full max-w-7xl px-6 py-8 text-muted-foreground text-sm">
+      <div className="page-container py-8 text-muted-foreground text-sm">
         Klasse nicht gefunden.{' '}
         <Button variant="link" className="h-auto p-0" onClick={() => router.push('/klassen')}>Zur Übersicht</Button>
       </div>
@@ -1454,7 +1460,7 @@ const KlasseDetailPage = () => {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-3">
+    <div className="page-container py-3">
       <div>
         <TabBar
           active={tab}
@@ -1541,7 +1547,7 @@ const KlasseDetailPage = () => {
                   >
                     Fortschritt
                   </TableSortHeader>
-                  <TableHead className="w-14" />
+                  <TableHead className="w-20" />
                 </TableHeader>
 
                 <TableBody>
@@ -1555,10 +1561,7 @@ const KlasseDetailPage = () => {
                     const pctColor = cp >= 75 ? 'text-status-reached' : cp >= 40 ? 'text-status-partial' : 'text-status-not-reached'
                     const barColor = cp >= 75 ? 'bg-status-reached' : cp >= 40 ? 'bg-status-partial' : 'bg-status-not-reached'
                     return (
-                      <TableRow
-                        key={student.id}
-                        onClick={() => router.push(`/klassen/${klassId}/schueler/${student.id}`)}
-                      >
+                      <TableRow key={student.id}>
                         <TableCell className="pr-0">
                           <Avatar size="sm" className="shrink-0">
                             <AvatarFallback className={cn('text-xs', getAvatarColor(student.vorname + ' ' + student.nachname))}>
@@ -1625,14 +1628,16 @@ const KlasseDetailPage = () => {
 
                         {/* Actions */}
                         <TableCell align="right">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={(e) => { e.stopPropagation(); setEditStudentId(student.id) }}
-                            aria-label="Schüler bearbeiten"
-                          >
-                            <Icon name="edit" size={14} />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={(e) => { e.stopPropagation(); setEditStudentId(student.id) }}
+                              aria-label="Schüler bearbeiten"
+                            >
+                              <Icon name="edit" size={14} />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )
@@ -1693,4 +1698,10 @@ const KlasseDetailPage = () => {
   )
 }
 
-export default KlasseDetailPage
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <KlasseDetailPage />
+    </Suspense>
+  )
+}

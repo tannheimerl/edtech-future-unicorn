@@ -817,7 +817,7 @@ const LernzielePage = () => {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-8">
+    <div className="page-container py-8">
 
       {/* Empty / load-error state */}
       {faecher.length === 0 && (
