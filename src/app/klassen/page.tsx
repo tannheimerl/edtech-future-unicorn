@@ -32,7 +32,9 @@ const MetricPill = ({
   <div
     className={`flex min-w-0 flex-1 items-center gap-3 rounded-lg bg-muted/60 px-4 py-3 ring-1 ring-border/40 ${className ?? ""}`}
   >
-    <span className={`text-base font-bold tabular-nums ${valueClassName ?? ""}`}>
+    <span
+      className={`text-base font-bold tabular-nums ${valueClassName ?? ""}`}
+    >
       {value}
     </span>
     <span className="truncate text-sm text-muted-foreground">{label}</span>
@@ -90,7 +92,9 @@ const KlasseStats = ({ klassId }: { klassId: string }) => {
       <MetricPill
         value={atRisk}
         label="Förderbedarf erkannt"
-        valueClassName={atRisk > 0 ? "text-status-not-reached" : "text-muted-foreground"}
+        valueClassName={
+          atRisk > 0 ? "text-status-not-reached" : "text-muted-foreground"
+        }
       />
     </div>
   );
@@ -208,9 +212,13 @@ const KlassenPage = () => {
     <div className="page-container py-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <h1>Deine Klassen</h1>
+        <h1>Alle deine Klassen</h1>
         {myClasses.length > 0 && (
-          <Button variant="outline" className="rounded-full" onClick={() => setCreateOpen(true)}>
+          <Button
+            variant="outline"
+            className="rounded-full"
+            onClick={() => setCreateOpen(true)}
+          >
             <Icon name="add" size={16} />
             Neue Klasse erstellen
           </Button>
@@ -224,7 +232,11 @@ const KlassenPage = () => {
             <EmptyState
               size="lg"
               icon={
-                <Icon name="cloud_off" size={24} className="text-accent-foreground" />
+                <Icon
+                  name="cloud_off"
+                  size={24}
+                  className="text-accent-foreground"
+                />
               }
               title="Daten konnten nicht geladen werden"
               description="Prüfe deine Internetverbindung und versuche es erneut."
@@ -238,7 +250,11 @@ const KlassenPage = () => {
             <EmptyState
               size="lg"
               icon={
-                <Icon name="group" size={24} className="text-accent-foreground" />
+                <Icon
+                  name="group"
+                  size={24}
+                  className="text-accent-foreground"
+                />
               }
               title="Noch keine Klassen angelegt"
               description="Erstelle deine erste Klasse und füge Schüler hinzu."
@@ -267,14 +283,14 @@ const KlassenPage = () => {
             <div
               key={klasse.id}
               className="group cursor-pointer rounded-2xl border border-border bg-card p-6 transition-all duration-150 hover:shadow-md hover:border-primary/30"
-              onClick={() => router.push(`/klassen/detail?klassId=${klasse.id}`)}
+              onClick={() =>
+                router.push(`/klassen/detail?klassId=${klasse.id}`)
+              }
             >
               <div className="flex items-center gap-6">
                 {/* Left column: name + progress */}
                 <div className="flex h-full min-w-[160px] shrink-0 flex-col justify-between gap-6 self-stretch">
-                  <h4>
-                    {klasse.name}
-                  </h4>
+                  <h4>{klasse.name}</h4>
                   <LernzielProgress klassId={klasse.id} />
                 </div>
 
@@ -301,7 +317,11 @@ const KlassenPage = () => {
                     >
                       <Icon name="more_horiz" size={16} />
                     </PopoverTrigger>
-                    <PopoverContent align="end" side="bottom" className="w-44 p-1">
+                    <PopoverContent
+                      align="end"
+                      side="bottom"
+                      className="w-44 p-1"
+                    >
                       <Button
                         variant="destructive"
                         size="sm"
@@ -319,7 +339,11 @@ const KlassenPage = () => {
                       </Button>
                     </PopoverContent>
                   </Popover>
-                  <Icon name="chevron_right" size={20} className="text-primary" />
+                  <Icon
+                    name="chevron_right"
+                    size={20}
+                    className="text-primary"
+                  />
                 </div>
               </div>
 
