@@ -27,6 +27,7 @@
     "fs:allow-exists",
     "dialog:allow-open",
     "dialog:allow-save",
+    "dialog:allow-ask",
     "updater:default",
     "process:allow-restart"
   ]

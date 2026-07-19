@@ -24,16 +24,16 @@ export const checkForUpdate = async (): Promise<void> => {
     `[updater] update available: ${update.version} (current: ${update.currentVersion})`
   )
 
-  const shouldInstall = await ask(
-    `Version ${update.version} ist verfügbar. Jetzt installieren und neu starten?`,
-    { title: 'Update verfügbar', kind: 'info' }
-  )
-  if (!shouldInstall) {
-    console.log('[updater] update declined by user')
-    return
-  }
-
   try {
+    const shouldInstall = await ask(
+      `Version ${update.version} ist verfügbar. Jetzt installieren und neu starten?`,
+      { title: 'Update verfügbar', kind: 'info' }
+    )
+    if (!shouldInstall) {
+      console.log('[updater] update declined by user')
+      return
+    }
+
     let downloaded = 0
     let contentLength = 0
     await update.downloadAndInstall((event) => {
