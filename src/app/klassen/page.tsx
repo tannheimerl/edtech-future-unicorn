@@ -212,7 +212,7 @@ const KlassenPage = () => {
     <div className="page-container py-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <h1>Alle Klassen</h1>
+        <h1>Klassen</h1>
         {myClasses.length > 0 && (
           <Button
             variant="outline"
