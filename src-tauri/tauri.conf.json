@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Lezio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "com.lezio.app",
   "build": {
     "frontendDist": "../out",
@@ -30,6 +30,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -39,6 +40,14 @@
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDEyREQ3MTM3RjQ5NDdBMEUKUldRT2VwVDBOM0hkRW5JWVFORHU0Nkl0UU1CVGxxdDhlcEdPN2N5YmdvS2RkcmRiRzFYdTgrSHYK",
+      "endpoints": [
+        "https://github.com/tannheimerl/edtech-future-unicorn/releases/latest/download/latest.json"
+      ]
     }
   }
 }
