@@ -1,115 +1,21 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
-import { cn, getFachColor, scoreColor, sv, categoryChipClasses } from '@/lib/utils'
+import { cn, getFachColor, scoreColor, categoryChipClasses } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
 import { FilterDropdown } from '@/components/shared/FilterDropdown'
-import { SegmentedControl } from '@/components/shared/SegmentedControl'
 import { UnderlineTabs } from '@/components/shared/UnderlineTabs'
 import { StatusCell } from '@/components/shared/StatusCell'
 import { ProgressBar } from '@/components/shared/ProgressBar'
+import {
+  FilterBar, SectionLabel, KpiTile, LZStatusBar, VIEW_OPTIONS,
+  type KatFilter, type StatView,
+} from '@/components/analytics/shared'
 import { useData } from '@/contexts/DataContext'
-import { computeStudentKpis, themaCountsInStats } from '@/lib/student-kpis'
+import { computeStudentKpis, themaCountsInStats, isLZSkipped, adjustedLZScore } from '@/lib/student-kpis'
 import { todayISO } from '@/lib/dates'
-import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach, Status } from '@/types/domain'
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-const isLZSkipped = (lz: Lernziel, student: Schueler, themen: Thema[]): boolean => {
-  if (lz.kategorie !== 'anspruchsvoll') return false
-  if (!student.rilzFachIds?.length) return false
-  const thema = themen.find(t => t.id === lz.themaId)
-  return !!thema && student.rilzFachIds.includes(thema.fachId)
-}
-
-const studentScopedScore = (student: Schueler, lzList: Lernziel[], themen: Thema[]): number => {
-  const applicable = lzList.filter(lz => !isLZSkipped(lz, student, themen))
-  if (applicable.length === 0) return 0
-  return (applicable.reduce((sum, lz) => sum + sv(student.lernzielStatus[lz.id] ?? 'not_reached'), 0) / applicable.length) * 100
-}
-
-// ── Types ──────────────────────────────────────────────────────────────────
-
-type KatFilter = 'all' | 'grundlegend' | 'anspruchsvoll'
-type StatView = 'gesamt' | 'fach' | 'thema' | 'pruefungen'
-
-const KAT_LABELS: Record<KatFilter, string> = {
-  all: 'G + A',
-  grundlegend: 'Grundlegend',
-  anspruchsvoll: 'Anspruchsvoll',
-}
-
-// ── Filter bar ─────────────────────────────────────────────────────────────
-
-const FilterBar = ({ katFilter, onKatChange }: {
-  katFilter: KatFilter
-  onKatChange: (k: KatFilter) => void
-}) => {
-  return (
-    <SegmentedControl<KatFilter>
-      label="Lernziel-Kategorie"
-      value={katFilter}
-      onChange={onKatChange}
-      options={[
-        { key: 'all', label: KAT_LABELS.all },
-        { key: 'grundlegend', label: KAT_LABELS.grundlegend, activeClass: 'bg-category-grundlegend text-white hover:bg-category-grundlegend/90' },
-        { key: 'anspruchsvoll', label: KAT_LABELS.anspruchsvoll, activeClass: 'bg-category-anspruchsvoll text-white hover:bg-category-anspruchsvoll/90' },
-      ]}
-    />
-  )
-}
-
-// ── Section label ──────────────────────────────────────────────────────────
-
-const SectionLabel = ({ label }: { label: string }) => {
-  return (
-    <div className="pb-1 border-b border-border/40">
-      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">{label}</span>
-    </div>
-  )
-}
-
-// ── KPI tile ───────────────────────────────────────────────────────────────
-
-const KpiTile = ({ label, value, sub, valueClass }: {
-  label: string
-  value: string | number
-  sub?: string
-  valueClass?: string
-}) => {
-  return (
-    <div className="bg-card border border-border rounded-md px-4 py-3">
-      <p className="text-3xs font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">{label}</p>
-      <p className={cn('text-2xl font-bold tabular-nums tracking-tight leading-none', valueClass ?? 'text-foreground')}>
-        {value}
-      </p>
-      {sub && <p className="text-3xs text-muted-foreground/70 mt-1.5 leading-tight">{sub}</p>}
-    </div>
-  )
-}
-
-// ── LZ aggregate status bar ────────────────────────────────────────────────
-
-const LZStatusBar = ({ reached, partial, notReached }: {
-  reached: number; partial: number; notReached: number
-}) => (
-  <ProgressBar
-    size="sm"
-    rounded={false}
-    segments={[
-      { value: reached, className: 'bg-status-reached' },
-      { value: partial, className: 'bg-status-partial' },
-      { value: notReached, className: 'bg-status-none-soft' },
-    ]}
-    legend={[
-      { label: `${reached} erreicht`, className: 'bg-status-reached' },
-      { label: `${partial} teilweise`, className: 'bg-status-partial' },
-      { label: `${notReached} nicht erreicht`, className: 'bg-status-none-soft' },
-    ]}
-    emptyFallback={null}
-  />
-)
+import type { Schueler, Thema, Lernziel, Fach, Status } from '@/types/domain'
 
 // ── LZ row (single student) ────────────────────────────────────────────────
 
@@ -134,15 +40,6 @@ const LZStudentRow = ({ lz, status, skipped }: {
     </div>
   )
 }
-
-// ── View switcher ──────────────────────────────────────────────────────────
-
-const VIEW_OPTIONS: { key: StatView; label: string }[] = [
-  { key: 'gesamt', label: 'Gesamt' },
-  { key: 'fach', label: 'Fach' },
-  { key: 'thema', label: 'Thema' },
-  { key: 'pruefungen', label: 'Lernzielkontrollen' },
-]
 
 
 // ── Main component ─────────────────────────────────────────────────────────
@@ -386,12 +283,12 @@ export const StudentAnalytics = ({ student, themen, lernziele, faecher, klassId 
               const fachLZ = katFilter === 'all' ? fachAllLZ : fachAllLZ.filter(lz => lz.kategorie === katFilter)
               const applicable = fachLZ.filter(lz => !isLZSkipped(lz, student, activeThemen))
               if (applicable.length === 0) return null
-              const pct = Math.round(studentScopedScore(student, applicable, activeThemen))
+              const pct = Math.round(adjustedLZScore(student, applicable, activeThemen))
 
               const gLZ = fachAllLZ.filter(lz => lz.kategorie === 'grundlegend')
               const aLZ = fachAllLZ.filter(lz => lz.kategorie === 'anspruchsvoll').filter(lz => !isLZSkipped(lz, student, activeThemen))
-              const gPct = gLZ.length > 0 ? Math.round(studentScopedScore(student, gLZ, activeThemen)) : null
-              const aPct = aLZ.length > 0 ? Math.round(studentScopedScore(student, aLZ, activeThemen)) : null
+              const gPct = gLZ.length > 0 ? Math.round(adjustedLZScore(student, gLZ, activeThemen)) : null
+              const aPct = aLZ.length > 0 ? Math.round(adjustedLZScore(student, aLZ, activeThemen)) : null
               const isRilz = (student.rilzFachIds ?? []).includes(fach.id)
               const fc = getFachColor(fach.id, allFachIds, fach.colorIndex)
               return { fach, pct, gPct, aPct, total: fachAllLZ.length, applicable: applicable.length, fc, isRilz }

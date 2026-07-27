@@ -1,17 +1,20 @@
 'use client'
 
 import React, { useState } from 'react'
-import { cn, getFachColor, sv, scoreColor, categoryChipClasses } from '@/lib/utils'
+import { cn, getFachColor, sv, scoreColor, categoryChipClasses, weightedPct, fullName } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
 import { FilterDropdown } from '@/components/shared/FilterDropdown'
-import { SegmentedControl } from '@/components/shared/SegmentedControl'
 import { UnderlineTabs } from '@/components/shared/UnderlineTabs'
 import { DistributionBars } from '@/components/analytics/DistributionBars'
 import { ProgressBar } from '@/components/shared/ProgressBar'
+import {
+  FilterBar, SectionLabel, KpiTile, LZStatusBar, VIEW_OPTIONS,
+  type KatFilter, type StatView,
+} from '@/components/analytics/shared'
 import { useData } from '@/contexts/DataContext'
-import { themaCountsInStats } from '@/lib/student-kpis'
+import { themaCountsInStats, isLZSkipped, adjustedLZScore, isSpecialStudent } from '@/lib/student-kpis'
 import { todayISO } from '@/lib/dates'
 import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach } from '@/types/domain'
 
@@ -22,123 +25,11 @@ const studentLZScore = (student: Schueler, ids: string[]): number => {
   return (ids.reduce((sum, id) => sum + sv(student.lernzielStatus[id] ?? 'not_reached'), 0) / ids.length) * 100
 }
 
-const isSpecial = (s: Schueler): boolean => {
-  return !!(s.bvsa || s.rilzFachIds?.length)
-}
-
-const isLZSkipped = (lz: Lernziel, student: Schueler, themen: Thema[]): boolean => {
-  if (lz.kategorie !== 'anspruchsvoll') return false
-  if (!student.rilzFachIds?.length) return false
-  const thema = themen.find(t => t.id === lz.themaId)
-  return !!thema && student.rilzFachIds.includes(thema.fachId)
-}
-
-const studentLZScoreAdjusted = (student: Schueler, lzList: Lernziel[], themen: Thema[]): number => {
-  const applicable = lzList.filter(lz => !isLZSkipped(lz, student, themen))
-  if (applicable.length === 0) return 0
-  return (applicable.reduce((sum, lz) => sum + sv(student.lernzielStatus[lz.id] ?? 'not_reached'), 0) / applicable.length) * 100
-}
-
-const sName = (s: Schueler): string => {
-  return `${s.vorname} ${s.nachname}`
-}
-
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type KatFilter = 'all' | 'grundlegend' | 'anspruchsvoll'
 type StudentSort = 'score' | 'name'
-type StatView = 'gesamt' | 'fach' | 'thema' | 'pruefungen'
 
 type ScoredStudent = Schueler & { score: number; allScore: number }
-
-const KAT_LABELS: Record<KatFilter, string> = {
-  all: 'G + A',
-  grundlegend: 'Grundlegend',
-  anspruchsvoll: 'Anspruchsvoll',
-}
-
-// ── Filter bar ─────────────────────────────────────────────────────────────
-
-const FilterBar = ({
-  katFilter, onKatChange,
-}: {
-  katFilter: KatFilter
-  onKatChange: (k: KatFilter) => void
-}) => {
-  return (
-    <SegmentedControl<KatFilter>
-      label="Lernziel-Kategorie"
-      value={katFilter}
-      onChange={onKatChange}
-      options={[
-        { key: 'all', label: KAT_LABELS.all },
-        { key: 'grundlegend', label: KAT_LABELS.grundlegend, activeClass: 'bg-category-grundlegend text-white hover:bg-category-grundlegend/90' },
-        { key: 'anspruchsvoll', label: KAT_LABELS.anspruchsvoll, activeClass: 'bg-category-anspruchsvoll text-white hover:bg-category-anspruchsvoll/90' },
-      ]}
-    />
-  )
-}
-
-// ── Section label ──────────────────────────────────────────────────────────
-
-const SectionLabel = ({ label }: { label: string }) => {
-  return (
-    <div className="pb-1 border-b border-border/40">
-      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">{label}</span>
-    </div>
-  )
-}
-
-// ── KPI tile ───────────────────────────────────────────────────────────────
-
-const KpiTile = ({
-  label, value, sub, valueClass,
-}: {
-  label: string
-  value: string | number
-  sub?: string
-  valueClass?: string
-}) => {
-  return (
-    <div className="bg-card border border-border rounded-md px-4 py-3">
-      <p className="text-3xs font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">{label}</p>
-      <p className={cn('text-2xl font-bold tabular-nums tracking-tight leading-none', valueClass ?? 'text-foreground')}>
-        {value}
-      </p>
-      {sub && <p className="text-3xs text-muted-foreground/70 mt-1.5 leading-tight">{sub}</p>}
-    </div>
-  )
-}
-
-// ── LZ aggregate status bar ────────────────────────────────────────────────
-
-const lzStatusLegend = (reached: number, partial: number, notReached: number) => [
-  { label: `${reached} erreicht`, className: 'bg-status-reached' },
-  { label: `${partial} teilweise`, className: 'bg-status-partial' },
-  { label: `${notReached} nicht erreicht`, className: 'bg-status-none-soft' },
-]
-
-const LZStatusBar = ({
-  reached, partial, notReached,
-}: {
-  reached: number; partial: number; notReached: number
-}) => (
-  <ProgressBar
-    size="sm"
-    rounded={false}
-    segments={[
-      { value: reached, className: 'bg-status-reached' },
-      { value: partial, className: 'bg-status-partial' },
-      { value: notReached, className: 'bg-status-none-soft' },
-    ]}
-    legend={[
-      { label: `${reached} erreicht`, className: 'bg-status-reached' },
-      { label: `${partial} teilweise`, className: 'bg-status-partial' },
-      { label: `${notReached} nicht erreicht`, className: 'bg-status-none-soft' },
-    ]}
-    emptyFallback={null}
-  />
-)
 
 // ── Distribution bar ───────────────────────────────────────────────────────
 
@@ -179,7 +70,7 @@ const StudentRankingTable = ({
   const sorted = [...students].sort(
     sort === 'score'
       ? (a, b) => b.score - a.score
-      : (a, b) => sName(a).localeCompare(sName(b)),
+      : (a, b) => fullName(a).localeCompare(fullName(b)),
   )
 
   const ColHeader = ({ field, children }: { field: StudentSort; children: React.ReactNode }) => {
@@ -223,7 +114,7 @@ const StudentRankingTable = ({
                     {i + 1}
                   </span>
                 </td>
-                <td className="py-2 px-2 text-sm font-medium">{sName(s)}</td>
+                <td className="py-2 px-2 text-sm font-medium">{fullName(s)}</td>
                 <td className={cn('py-2 px-2 text-right tabular-nums text-sm font-bold', scoreColor(pct))}>{pct}%</td>
                 <td className="py-2 px-2"><ProgressBar segments={[{ value: pct, className: 'bg-primary' }]} total={100} size="xs" /></td>
                 <td className="py-2 px-3 text-right">
@@ -256,7 +147,7 @@ const LZRow = ({
   partial: number
   total: number
 }) => {
-  const pct = total === 0 ? 0 : Math.round(((reached + partial * 0.5) / total) * 100)
+  const pct = weightedPct(reached, partial, total)
   return (
     <div className="py-1.5 px-2 hover:bg-accent transition-colors">
       <div className="flex items-center justify-between gap-2 mb-1">
@@ -280,15 +171,6 @@ const LZRow = ({
     </div>
   )
 }
-
-// ── View switcher ──────────────────────────────────────────────────────────
-
-const VIEW_OPTIONS: { key: StatView; label: string }[] = [
-  { key: 'gesamt', label: 'Gesamt' },
-  { key: 'fach', label: 'Fach' },
-  { key: 'thema', label: 'Thema' },
-  { key: 'pruefungen', label: 'Lernzielkontrollen' },
-]
 
 // ── Main component ─────────────────────────────────────────────────────────
 
@@ -341,16 +223,16 @@ export const ClassAnalytics = ({
 
   const allScored = students.map(s => ({
     ...s,
-    allScore: studentLZScoreAdjusted(s, allLZ, activeThemen),
+    allScore: adjustedLZScore(s, allLZ, activeThemen),
   }))
 
   const scopeScored: ScoredStudent[] = allScored.map(s => ({
     ...s,
-    score: studentLZScoreAdjusted(s, scopedLZ, activeThemen),
+    score: adjustedLZScore(s, scopedLZ, activeThemen),
   }))
 
-  const regularStudents = allScored.filter(s => !isSpecial(s))
-  const regularScoped = scopeScored.filter(s => !isSpecial(s))
+  const regularStudents = allScored.filter(s => !isSpecialStudent(s))
+  const regularScoped = scopeScored.filter(s => !isSpecialStudent(s))
 
   const avgScore = regularScoped.length
     ? regularScoped.reduce((sum, x) => sum + x.score, 0) / regularScoped.length
@@ -384,12 +266,12 @@ export const ClassAnalytics = ({
 
   const themaAvgPct = themaKatFilteredLZ.length === 0 ? 0 : (() => {
     if (regularStudents.length === 0) return 0
-    const scores = regularStudents.map(s => studentLZScoreAdjusted(s, themaKatFilteredLZ, activeThemen))
+    const scores = regularStudents.map(s => adjustedLZScore(s, themaKatFilteredLZ, activeThemen))
     return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
   })()
 
   const themaStudents = [...scopeScored]
-    .map(s => ({ ...s, themaScore: studentLZScoreAdjusted(s, themaKatFilteredLZ, activeThemen) }))
+    .map(s => ({ ...s, themaScore: adjustedLZScore(s, themaKatFilteredLZ, activeThemen) }))
     .sort((a, b) => b.themaScore - a.themaScore)
 
   // ── Prüfungsstatistiken data ───────────────────────────────────────────
@@ -841,7 +723,7 @@ export const ClassAnalytics = ({
                         key={student.id}
                         className="border-b border-border last:border-b-0 hover:bg-accent transition-colors"
                       >
-                        <td className="py-2 px-3 font-medium">{sName(student)}</td>
+                        <td className="py-2 px-3 font-medium">{fullName(student)}</td>
                         <td className="py-2 px-3 text-right font-bold tabular-nums">
                           {selectedPruefung.punkteEnabled
                             ? (ergebnis?.punkte !== undefined
