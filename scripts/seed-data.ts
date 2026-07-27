@@ -11,10 +11,14 @@ export const SEED_THEMEN: Thema[] = [
   // Deutsch
   { id: 'tde1', fachId: 'f1', name: 'Lesen – Sach- und Gebrauchstexte', faelligAm: '2026-04-11', stufe: [5, 6], zyklus: [2] },
   { id: 'tde2', fachId: 'f1', name: 'Schreiben – Texte verfassen',        faelligAm: '2026-05-09', stufe: [5, 6, 7], zyklus: [2, 3] },
+  // tde2_7c: eigene Instanz für 7c – ein Thema kann laut Schema nur einer Klasse zugewiesen sein
+  { id: 'tde2_7c', fachId: 'f1', name: 'Schreiben – Texte verfassen',     faelligAm: '2026-05-09', stufe: [7], zyklus: [3] },
   { id: 'tde3', fachId: 'f1', name: 'Sprechen und Zuhören',               faelligAm: '2026-03-28', stufe: [6], zyklus: [2] },
   { id: 'tde4', fachId: 'f1', name: 'Rechtschreibung und Grammatik',      faelligAm: '2026-04-25', stufe: [6], zyklus: [2] },
   // Mathematik
   { id: 'tma1', fachId: 'f2', name: 'Zahlen und Operationen',             faelligAm: '2026-03-14', stufe: [5, 6], zyklus: [2] },
+  // tma1_5b: eigene Instanz für 5b – ein Thema kann laut Schema nur einer Klasse zugewiesen sein
+  { id: 'tma1_5b', fachId: 'f2', name: 'Zahlen und Operationen',          faelligAm: '2026-03-14', stufe: [5, 6], zyklus: [2] },
   { id: 'tma2', fachId: 'f2', name: 'Geometrie',                          faelligAm: '2026-04-11', stufe: [5], zyklus: [2] },
   { id: 'tma3', fachId: 'f2', name: 'Grössen, Daten und Zufall',         faelligAm: '2026-05-09', stufe: [6], zyklus: [2] },
   { id: 'tma4', fachId: 'f2', name: 'Terme und Gleichungen',              faelligAm: '2026-05-23', stufe: [7, 8], zyklus: [3] },
@@ -22,6 +26,8 @@ export const SEED_THEMEN: Thema[] = [
   { id: 'tnm1', fachId: 'f3', name: 'Lebewesen und Lebensräume',          faelligAm: '2026-04-25', stufe: [5], zyklus: [2] },
   { id: 'tnm2', fachId: 'f3', name: 'Körper und Gesundheit',              faelligAm: '2026-03-28', stufe: [6], zyklus: [2] },
   { id: 'tnm3', fachId: 'f3', name: 'Schweiz – Raum und Geschichte',      faelligAm: '2026-05-09', stufe: [6, 7], zyklus: [2, 3] },
+  // tnm3_7c: eigene Instanz für 7c – ein Thema kann laut Schema nur einer Klasse zugewiesen sein
+  { id: 'tnm3_7c', fachId: 'f3', name: 'Schweiz – Raum und Geschichte',   faelligAm: '2026-05-09', stufe: [7], zyklus: [3] },
   { id: 'tnm4', fachId: 'f3', name: 'Wirtschaft und Arbeit',              faelligAm: '2026-05-23', stufe: [7], zyklus: [3] },
   // Französisch
   { id: 'tfr1', fachId: 'f4', name: 'Hören und Sprechen',                 faelligAm: '2026-04-11', stufe: [7, 8], zyklus: [3] },
@@ -49,6 +55,10 @@ export const SEED_LERNZIELE: Lernziel[] = [
   { id: 'lde2a', themaId: 'tde2', kategorie: 'grundlegend',   label: 'Ich kann Texte strukturiert und verständlich aufschreiben', kriterien: ['Gliedert Text in Einleitung, Hauptteil, Schluss', 'Verwendet Absätze sinnvoll', 'Schreibt in vollständigen Sätzen'] },
   { id: 'lde2b', themaId: 'tde2', kategorie: 'anspruchsvoll', label: 'Ich kann eigene Erlebnisse und Meinungen schriftlich ausdrücken', kriterien: ['Beschreibt Erlebnisse lebendig und anschaulich', 'Drückt Gefühle und Meinungen klar aus', 'Wählt treffende Ausdrücke'] },
   { id: 'lde2c', themaId: 'tde2', kategorie: 'anspruchsvoll', label: 'Ich kann Texte überarbeiten und verbessern', kriterien: ['Liest eigene Texte kritisch durch', 'Verbessert Satzbau und Wortwahl', 'Korrigiert Rechtschreibfehler selbstständig'] },
+  // tde2_7c – Schreiben (7c-Instanz)
+  { id: 'lde2a_7c', themaId: 'tde2_7c', kategorie: 'grundlegend',   label: 'Ich kann Texte strukturiert und verständlich aufschreiben', kriterien: ['Gliedert Text in Einleitung, Hauptteil, Schluss', 'Verwendet Absätze sinnvoll', 'Schreibt in vollständigen Sätzen'] },
+  { id: 'lde2b_7c', themaId: 'tde2_7c', kategorie: 'anspruchsvoll', label: 'Ich kann eigene Erlebnisse und Meinungen schriftlich ausdrücken', kriterien: ['Beschreibt Erlebnisse lebendig und anschaulich', 'Drückt Gefühle und Meinungen klar aus', 'Wählt treffende Ausdrücke'] },
+  { id: 'lde2c_7c', themaId: 'tde2_7c', kategorie: 'anspruchsvoll', label: 'Ich kann Texte überarbeiten und verbessern', kriterien: ['Liest eigene Texte kritisch durch', 'Verbessert Satzbau und Wortwahl', 'Korrigiert Rechtschreibfehler selbstständig'] },
   // tde3 – Sprechen
   { id: 'lde3a', themaId: 'tde3', kategorie: 'grundlegend',   label: 'Ich kann verständlich und deutlich sprechen', kriterien: ['Spricht in angemessener Lautstärke', 'Artikuliert klar und deutlich', 'Hält Blickkontakt beim Sprechen'] },
   { id: 'lde3b', themaId: 'tde3', kategorie: 'grundlegend',   label: 'Ich kann zuhören und das Gehörte zusammenfassen', kriterien: ['Hört aufmerksam zu ohne zu unterbrechen', 'Fasst Gehörtes in eigenen Worten zusammen', 'Stellt Verständnisfragen'] },
@@ -62,6 +72,11 @@ export const SEED_LERNZIELE: Lernziel[] = [
   { id: 'lma1b', themaId: 'tma1', kategorie: 'grundlegend',   label: 'Ich kann schriftlich addieren und subtrahieren', kriterien: ['Führt schriftliche Addition mit Übertrag durch', 'Führt schriftliche Subtraktion mit Entbündeln durch', 'Überprüft Ergebnisse durch Proberechnung'] },
   { id: 'lma1c', themaId: 'tma1', kategorie: 'anspruchsvoll', label: 'Ich kann schriftlich multiplizieren und dividieren', kriterien: ['Multipliziert mehrstellige Zahlen schriftlich', 'Dividiert mit Rest schriftlich', 'Erkennt Zusammenhang zwischen Multiplikation und Division'] },
   { id: 'lma1d', themaId: 'tma1', kategorie: 'anspruchsvoll', label: 'Ich kann Brüche und Dezimalzahlen verstehen und vergleichen', kriterien: ['Stellt Brüche als Teile eines Ganzen dar', 'Wandelt einfache Brüche in Dezimalzahlen um', 'Vergleicht und ordnet Dezimalzahlen'] },
+  // tma1_5b – Zahlen (5b-Instanz)
+  { id: 'lma1a_5b', themaId: 'tma1_5b', kategorie: 'grundlegend',   label: 'Ich kann Zahlen bis 1 000 000 lesen, schreiben und ordnen', kriterien: ['Liest und schreibt sechsstellige Zahlen', 'Ordnet Zahlen auf dem Zahlenstrahl', 'Vergleicht Zahlen mit <, >, ='] },
+  { id: 'lma1b_5b', themaId: 'tma1_5b', kategorie: 'grundlegend',   label: 'Ich kann schriftlich addieren und subtrahieren', kriterien: ['Führt schriftliche Addition mit Übertrag durch', 'Führt schriftliche Subtraktion mit Entbündeln durch', 'Überprüft Ergebnisse durch Proberechnung'] },
+  { id: 'lma1c_5b', themaId: 'tma1_5b', kategorie: 'anspruchsvoll', label: 'Ich kann schriftlich multiplizieren und dividieren', kriterien: ['Multipliziert mehrstellige Zahlen schriftlich', 'Dividiert mit Rest schriftlich', 'Erkennt Zusammenhang zwischen Multiplikation und Division'] },
+  { id: 'lma1d_5b', themaId: 'tma1_5b', kategorie: 'anspruchsvoll', label: 'Ich kann Brüche und Dezimalzahlen verstehen und vergleichen', kriterien: ['Stellt Brüche als Teile eines Ganzen dar', 'Wandelt einfache Brüche in Dezimalzahlen um', 'Vergleicht und ordnet Dezimalzahlen'] },
   // tma2 – Geometrie
   { id: 'lma2a', themaId: 'tma2', kategorie: 'grundlegend',   label: 'Ich kann Dreiecke und Vierecke benennen und Eigenschaften beschreiben', kriterien: ['Benennt gleichseitig, gleichschenklig, rechtwinklig', 'Beschreibt Eigenschaften von Quadrat, Rechteck, Raute', 'Zeichnet Figuren nach Vorgabe'] },
   { id: 'lma2b', themaId: 'tma2', kategorie: 'anspruchsvoll', label: 'Ich kann Umfang und Flächeninhalt berechnen', kriterien: ['Berechnet Umfang von Vierecken und Dreiecken', 'Berechnet Flächeninhalt mit Formel', 'Löst Sachaufgaben zu Umfang und Fläche'] },
@@ -84,6 +99,10 @@ export const SEED_LERNZIELE: Lernziel[] = [
   { id: 'lnm3a', themaId: 'tnm3', kategorie: 'grundlegend',   label: 'Ich kann wichtige Ereignisse der Schweizer Geschichte einordnen', kriterien: ['Nennt Gründungsdatum und wichtige Gründer', 'Ordnet Ereignisse auf einer Zeitleiste ein', 'Erklärt die Bedeutung der Reformation'] },
   { id: 'lnm3b', themaId: 'tnm3', kategorie: 'grundlegend',   label: 'Ich kann Karten lesen und geografische Merkmale der Schweiz beschreiben', kriterien: ['Liest Höhenangaben und Legenden aus Karten', 'Benennt Alpen, Mittelland und Jura', 'Nennt Nachbarländer und Landessprachen'] },
   { id: 'lnm3c', themaId: 'tnm3', kategorie: 'anspruchsvoll', label: 'Ich kann politische Grundstrukturen der Schweiz erläutern', kriterien: ['Erklärt Bund, Kanton, Gemeinde', 'Beschreibt direkte Demokratie (Abstimmung, Initiative)', 'Nennt wichtige Bundesbehörden'] },
+  // tnm3_7c – Schweiz (7c-Instanz)
+  { id: 'lnm3a_7c', themaId: 'tnm3_7c', kategorie: 'grundlegend',   label: 'Ich kann wichtige Ereignisse der Schweizer Geschichte einordnen', kriterien: ['Nennt Gründungsdatum und wichtige Gründer', 'Ordnet Ereignisse auf einer Zeitleiste ein', 'Erklärt die Bedeutung der Reformation'] },
+  { id: 'lnm3b_7c', themaId: 'tnm3_7c', kategorie: 'grundlegend',   label: 'Ich kann Karten lesen und geografische Merkmale der Schweiz beschreiben', kriterien: ['Liest Höhenangaben und Legenden aus Karten', 'Benennt Alpen, Mittelland und Jura', 'Nennt Nachbarländer und Landessprachen'] },
+  { id: 'lnm3c_7c', themaId: 'tnm3_7c', kategorie: 'anspruchsvoll', label: 'Ich kann politische Grundstrukturen der Schweiz erläutern', kriterien: ['Erklärt Bund, Kanton, Gemeinde', 'Beschreibt direkte Demokratie (Abstimmung, Initiative)', 'Nennt wichtige Bundesbehörden'] },
   // tnm4 – Wirtschaft
   { id: 'lnm4a', themaId: 'tnm4', kategorie: 'anspruchsvoll', label: 'Ich kann einfache wirtschaftliche Zusammenhänge verstehen', kriterien: ['Erklärt Angebot und Nachfrage', 'Beschreibt den Wirtschaftskreislauf vereinfacht', 'Nennt Beispiele für Import und Export'] },
   { id: 'lnm4b', themaId: 'tnm4', kategorie: 'grundlegend',   label: 'Ich kann Berufsbilder und die Berufswahl beschreiben', kriterien: ['Nennt Anforderungen verschiedener Berufe', 'Beschreibt eigene Interessen und Stärken', 'Erklärt Schritte der Berufswahl'] },
@@ -152,7 +171,7 @@ export const SEED_CLASSES: Klasse[] = [
   },
   {
     id: 'k2', name: '5b', schuljahr: '2025/26',
-    assignedThemaIds: ['tde3', 'tde4', 'tma1', 'tma3', 'tnm2', 'tnm3'],
+    assignedThemaIds: ['tde3', 'tde4', 'tma1_5b', 'tma3', 'tnm2', 'tnm3'],
     lpZuweisungen: [
       { lpId: 'lp1', fachIds: ['f1', 'f3'], rolle: 'klassenlehrperson' },
       { lpId: 'lp2', fachIds: ['f2'], rolle: 'fachlehrperson' },
@@ -161,7 +180,7 @@ export const SEED_CLASSES: Klasse[] = [
   },
   {
     id: 'k3', name: '7c', schuljahr: '2025/26',
-    assignedThemaIds: ['tde2', 'tma4', 'tnm3', 'tnm4', 'tfr1', 'tfr2', 'tfr3'],
+    assignedThemaIds: ['tde2_7c', 'tma4', 'tnm3_7c', 'tnm4', 'tfr1', 'tfr2', 'tfr3'],
     lpZuweisungen: [
       { lpId: 'lp3', fachIds: ['f1', 'f3'], rolle: 'klassenlehrperson' },
       { lpId: 'lp2', fachIds: ['f2'], rolle: 'fachlehrperson' },
@@ -572,7 +591,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached', lde3b: 'reached', lde3c: 'reached',
       lde4a: 'reached', lde4b: 'reached', lde4c: 'reached',
-      lma1a: 'reached', lma1b: 'reached', lma1c: 'reached', lma1d: 'reached',
+      lma1a_5b: 'reached', lma1b_5b: 'reached', lma1c_5b: 'reached', lma1d_5b: 'reached',
       lma3a: 'reached', lma3b: 'reached', lma3c: 'reached',
       lnm2a: 'reached', lnm2b: 'reached',
       lnm3a: 'reached', lnm3b: 'reached', lnm3c: 'reached',
@@ -586,7 +605,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached',            lde3b: 'partially_reached', lde3c: 'partially_reached',
       lde4a: 'partially_reached',  lde4b: 'partially_reached', lde4c: 'not_reached',
-      lma1a: 'partially_reached',  lma1b: 'partially_reached', lma1c: 'not_reached',  lma1d: 'not_reached',
+      lma1a_5b: 'partially_reached',  lma1b_5b: 'partially_reached', lma1c_5b: 'not_reached',  lma1d_5b: 'not_reached',
       lma3a: 'partially_reached',  lma3b: 'not_reached',       lma3c: 'not_reached',
       lnm2a: 'partially_reached',  lnm2b: 'not_reached',
       lnm3a: 'partially_reached',  lnm3b: 'not_reached',       lnm3c: 'not_reached',
@@ -600,7 +619,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached',           lde3b: 'reached',           lde3c: 'partially_reached',
       lde4a: 'reached',           lde4b: 'partially_reached', lde4c: 'reached',
-      lma1a: 'reached',           lma1b: 'reached',           lma1c: 'partially_reached', lma1d: 'not_reached',
+      lma1a_5b: 'reached',           lma1b_5b: 'reached',           lma1c_5b: 'partially_reached', lma1d_5b: 'not_reached',
       lma3a: 'reached',           lma3b: 'partially_reached', lma3c: 'partially_reached',
       lnm2a: 'reached',           lnm2b: 'reached',
       lnm3a: 'partially_reached', lnm3b: 'partially_reached', lnm3c: 'not_reached',
@@ -614,7 +633,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached',            lde3b: 'reached',            lde3c: 'partially_reached',
       lde4a: 'partially_reached',  lde4b: 'not_reached',        lde4c: 'not_reached',
-      lma1a: 'partially_reached',  lma1b: 'not_reached',        lma1c: 'not_reached', lma1d: 'not_reached',
+      lma1a_5b: 'partially_reached',  lma1b_5b: 'not_reached',        lma1c_5b: 'not_reached', lma1d_5b: 'not_reached',
       lma3a: 'partially_reached',  lma3b: 'not_reached',        lma3c: 'not_reached',
       lnm2a: 'partially_reached',  lnm2b: 'partially_reached',
       lnm3a: 'not_reached',         lnm3b: 'not_reached',        lnm3c: 'not_reached',
@@ -628,7 +647,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'partially_reached', lde3b: 'partially_reached', lde3c: 'partially_reached',
       lde4a: 'partially_reached', lde4b: 'partially_reached', lde4c: 'not_reached',
-      lma1a: 'partially_reached', lma1b: 'partially_reached', lma1c: 'not_reached', lma1d: 'not_reached',
+      lma1a_5b: 'partially_reached', lma1b_5b: 'partially_reached', lma1c_5b: 'not_reached', lma1d_5b: 'not_reached',
       lma3a: 'partially_reached', lma3b: 'not_reached',        lma3c: 'not_reached',
       lnm2a: 'partially_reached', lnm2b: 'partially_reached',
       lnm3a: 'not_reached',        lnm3b: 'not_reached',        lnm3c: 'not_reached',
@@ -642,7 +661,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached',           lde3b: 'reached',           lde3c: 'reached',
       lde4a: 'reached',           lde4b: 'reached',           lde4c: 'partially_reached',
-      lma1a: 'reached',           lma1b: 'reached',           lma1c: 'reached',           lma1d: 'partially_reached',
+      lma1a_5b: 'reached',           lma1b_5b: 'reached',           lma1c_5b: 'reached',           lma1d_5b: 'partially_reached',
       lma3a: 'reached',           lma3b: 'reached',           lma3c: 'partially_reached',
       lnm2a: 'reached',           lnm2b: 'reached',
       lnm3a: 'reached',           lnm3b: 'reached',           lnm3c: 'partially_reached',
@@ -656,7 +675,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached',           lde3b: 'reached',           lde3c: 'partially_reached',
       lde4a: 'partially_reached', lde4b: 'reached',           lde4c: 'partially_reached',
-      lma1a: 'partially_reached', lma1b: 'partially_reached', lma1c: 'not_reached', lma1d: 'not_reached',
+      lma1a_5b: 'partially_reached', lma1b_5b: 'partially_reached', lma1c_5b: 'not_reached', lma1d_5b: 'not_reached',
       lma3a: 'reached',           lma3b: 'partially_reached', lma3c: 'partially_reached',
       lnm2a: 'reached',           lnm2b: 'reached',
       lnm3a: 'partially_reached', lnm3b: 'not_reached',        lnm3c: 'not_reached',
@@ -670,7 +689,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'not_reached', lde3b: 'not_reached', lde3c: 'not_reached',
       lde4a: 'not_reached', lde4b: 'not_reached', lde4c: 'not_reached',
-      lma1a: 'not_reached', lma1b: 'not_reached', lma1c: 'not_reached', lma1d: 'not_reached',
+      lma1a_5b: 'not_reached', lma1b_5b: 'not_reached', lma1c_5b: 'not_reached', lma1d_5b: 'not_reached',
       lma3a: 'not_reached', lma3b: 'not_reached', lma3c: 'not_reached',
       lnm2a: 'not_reached', lnm2b: 'not_reached',
       lnm3a: 'not_reached', lnm3b: 'not_reached', lnm3c: 'not_reached',
@@ -684,7 +703,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached', lde3b: 'reached', lde3c: 'reached',
       lde4a: 'reached', lde4b: 'reached', lde4c: 'reached',
-      lma1a: 'reached', lma1b: 'reached', lma1c: 'reached', lma1d: 'reached',
+      lma1a_5b: 'reached', lma1b_5b: 'reached', lma1c_5b: 'reached', lma1d_5b: 'reached',
       lma3a: 'reached', lma3b: 'reached', lma3c: 'reached',
       lnm2a: 'reached', lnm2b: 'reached',
       lnm3a: 'reached', lnm3b: 'reached', lnm3c: 'reached',
@@ -698,7 +717,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached',            lde3b: 'partially_reached', lde3c: 'not_reached',
       lde4a: 'partially_reached',  lde4b: 'partially_reached', lde4c: 'not_reached',
-      lma1a: 'partially_reached',  lma1b: 'partially_reached', lma1c: 'not_reached', lma1d: 'not_reached',
+      lma1a_5b: 'partially_reached',  lma1b_5b: 'partially_reached', lma1c_5b: 'not_reached', lma1d_5b: 'not_reached',
       lma3a: 'partially_reached',  lma3b: 'not_reached',        lma3c: 'not_reached',
       lnm2a: 'partially_reached',  lnm2b: 'not_reached',
       lnm3a: 'not_reached',         lnm3b: 'not_reached',        lnm3c: 'not_reached',
@@ -712,7 +731,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached', lde3b: 'reached', lde3c: 'reached',
       lde4a: 'reached', lde4b: 'reached', lde4c: 'reached',
-      lma1a: 'reached', lma1b: 'reached', lma1c: 'reached', lma1d: 'partially_reached',
+      lma1a_5b: 'reached', lma1b_5b: 'reached', lma1c_5b: 'reached', lma1d_5b: 'partially_reached',
       lma3a: 'reached', lma3b: 'reached', lma3c: 'reached',
       lnm2a: 'reached', lnm2b: 'reached',
       lnm3a: 'reached', lnm3b: 'reached', lnm3c: 'partially_reached',
@@ -726,7 +745,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'partially_reached', lde3b: 'not_reached', lde3c: 'not_reached',
       lde4a: 'not_reached',        lde4b: 'not_reached', lde4c: 'not_reached',
-      lma1a: 'not_reached',        lma1b: 'not_reached', lma1c: 'not_reached', lma1d: 'not_reached',
+      lma1a_5b: 'not_reached',        lma1b_5b: 'not_reached', lma1c_5b: 'not_reached', lma1d_5b: 'not_reached',
       lma3a: 'not_reached',        lma3b: 'not_reached', lma3c: 'not_reached',
       lnm2a: 'not_reached',        lnm2b: 'not_reached',
       lnm3a: 'not_reached',        lnm3b: 'not_reached', lnm3c: 'not_reached',
@@ -740,7 +759,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached',           lde3b: 'reached',           lde3c: 'reached',
       lde4a: 'reached',           lde4b: 'partially_reached', lde4c: 'reached',
-      lma1a: 'reached',           lma1b: 'reached',           lma1c: 'partially_reached', lma1d: 'partially_reached',
+      lma1a_5b: 'reached',           lma1b_5b: 'reached',           lma1c_5b: 'partially_reached', lma1d_5b: 'partially_reached',
       lma3a: 'reached',           lma3b: 'reached',           lma3c: 'partially_reached',
       lnm2a: 'reached',           lnm2b: 'reached',
       lnm3a: 'reached',           lnm3b: 'partially_reached', lnm3c: 'not_reached',
@@ -754,7 +773,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached',           lde3b: 'partially_reached', lde3c: 'partially_reached',
       lde4a: 'partially_reached', lde4b: 'partially_reached', lde4c: 'reached',
-      lma1a: 'partially_reached', lma1b: 'reached',           lma1c: 'partially_reached', lma1d: 'not_reached',
+      lma1a_5b: 'partially_reached', lma1b_5b: 'reached',           lma1c_5b: 'partially_reached', lma1d_5b: 'not_reached',
       lma3a: 'reached',           lma3b: 'partially_reached', lma3c: 'partially_reached',
       lnm2a: 'partially_reached', lnm2b: 'reached',
       lnm3a: 'partially_reached', lnm3b: 'partially_reached', lnm3c: 'not_reached',
@@ -768,7 +787,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached', lde3b: 'reached', lde3c: 'reached',
       lde4a: 'reached', lde4b: 'reached', lde4c: 'reached',
-      lma1a: 'reached', lma1b: 'reached', lma1c: 'reached', lma1d: 'reached',
+      lma1a_5b: 'reached', lma1b_5b: 'reached', lma1c_5b: 'reached', lma1d_5b: 'reached',
       lma3a: 'reached', lma3b: 'reached', lma3c: 'partially_reached',
       lnm2a: 'reached', lnm2b: 'reached',
       lnm3a: 'reached', lnm3b: 'reached', lnm3c: 'reached',
@@ -782,7 +801,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached',            lde3b: 'partially_reached',  lde3c: 'not_reached',
       lde4a: 'not_reached',        lde4b: 'partially_reached',  lde4c: 'not_reached',
-      lma1a: 'partially_reached',  lma1b: 'partially_reached',  lma1c: 'not_reached', lma1d: 'not_reached',
+      lma1a_5b: 'partially_reached',  lma1b_5b: 'partially_reached',  lma1c_5b: 'not_reached', lma1d_5b: 'not_reached',
       lma3a: 'partially_reached',  lma3b: 'not_reached',        lma3c: 'not_reached',
       lnm2a: 'partially_reached',  lnm2b: 'partially_reached',
       lnm3a: 'partially_reached',  lnm3b: 'not_reached',        lnm3c: 'not_reached',
@@ -796,7 +815,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached',           lde3b: 'reached',           lde3c: 'partially_reached',
       lde4a: 'partially_reached', lde4b: 'reached',           lde4c: 'partially_reached',
-      lma1a: 'partially_reached', lma1b: 'partially_reached', lma1c: 'not_reached', lma1d: 'not_reached',
+      lma1a_5b: 'partially_reached', lma1b_5b: 'partially_reached', lma1c_5b: 'not_reached', lma1d_5b: 'not_reached',
       lma3a: 'reached',           lma3b: 'partially_reached', lma3c: 'not_reached',
       lnm2a: 'partially_reached', lnm2b: 'reached',
       lnm3a: 'partially_reached', lnm3b: 'partially_reached', lnm3c: 'not_reached',
@@ -810,7 +829,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached',           lde3b: 'reached',           lde3c: 'partially_reached',
       lde4a: 'reached',           lde4b: 'reached',           lde4c: 'partially_reached',
-      lma1a: 'reached',           lma1b: 'reached',           lma1c: 'reached',           lma1d: 'partially_reached',
+      lma1a_5b: 'reached',           lma1b_5b: 'reached',           lma1c_5b: 'reached',           lma1d_5b: 'partially_reached',
       lma3a: 'reached',           lma3b: 'reached',           lma3c: 'partially_reached',
       lnm2a: 'reached',           lnm2b: 'reached',
       lnm3a: 'reached',           lnm3b: 'partially_reached', lnm3c: 'not_reached',
@@ -824,7 +843,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached', lde3b: 'reached', lde3c: 'reached',
       lde4a: 'reached', lde4b: 'reached', lde4c: 'reached',
-      lma1a: 'reached', lma1b: 'reached', lma1c: 'reached', lma1d: 'reached',
+      lma1a_5b: 'reached', lma1b_5b: 'reached', lma1c_5b: 'reached', lma1d_5b: 'reached',
       lma3a: 'reached', lma3b: 'reached', lma3c: 'reached',
       lnm2a: 'reached', lnm2b: 'reached',
       lnm3a: 'reached', lnm3b: 'reached', lnm3c: 'reached',
@@ -838,7 +857,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'not_reached', lde3b: 'not_reached', lde3c: 'not_reached',
       lde4a: 'not_reached', lde4b: 'not_reached', lde4c: 'not_reached',
-      lma1a: 'not_reached', lma1b: 'not_reached', lma1c: 'not_reached', lma1d: 'not_reached',
+      lma1a_5b: 'not_reached', lma1b_5b: 'not_reached', lma1c_5b: 'not_reached', lma1d_5b: 'not_reached',
       lma3a: 'not_reached', lma3b: 'not_reached', lma3c: 'not_reached',
       lnm2a: 'not_reached', lnm2b: 'not_reached',
       lnm3a: 'not_reached', lnm3b: 'not_reached', lnm3c: 'not_reached',
@@ -852,7 +871,7 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'partially_reached', lde3b: 'partially_reached', lde3c: 'not_reached',
       lde4a: 'partially_reached', lde4b: 'partially_reached', lde4c: 'not_reached',
-      lma1a: 'partially_reached', lma1b: 'not_reached',        lma1c: 'not_reached', lma1d: 'not_reached',
+      lma1a_5b: 'partially_reached', lma1b_5b: 'not_reached',        lma1c_5b: 'not_reached', lma1d_5b: 'not_reached',
       lma3a: 'not_reached',        lma3b: 'not_reached',        lma3c: 'not_reached',
       lnm2a: 'partially_reached',  lnm2b: 'not_reached',
       lnm3a: 'not_reached',        lnm3b: 'not_reached',        lnm3c: 'not_reached',
@@ -895,10 +914,144 @@ export const SEED_STUDENTS: Schueler[] = ([
     lernzielStatus: {
       lde3a: 'reached',            lde3b: 'partially_reached',  lde3c: 'not_reached',
       lde4a: 'partially_reached',  lde4b: 'not_reached',        lde4c: 'not_reached',
-      lma1a: 'reached',            lma1b: 'reached',            lma1c: 'not_reached', lma1d: 'not_reached',
+      lma1a_5b: 'reached',            lma1b_5b: 'reached',            lma1c_5b: 'not_reached', lma1d_5b: 'not_reached',
       lma3a: 'partially_reached',  lma3b: 'partially_reached',  lma3c: 'not_reached',
       lnm2a: 'partially_reached',  lnm2b: 'not_reached',
       lnm3a: 'partially_reached',  lnm3b: 'not_reached',        lnm3c: 'not_reached',
+    },
+  },
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // 7c – k3   LZ-Pool: lde2a_7c-c_7c  lma4a-b  lnm3a_7c-c_7c  lnm4a-b  lfr1a-c  lfr2a-b  lfr3a-b
+  // ════════════════════════════════════════════════════════════════════════════
+
+  {
+    id: 's47', klassId: 'k3', vorname: 'Yannick', nachname: 'Baumgartner',
+    note: 'Sehr selbstständig, hilft Mitschülern gerne.',
+    competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'reached', c5: 'reached', c6: 'reached' },
+    lernzielStatus: {
+      lde2a_7c: 'reached', lde2b_7c: 'reached', lde2c_7c: 'reached',
+      lma4a: 'reached', lma4b: 'partially_reached',
+      lnm3a_7c: 'reached', lnm3b_7c: 'reached', lnm3c_7c: 'reached',
+      lnm4a: 'reached', lnm4b: 'reached',
+      lfr1a: 'reached', lfr1b: 'reached', lfr1c: 'partially_reached',
+      lfr2a: 'reached', lfr2b: 'reached',
+      lfr3a: 'partially_reached', lfr3b: 'not_reached',
+    },
+  },
+
+  {
+    id: 's48', klassId: 'k3', vorname: 'Selina', nachname: 'Marti',
+    note: '',
+    competencyStatus: { c1: 'partially_reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'partially_reached', c6: 'reached' },
+    lernzielStatus: {
+      lde2a_7c: 'reached', lde2b_7c: 'partially_reached', lde2c_7c: 'not_reached',
+      lma4a: 'partially_reached', lma4b: 'not_reached',
+      lnm3a_7c: 'reached', lnm3b_7c: 'partially_reached', lnm3c_7c: 'not_reached',
+      lnm4a: 'partially_reached', lnm4b: 'partially_reached',
+      lfr1a: 'reached', lfr1b: 'partially_reached', lfr1c: 'not_reached',
+      lfr2a: 'partially_reached', lfr2b: 'not_reached',
+      lfr3a: 'not_reached', lfr3b: 'not_reached',
+    },
+  },
+
+  {
+    id: 's49', klassId: 'k3', vorname: 'Fabio', nachname: 'Egger',
+    note: 'Braucht in fast allen Fächern zusätzliche Unterstützung.',
+    competencyStatus: { c1: 'not_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'partially_reached', c5: 'not_reached', c6: 'partially_reached' },
+    lernzielStatus: {
+      lde2a_7c: 'partially_reached', lde2b_7c: 'not_reached', lde2c_7c: 'not_reached',
+      lma4a: 'not_reached', lma4b: 'not_reached',
+      lnm3a_7c: 'partially_reached', lnm3b_7c: 'not_reached', lnm3c_7c: 'not_reached',
+      lnm4a: 'not_reached', lnm4b: 'not_reached',
+      lfr1a: 'partially_reached', lfr1b: 'not_reached', lfr1c: 'not_reached',
+      lfr2a: 'not_reached', lfr2b: 'not_reached',
+      lfr3a: 'not_reached', lfr3b: 'not_reached',
+    },
+  },
+
+  {
+    id: 's50', klassId: 'k3', vorname: 'Nina', nachname: 'Suter',
+    note: 'Sehr stark in Französisch.',
+    competencyStatus: { c1: 'reached', c2: 'reached', c3: 'reached', c4: 'reached', c5: 'reached', c6: 'partially_reached' },
+    lernzielStatus: {
+      lde2a_7c: 'reached', lde2b_7c: 'reached', lde2c_7c: 'partially_reached',
+      lma4a: 'reached', lma4b: 'reached',
+      lnm3a_7c: 'reached', lnm3b_7c: 'reached', lnm3c_7c: 'partially_reached',
+      lnm4a: 'reached', lnm4b: 'partially_reached',
+      lfr1a: 'reached', lfr1b: 'reached', lfr1c: 'reached',
+      lfr2a: 'reached', lfr2b: 'reached',
+      lfr3a: 'reached', lfr3b: 'partially_reached',
+    },
+  },
+
+  {
+    id: 's51', klassId: 'k3', vorname: 'Joel', nachname: 'Furrer',
+    note: '',
+    competencyStatus: { c1: 'not_reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'partially_reached', c6: 'reached' },
+    lernzielStatus: {
+      lde2a_7c: 'reached', lde2b_7c: 'reached', lde2c_7c: 'partially_reached',
+      lma4a: 'partially_reached', lma4b: 'not_reached',
+      lnm3a_7c: 'reached', lnm3b_7c: 'partially_reached', lnm3c_7c: 'partially_reached',
+      lnm4a: 'partially_reached', lnm4b: 'partially_reached',
+      lfr1a: 'reached', lfr1b: 'partially_reached', lfr1c: 'partially_reached',
+      lfr2a: 'partially_reached', lfr2b: 'not_reached',
+      lfr3a: 'not_reached', lfr3b: 'not_reached',
+    },
+  },
+
+  {
+    id: 's52', klassId: 'k3', vorname: 'Melanie', nachname: 'Wyss',
+    note: 'Stark in Sprachen, tut sich mit Algebra schwer.',
+    competencyStatus: { c1: 'not_reached', c2: 'reached', c3: 'partially_reached', c4: 'reached', c5: 'reached', c6: 'reached' },
+    lernzielStatus: {
+      lde2a_7c: 'reached', lde2b_7c: 'reached', lde2c_7c: 'reached',
+      lma4a: 'partially_reached', lma4b: 'not_reached',
+      lnm3a_7c: 'reached', lnm3b_7c: 'reached', lnm3c_7c: 'partially_reached',
+      lnm4a: 'reached', lnm4b: 'reached',
+      lfr1a: 'reached', lfr1b: 'reached', lfr1c: 'reached',
+      lfr2a: 'reached', lfr2b: 'reached',
+      lfr3a: 'reached', lfr3b: 'reached',
+    },
+  },
+
+  {
+    id: 's53', klassId: 'k3', vorname: 'Céline', nachname: 'Baer',
+    rilzFachIds: ['f2'],  // RILZ in Mathematik
+    note: 'Profitiert von vereinfachten Zielen in Mathematik.',
+    rilzLernziele: [
+      { id: 'rlz_s53_1', themaId: 'tma4', label: 'Ich kann einfache Terme mit einer Variable aufstellen', status: 'reached' },
+      { id: 'rlz_s53_2', themaId: 'tma4', label: 'Ich kann Terme für gegebene Zahlenwerte berechnen', status: 'partially_reached' },
+      { id: 'rlz_s53_3', themaId: 'tma4', label: 'Ich kann einfache Gleichungen mit Probieren lösen', status: 'not_reached' },
+    ],
+    competencyStatus: { c1: 'not_reached', c2: 'partially_reached', c3: 'not_reached', c4: 'partially_reached', c5: 'partially_reached', c6: 'reached' },
+    lernzielStatus: {
+      lde2a_7c: 'partially_reached', lde2b_7c: 'partially_reached', lde2c_7c: 'not_reached',
+      lma4a: 'not_reached', lma4b: 'not_reached',
+      lnm3a_7c: 'partially_reached', lnm3b_7c: 'not_reached', lnm3c_7c: 'not_reached',
+      lnm4a: 'partially_reached', lnm4b: 'not_reached',
+      lfr1a: 'partially_reached', lfr1b: 'not_reached', lfr1c: 'not_reached',
+      lfr2a: 'partially_reached', lfr2b: 'not_reached',
+      lfr3a: 'not_reached', lfr3b: 'not_reached',
+    },
+  },
+
+  {
+    // Negative-trend student: mastered the early batch (Deutsch, Algebra, NMG-Schweiz)
+    // perfectly, but the late batch (NMG-Wirtschaft cont'd + all of Französisch) remains
+    // unachieved → Französisch line drops sharply once that unit is introduced.
+    id: 'sNeg3', klassId: 'k3', vorname: 'Dario', nachname: 'Hofer',
+    note: 'Start war stark, kommt seit der Französisch-Einheit nicht mehr mit.',
+    competencyStatus: { c1: 'reached', c2: 'reached', c3: 'partially_reached', c4: 'partially_reached', c5: 'reached', c6: 'partially_reached' },
+    lernzielStatus: {
+      lde2a_7c: 'reached', lde2b_7c: 'reached', lde2c_7c: 'reached',
+      lma4a: 'reached', lma4b: 'reached',
+      lnm3a_7c: 'reached', lnm3b_7c: 'reached', lnm3c_7c: 'reached',
+      lnm4a: 'reached',
+      lnm4b: 'not_reached',
+      lfr1a: 'not_reached', lfr1b: 'not_reached', lfr1c: 'not_reached',
+      lfr2a: 'not_reached', lfr2b: 'not_reached',
+      lfr3a: 'not_reached', lfr3b: 'not_reached',
     },
   },
 

@@ -16,9 +16,9 @@ export const UnderlineTabs = <T extends string,>({ options, value, onChange }: U
         <Button
           key={o.key}
           onClick={() => onChange(o.key)}
-          variant="ghost"
+          variant="secondary"
           className={cn(
-            'h-auto rounded-none px-4 py-2 border-b-2 -mb-px whitespace-nowrap',
+            'h-auto rounded-none border-transparent bg-transparent px-4 py-2 border-b-2 -mb-px whitespace-nowrap',
             'hover:bg-transparent focus-visible:ring-0 focus-visible:border-x-transparent focus-visible:border-t-transparent',
             value === o.key
               ? 'border-b-primary text-primary'

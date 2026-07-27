@@ -341,10 +341,10 @@ const ThemaEditModal = ({ themaId, onClose, onRequestDelete }: {
               onChange={e => setEditLzLabel(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') saveLZ(lz.id); if (e.key === 'Escape') setEditLzId(null) }}
               className="h-6 text-xs flex-1 px-1.5" autoFocus />
-            <Button size="icon-sm" variant="ghost" onClick={() => saveLZ(lz.id)}>
+            <Button size="icon-sm" variant="secondary" onClick={() => saveLZ(lz.id)}>
               <Icon name="check" size={12} className="text-status-reached" />
             </Button>
-            <Button size="icon-sm" variant="ghost" onClick={() => setEditLzId(null)}>
+            <Button size="icon-sm" variant="secondary" onClick={() => setEditLzId(null)}>
               <Icon name="close" size={12} />
             </Button>
           </>
@@ -352,12 +352,12 @@ const ThemaEditModal = ({ themaId, onClose, onRequestDelete }: {
           <>
             <span className="flex-1 text-xs leading-snug">{lz.label}</span>
             <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <Button size="icon-sm" variant="ghost"
+              <Button size="icon-sm" variant="secondary"
                 onClick={() => { setEditLzId(lz.id); setEditLzLabel(lz.label); setEditLzKategorie(lz.kategorie) }}
                 aria-label="Bearbeiten">
                 <Icon name="edit" size={12} />
               </Button>
-              <Button size="icon-sm" variant="ghost"
+              <Button size="icon-sm" variant="secondary"
                 className="text-destructive/70 hover:text-destructive"
                 onClick={() => setDeleteLzId(lz.id)} aria-label="Löschen">
                 <Icon name="delete" size={12} />
@@ -387,23 +387,23 @@ const ThemaEditModal = ({ themaId, onClose, onRequestDelete }: {
                 Löschen
               </button>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="ghost" onClick={() => exportThema(themaId)} aria-label="Exportieren" className="text-muted-foreground">
+                <Button variant="secondary" onClick={() => exportThema(themaId)} aria-label="Exportieren" className="text-muted-foreground">
                   <Icon name="download" size={14} />
                 </Button>
-                <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
-                <Button size="sm" onClick={() => setEditStep('lernziele')} disabled={!localName.trim()}>
+                <Button variant="secondary" onClick={onClose}>Abbrechen</Button>
+                <Button onClick={() => setEditStep('lernziele')} disabled={!localName.trim()}>
                   Weiter <Icon name="chevron_right" size={14} className="ml-0.5" />
                 </Button>
               </div>
             </div>
           ) : (
             <div className="flex items-center justify-between w-full gap-2">
-              <Button size="sm" variant="ghost" onClick={() => setEditStep('meta')} className="text-muted-foreground">
+              <Button variant="secondary" onClick={() => setEditStep('meta')} className="text-muted-foreground">
                 <Icon name="chevron_left" size={14} className="mr-0.5" /> Zurück
               </Button>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
-                <Button size="sm" onClick={save} disabled={!localName.trim()}>Fertig</Button>
+                <Button variant="secondary" onClick={onClose}>Abbrechen</Button>
+                <Button onClick={save} disabled={!localName.trim()}>Fertig</Button>
               </div>
             </div>
           )
@@ -540,7 +540,7 @@ const ThemaEditModal = ({ themaId, onClose, onRequestDelete }: {
                 <Input value={newLZG} onChange={e => setNewLZG(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addLZG()}
                   placeholder="Grundlegendes Lernziel…" className="h-6 text-xs flex-1" />
-                <Button size="icon-sm" variant="outline" onClick={addLZG} disabled={!newLZG.trim()}>
+                <Button size="icon-sm" variant="secondary" onClick={addLZG} disabled={!newLZG.trim()}>
                   <Icon name="add" size={12} />
                 </Button>
               </div>
@@ -561,7 +561,7 @@ const ThemaEditModal = ({ themaId, onClose, onRequestDelete }: {
                 <Input value={newLZA} onChange={e => setNewLZA(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addLZA()}
                   placeholder="Anspruchsvolles Lernziel…" className="h-6 text-xs flex-1" />
-                <Button size="icon-sm" variant="outline" onClick={addLZA} disabled={!newLZA.trim()}>
+                <Button size="icon-sm" variant="secondary" onClick={addLZA} disabled={!newLZA.trim()}>
                   <Icon name="add" size={12} />
                 </Button>
               </div>
@@ -828,7 +828,7 @@ const LernzielePage = () => {
             title="Daten konnten nicht geladen werden"
             description="Prüfe deine Internetverbindung und versuche es erneut."
             action={
-              <Button variant="outline" onClick={() => reloadData()}>
+              <Button variant="secondary" onClick={() => reloadData()}>
                 Erneut laden
               </Button>
             }
@@ -932,7 +932,7 @@ const LernzielePage = () => {
                   {importFeedback.msg}
                 </span>
               )}
-              <Button size="sm" className="h-auto" onClick={() => fileInputRef.current?.click()}>
+              <Button className="h-auto" onClick={() => fileInputRef.current?.click()}>
                 <Icon name="upload" size={14} /> Importieren
               </Button>
             </>}
@@ -947,7 +947,7 @@ const LernzielePage = () => {
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card py-14 text-center">
               <p className="text-sm font-medium text-muted-foreground">Noch keine Themen angelegt</p>
               {newThemaFachId && (
-                <Button size="sm" variant="outline" onClick={() => setThemaPickerFachId(newThemaFachId)}>
+                <Button variant="secondary" onClick={() => setThemaPickerFachId(newThemaFachId)}>
                   <Icon name="add" size={12} /> Erstes Thema erstellen
                 </Button>
               )}
@@ -980,7 +980,7 @@ const LernzielePage = () => {
                       </button>
                       <Button
                         size="icon-sm"
-                        variant="ghost"
+                        variant="secondary"
                         onClick={e => { e.stopPropagation(); void exportFach(fach.id) }}
                         aria-label={`${fach.name} exportieren`}
                         className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground"
@@ -989,7 +989,7 @@ const LernzielePage = () => {
                       </Button>
                       <Button
                         size="icon-sm"
-                        variant="ghost"
+                        variant="secondary"
                         onClick={e => { e.stopPropagation(); setDeleteFachId(fach.id) }}
                         aria-label={`${fach.name} löschen`}
                         className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-destructive"
@@ -1023,7 +1023,7 @@ const LernzielePage = () => {
                                     <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <Button
                                         size="icon-sm"
-                                        variant="ghost"
+                                        variant="secondary"
                                         onClick={e => { e.stopPropagation(); setEditThemaId(thema.id) }}
                                         aria-label="Thema bearbeiten"
                                       >
@@ -1031,7 +1031,7 @@ const LernzielePage = () => {
                                       </Button>
                                       <Button
                                         size="icon-sm"
-                                        variant="ghost"
+                                        variant="secondary"
                                         className="text-muted-foreground"
                                         onClick={e => { e.stopPropagation(); exportThema(thema.id) }}
                                         aria-label="Thema exportieren"
@@ -1153,8 +1153,8 @@ const LernzielePage = () => {
           })}
         </div>
         <div className="mt-4 flex justify-end gap-2 border-t pt-3">
-          <Button variant="outline" size="sm" onClick={closeZuordnen}>Abbrechen</Button>
-          <Button size="sm" onClick={handleZuordnenConfirm}>Importieren</Button>
+          <Button variant="secondary" onClick={closeZuordnen}>Abbrechen</Button>
+          <Button onClick={handleZuordnenConfirm}>Importieren</Button>
         </div>
       </Modal>
 

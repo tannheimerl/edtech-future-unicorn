@@ -321,7 +321,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
                     return (
                       <Button
                         key={p.id}
-                        variant={pSelectedPruefungId === p.id ? 'default' : 'outline'}
+                        variant={pSelectedPruefungId === p.id ? 'default' : 'secondary'}
                         onClick={() => { setPSelectedPruefungId(p.id); setPStudentMode(null); setPSelectedStudentIds(new Set()); setPOpenStep(2) }}
                         className="px-4 py-1.5 text-left"
                       >
@@ -349,14 +349,14 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
                   <div className="space-y-3">
                     <div className="flex gap-2">
                       <Button
-                        variant={pStudentMode === 'all' ? 'default' : 'outline'}
+                        variant={pStudentMode === 'all' ? 'default' : 'secondary'}
                         onClick={() => { setPStudentMode('all'); setPOpenStep(3) }}
                         className="px-4 py-1.5"
                       >
                         <Icon name="group" size={14} /> Alle ({students.length})
                       </Button>
                       <Button
-                        variant={pStudentMode === 'individual' ? 'default' : 'outline'}
+                        variant={pStudentMode === 'individual' ? 'default' : 'secondary'}
                         onClick={() => { setPStudentMode('individual'); setPSelectedStudentIds(new Set()) }}
                         className="px-4 py-1.5"
                       >
@@ -368,7 +368,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
                         {students.map(s => (
                           <Button
                             key={s.id}
-                            variant={pSelectedStudentIds.has(s.id) ? 'default' : 'outline'}
+                            variant={pSelectedStudentIds.has(s.id) ? 'default' : 'secondary'}
                             onClick={() => {
                               setPSelectedStudentIds(prev => {
                                 const next = new Set(prev)
@@ -442,8 +442,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
                                       <Button
                                         key={snap.nr}
                                         type="button"
-                                        size="sm"
-                                        variant={chosenNr === snap.nr ? 'default' : 'outline'}
+                                        variant={chosenNr === snap.nr ? 'default' : 'secondary'}
                                         onClick={() => setPSelectedVersuchNr(prev => ({ ...prev, [s.id]: snap.nr }))}
                                       >
                                         {snap.nr}. Versuch
@@ -451,8 +450,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
                                     ))}
                                     <Button
                                       type="button"
-                                      size="sm"
-                                      variant={chosenNr === latestNr ? 'default' : 'outline'}
+                                      variant={chosenNr === latestNr ? 'default' : 'secondary'}
                                       onClick={() => setPSelectedVersuchNr(prev => ({ ...prev, [s.id]: latestNr }))}
                                     >
                                       {latestNr}. Versuch (aktuell)
@@ -543,7 +541,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
           {fachWithThemen.map(({ fach: f }) => (
             <Button
               key={f.id}
-              variant={selectedFachId === f.id ? 'default' : 'outline'}
+              variant={selectedFachId === f.id ? 'default' : 'secondary'}
               onClick={() => selectFach(f.id)}
               className="px-4 py-1.5"
             >
@@ -566,7 +564,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
             {themenForFach.map(t => (
               <Button
                 key={t.id}
-                variant={selectedThemaId === t.id ? 'default' : 'outline'}
+                variant={selectedThemaId === t.id ? 'default' : 'secondary'}
                 onClick={() => selectThema(t.id)}
                 className="px-4 py-1.5"
               >
@@ -581,7 +579,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
       {selectedThemaId && (
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           <Button
-            variant="ghost"
+            variant="secondary"
             onClick={() => setLzOpen(v => !v)}
             className="flex w-full h-auto justify-start rounded-none gap-2 px-4 py-2 text-left hover:bg-accent/20"
           >
@@ -598,7 +596,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
                 return (
                   <Button
                     key={lz.id}
-                    variant="ghost"
+                    variant="secondary"
                     onClick={() => toggleLz(lz.id)}
                     className={cn(
                       'flex items-center gap-3 w-full h-auto justify-start rounded-none px-4 py-2 text-left hover:bg-accent/20',
@@ -638,7 +636,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
           <div className="space-y-3">
             <div className="flex gap-2">
               <Button
-                variant={studentMode === 'all' ? 'default' : 'outline'}
+                variant={studentMode === 'all' ? 'default' : 'secondary'}
                 onClick={() => selectStudentMode('all')}
                 className="px-4 py-1.5"
               >
@@ -646,7 +644,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
                 Alle ({students.length})
               </Button>
               <Button
-                variant={studentMode === 'individual' ? 'default' : 'outline'}
+                variant={studentMode === 'individual' ? 'default' : 'secondary'}
                 onClick={() => selectStudentMode('individual')}
                 className="px-4 py-1.5"
               >
@@ -661,7 +659,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
                   return (
                     <Button
                       key={s.id}
-                      variant={isSelected ? 'default' : 'outline'}
+                      variant={isSelected ? 'default' : 'secondary'}
                       onClick={() => toggleStudent(s.id)}
                       className="px-3 py-1.5"
                     >
@@ -806,7 +804,7 @@ const StepCard = ({
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
       <Button
-        variant="ghost"
+        variant="secondary"
         onClick={onToggle}
         className="flex w-full h-auto justify-start rounded-none gap-2 px-4 py-2 text-left hover:bg-accent/20"
       >

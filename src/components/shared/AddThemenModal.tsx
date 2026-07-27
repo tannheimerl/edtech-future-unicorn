@@ -212,7 +212,7 @@ export const AddThemenModal = ({
     if (step === 'picker') return undefined
 
     const back = (
-      <Button variant="outline" onClick={() => setStep('picker')} disabled={uploadLoading}>
+      <Button variant="secondary" onClick={() => setStep('picker')} disabled={uploadLoading}>
         <Icon name="arrow_back" size={14} className="mr-1.5" />Zurück
       </Button>
     )

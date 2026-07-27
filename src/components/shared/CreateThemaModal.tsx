@@ -145,18 +145,18 @@ export const CreateThemaModal = ({ open, onOpenChange, fachId, onCreated }: {
         footer={
           step === 'meta' ? (
             <div className="flex items-center justify-end gap-2 w-full">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
+              <Button variant="secondary" onClick={() => onOpenChange(false)}>Abbrechen</Button>
               <Button onClick={() => setStep('lernziele')} disabled={!name.trim()}>
                 Weiter <Icon name="chevron_right" size={14} className="ml-0.5" />
               </Button>
             </div>
           ) : (
             <div className="flex items-center justify-between w-full gap-2">
-              <Button variant="ghost" onClick={() => setStep('meta')} className="text-muted-foreground">
+              <Button variant="secondary" onClick={() => setStep('meta')} className="text-muted-foreground">
                 <Icon name="chevron_left" size={14} className="mr-0.5" /> Zurück
               </Button>
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
+                <Button variant="secondary" onClick={() => onOpenChange(false)}>Abbrechen</Button>
                 <Button onClick={submit} disabled={!name.trim()}>Erstellen</Button>
               </div>
             </div>
@@ -301,7 +301,7 @@ export const CreateThemaModal = ({ open, onOpenChange, fachId, onCreated }: {
                 <Input value={newLzG} onChange={e => setNewLzG(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLzG() } }}
                   placeholder="Grundlegendes Lernziel…" className="h-6 text-xs flex-1" />
-                <Button size="icon-sm" variant="outline" onClick={addLzG} disabled={!newLzG.trim()}>
+                <Button size="icon-sm" variant="secondary" onClick={addLzG} disabled={!newLzG.trim()}>
                   <Icon name="add" size={12} />
                 </Button>
               </div>
@@ -331,7 +331,7 @@ export const CreateThemaModal = ({ open, onOpenChange, fachId, onCreated }: {
                 <Input value={newLzA} onChange={e => setNewLzA(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLzA() } }}
                   placeholder="Anspruchsvolles Lernziel…" className="h-6 text-xs flex-1" />
-                <Button size="icon-sm" variant="outline" onClick={addLzA} disabled={!newLzA.trim()}>
+                <Button size="icon-sm" variant="secondary" onClick={addLzA} disabled={!newLzA.trim()}>
                   <Icon name="add" size={12} />
                 </Button>
               </div>

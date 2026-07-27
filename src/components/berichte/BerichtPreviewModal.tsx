@@ -146,7 +146,7 @@ export const BerichtPreviewModal = ({
                 <p className="text-xs text-muted-foreground">{thema.name}</p>
               </div>
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="icon-sm"
                 onClick={onClose}
                 className="text-muted-foreground shrink-0"

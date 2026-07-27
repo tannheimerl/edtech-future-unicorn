@@ -7,14 +7,9 @@ import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/Modal";
-import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { themaCountsInStats, computeKlasseStats } from "@/lib/student-kpis";
+import { ProgressBar } from "@/components/shared/ProgressBar";
 
 // ── Klasse stats ──────────────────────────────────────────────────────────
 
@@ -117,19 +112,16 @@ const LernzielProgress = ({ klassId }: { klassId: string }) => {
   return (
     <div>
       <p className="mb-2 text-sm text-muted-foreground">Lernziel-Fortschritt</p>
-      <div className="flex h-2.5 w-full max-w-[220px] overflow-hidden rounded-full bg-muted/70">
-        {reachedPct > 0 && (
-          <div
-            className="bg-status-reached transition-all"
-            style={{ width: `${reachedPct}%` }}
-          />
-        )}
-        {partialPct > 0 && (
-          <div
-            className="bg-status-partial transition-all"
-            style={{ width: `${partialPct}%` }}
-          />
-        )}
+      <div className="max-w-[220px]">
+        <ProgressBar
+          size="md"
+          trackClassName="bg-muted/70"
+          segments={[
+            { value: reachedPct, className: 'bg-status-reached' },
+            { value: partialPct, className: 'bg-status-partial' },
+          ]}
+          total={100}
+        />
       </div>
     </div>
   );
@@ -165,7 +157,7 @@ const KlasseFormModal = ({ open, onOpenChange, onSubmit }: KlasseFormProps) => {
       size="sm"
       footer={
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>
             Abbrechen
           </Button>
           <Button onClick={() => handleSubmit()}>Speichern</Button>
@@ -194,7 +186,6 @@ const KlassenPage = () => {
     getPruefungenForKlasse,
     getPruefungErgebnisse,
     createClass,
-    deleteClass,
     loadError,
     reloadData,
   } = useData();
@@ -202,11 +193,6 @@ const KlassenPage = () => {
     .slice()
     .sort((a, b) => a.name.localeCompare(b.name, "de", { numeric: true }));
   const [createOpen, setCreateOpen] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
 
   return (
     <div className="page-container py-8">
@@ -215,7 +201,7 @@ const KlassenPage = () => {
         <h1>Deine eigenen Klassen</h1>
         {myClasses.length > 0 && (
           <Button
-            variant="outline"
+            variant="secondary"
             className="rounded-full"
             onClick={() => setCreateOpen(true)}
           >
@@ -241,7 +227,7 @@ const KlassenPage = () => {
               title="Daten konnten nicht geladen werden"
               description="Prüfe deine Internetverbindung und versuche es erneut."
               action={
-                <Button variant="outline" onClick={() => reloadData()}>
+                <Button variant="secondary" onClick={() => reloadData()}>
                   Erneut laden
                 </Button>
               }
@@ -301,44 +287,7 @@ const KlassenPage = () => {
                 </div>
 
                 {/* Actions */}
-                <div
-                  className="flex shrink-0 items-center gap-1"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Popover
-                    open={openMenuId === klasse.id}
-                    onOpenChange={(isOpen: boolean) =>
-                      setOpenMenuId(isOpen ? klasse.id : null)
-                    }
-                  >
-                    <PopoverTrigger
-                      className="flex size-8 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground"
-                      aria-label="Optionen"
-                    >
-                      <Icon name="more_horiz" size={16} />
-                    </PopoverTrigger>
-                    <PopoverContent
-                      align="end"
-                      side="bottom"
-                      className="w-44 p-1"
-                    >
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => {
-                          setOpenMenuId(null);
-                          setDeleteTarget({
-                            id: klasse.id,
-                            name: klasse.name,
-                          });
-                        }}
-                      >
-                        <Icon name="delete" size={14} />
-                        Klasse löschen
-                      </Button>
-                    </PopoverContent>
-                  </Popover>
+                <div className="flex shrink-0 items-center gap-1">
                   <Icon
                     name="chevron_right"
                     size={20}
@@ -368,20 +317,6 @@ const KlassenPage = () => {
         onSubmit={(name) => {
           const id = createClass(name);
           router.push(`/klassen/detail?klassId=${id}`);
-        }}
-      />
-
-      {/* Delete confirmation modal */}
-      <ConfirmDialog
-        open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
-        }}
-        title="Klasse löschen"
-        description="Alle Schüler werden ebenfalls entfernt."
-        confirmLabel="Löschen"
-        onConfirm={() => {
-          if (deleteTarget) deleteClass(deleteTarget.id);
         }}
       />
     </div>

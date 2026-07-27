@@ -14,6 +14,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableSor
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { ProgressBar } from '@/components/shared/ProgressBar'
 import { AddThemenModal } from '@/components/shared/AddThemenModal'
 import { CreateThemaModal } from '@/components/shared/CreateThemaModal'
 import { Modal } from '@/components/shared/Modal'
@@ -23,6 +24,7 @@ import { FachZuordnenRow } from '@/components/shared/FachZuordnenRow'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PillTabs } from '@/components/shared/PillTabs'
 import { SearchBar } from '@/components/shared/SearchBar'
+import { GefahrenzoneSettings } from '@/components/einstellungen/GefahrenzoneSettings'
 import { cn, getFachColor, scoreColor, categoryChipClasses } from '@/lib/utils'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 import { readLezioFiles, NEW_FACH, importDoneMsg } from '@/lib/lezioImport'
@@ -69,7 +71,7 @@ const SchuelerFormModal = ({
       size="sm"
       footer={
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>Abbrechen</Button>
           <Button onClick={() => handleSubmit()}>Speichern</Button>
         </>
       }
@@ -101,14 +103,14 @@ const SchuelerFormModal = ({
 
 // ── Tab switcher ──────────────────────────────────────────────────────────
 
-type Tab = 'schueler' | 'klassenübersicht' | 'lernziele' | 'beurteilung' | 'berichte'
+type Tab = 'schueler' | 'klassenübersicht' | 'lernziele' | 'beurteilung' | 'berichte' | 'einstellungen'
 
 const TabBar = ({
   active, onChange,
-  title, editingTitle, onEditTitle, editNode,
+  title, onEditTitle,
 }: {
   active: Tab; onChange: (t: Tab) => void
-  title: string; editingTitle: boolean; onEditTitle: () => void; editNode: React.ReactNode
+  title: string; onEditTitle: () => void
 }) => {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'schueler',         label: 'Schüler' },
@@ -116,25 +118,22 @@ const TabBar = ({
     { key: 'klassenübersicht', label: 'Statistiken' },
     { key: 'lernziele',        label: 'Lernziele' },
     { key: 'berichte',         label: 'Berichte' },
+    { key: 'einstellungen',    label: 'Einstellungen' },
   ]
   return (
     <div className="mb-4">
-      {/* Title banner */}
-      <div className="rounded-2xl bg-muted px-6 py-6 mb-4">
-        {editingTitle ? editNode : (
-          <span className="flex items-center gap-2">
-            <span className="text-xl text-muted-foreground">
-              Klasse <span className="font-bold text-foreground">{title}</span>
-            </span>
-            <button
-              onClick={onEditTitle}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Klassenname bearbeiten"
-            >
-              <Icon name="edit_square" size={16} />
-            </button>
-          </span>
-        )}
+      {/* Title */}
+      <div className="flex items-center gap-2 px-1 py-4 mb-1">
+        <span className="text-xl text-muted-foreground">
+          Klasse <span className="font-bold text-foreground">{title}</span>
+        </span>
+        <button
+          onClick={onEditTitle}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Klassenname bearbeiten"
+        >
+          <Icon name="edit_square" size={16} />
+        </button>
       </div>
 
       {/* Tab strip */}
@@ -222,8 +221,7 @@ const SchuelerBearbeitenModal = ({
         footer={
           <div className="flex items-center justify-between w-full gap-2">
             <Button
-              variant="ghost"
-              size="sm"
+              variant="secondary"
               onClick={() => setDeleteConfirmOpen(true)}
               className="text-destructive hover:text-destructive/80 hover:bg-destructive/8"
             >
@@ -231,8 +229,8 @@ const SchuelerBearbeitenModal = ({
               Löschen
             </Button>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Abbrechen</Button>
-              <Button size="sm" onClick={handleSave}>Speichern</Button>
+              <Button variant="secondary" onClick={() => onOpenChange(false)}>Abbrechen</Button>
+              <Button onClick={handleSave}>Speichern</Button>
             </div>
           </div>
         }
@@ -488,10 +486,10 @@ const KlassenThemaEditModal = ({ themaId, klassId, allowRemove, onClose }: {
               onChange={e => setEditLzLabel(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') saveLZ(lz.id); if (e.key === 'Escape') setEditLzId(null) }}
               className="h-6 text-xs flex-1 px-1.5" autoFocus />
-            <Button size="icon-sm" variant="ghost" onClick={() => saveLZ(lz.id)}>
+            <Button size="icon-sm" variant="secondary" onClick={() => saveLZ(lz.id)}>
               <Icon name="check" size={12} className="text-status-reached" />
             </Button>
-            <Button size="icon-sm" variant="ghost" onClick={() => setEditLzId(null)}>
+            <Button size="icon-sm" variant="secondary" onClick={() => setEditLzId(null)}>
               <Icon name="close" size={12} />
             </Button>
           </>
@@ -499,12 +497,12 @@ const KlassenThemaEditModal = ({ themaId, klassId, allowRemove, onClose }: {
           <>
             <span className="flex-1 text-xs leading-snug">{lz.label}</span>
             <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <Button size="icon-sm" variant="ghost"
+              <Button size="icon-sm" variant="secondary"
                 onClick={() => { setEditLzId(lz.id); setEditLzLabel(lz.label); setEditLzKategorie(lz.kategorie) }}
                 aria-label="Bearbeiten">
                 <Icon name="edit" size={12} />
               </Button>
-              <Button size="icon-sm" variant="ghost"
+              <Button size="icon-sm" variant="secondary"
                 className="text-destructive/70 hover:text-destructive"
                 onClick={() => setDeleteLzId(lz.id)} aria-label="Löschen">
                 <Icon name="delete" size={12} />
@@ -535,23 +533,23 @@ const KlassenThemaEditModal = ({ themaId, klassId, allowRemove, onClose }: {
               </button>
             ) : <div />}
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="ghost" onClick={() => exportThema(themaId)} aria-label="Exportieren" className="text-muted-foreground">
+              <Button variant="secondary" onClick={() => exportThema(themaId)} aria-label="Exportieren" className="text-muted-foreground">
                 <Icon name="download" size={14} />
               </Button>
-              <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
-              <Button size="sm" onClick={() => setEditStep('lernziele')} disabled={!localName.trim()}>
+              <Button variant="secondary" onClick={onClose}>Abbrechen</Button>
+              <Button onClick={() => setEditStep('lernziele')} disabled={!localName.trim()}>
                 Weiter <Icon name="chevron_right" size={14} className="ml-0.5" />
               </Button>
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-between w-full gap-2">
-            <Button size="sm" variant="ghost" onClick={() => setEditStep('meta')} className="text-muted-foreground">
+            <Button variant="secondary" onClick={() => setEditStep('meta')} className="text-muted-foreground">
               <Icon name="chevron_left" size={14} className="mr-0.5" /> Zurück
             </Button>
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={onClose}>Abbrechen</Button>
-              <Button size="sm" onClick={save} disabled={!localName.trim()}>Fertig</Button>
+              <Button variant="secondary" onClick={onClose}>Abbrechen</Button>
+              <Button onClick={save} disabled={!localName.trim()}>Fertig</Button>
             </div>
           </div>
         )
@@ -654,7 +652,7 @@ const KlassenThemaEditModal = ({ themaId, klassId, allowRemove, onClose }: {
               <Input value={newLZG} onChange={e => setNewLZG(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addLZG()}
                 placeholder="Grundlegendes Lernziel…" className="h-6 text-xs flex-1" />
-              <Button size="icon-sm" variant="outline" onClick={addLZG} disabled={!newLZG.trim()}>
+              <Button size="icon-sm" variant="secondary" onClick={addLZG} disabled={!newLZG.trim()}>
                 <Icon name="add" size={12} />
               </Button>
             </div>
@@ -675,7 +673,7 @@ const KlassenThemaEditModal = ({ themaId, klassId, allowRemove, onClose }: {
               <Input value={newLZA} onChange={e => setNewLZA(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addLZA()}
                 placeholder="Anspruchsvolles Lernziel…" className="h-6 text-xs flex-1" />
-              <Button size="icon-sm" variant="outline" onClick={addLZA} disabled={!newLZA.trim()}>
+              <Button size="icon-sm" variant="secondary" onClick={addLZA} disabled={!newLZA.trim()}>
                 <Icon name="add" size={12} />
               </Button>
             </div>
@@ -918,7 +916,7 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
             <span className="self-center text-xs text-muted-foreground tabular-nums shrink-0">
               {`${klasse.assignedThemaIds.length} Themen · ${assignedLzIds.size} Lernziele`}
             </span>
-            <Button size="sm" className="h-auto shrink-0" onClick={() => fileInputRef.current?.click()}>
+            <Button className="h-auto shrink-0" onClick={() => fileInputRef.current?.click()}>
               <Icon name="upload" size={14} /> Importieren
             </Button>
           </>}
@@ -980,7 +978,7 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
                     </button>
                     <Button
                       size="icon-sm"
-                      variant="ghost"
+                      variant="secondary"
                       onClick={e => { e.stopPropagation(); void exportFach(fach.id) }}
                       aria-label={`${fach.name} exportieren`}
                       className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground"
@@ -989,7 +987,7 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
                     </Button>
                     <Button
                       size="icon-sm"
-                      variant="ghost"
+                      variant="secondary"
                       onClick={e => { e.stopPropagation(); setRemoveFachId(fach.id) }}
                       aria-label={`${fach.name} aus Klasse entfernen`}
                       className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-destructive"
@@ -1091,8 +1089,8 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
                                         <span className="text-3xs tabular-nums text-muted-foreground whitespace-nowrap">
                                           <span className="text-status-reached font-medium">{reached}</span>/{n}
                                         </span>
-                                        <div className="w-20 bg-muted h-1.5 shrink-0">
-                                          <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                                        <div className="w-20 shrink-0">
+                                          <ProgressBar segments={[{ value: pct, className: 'bg-primary' }]} total={100} size="xs" rounded={false} />
                                         </div>
                                         <span className={cn('text-3xs font-bold tabular-nums w-7 text-right shrink-0', scoreColor(pct))}>
                                           {pct}%
@@ -1255,7 +1253,7 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
                       {isEmpty && (
                         <Button
                           size="icon-sm"
-                          variant="ghost"
+                          variant="secondary"
                           onClick={e => { e.stopPropagation(); setDeleteEmptyFachId(fach.id) }}
                           aria-label={`${fach.name} löschen`}
                           className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-destructive"
@@ -1368,8 +1366,8 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
             })}
           </div>
           <div className="mt-4 flex justify-end gap-2 border-t pt-3">
-            <Button variant="outline" size="sm" onClick={closeZuordnen}>Abbrechen</Button>
-            <Button size="sm" onClick={handleZuordnenConfirm}>Importieren</Button>
+            <Button variant="secondary" onClick={closeZuordnen}>Abbrechen</Button>
+            <Button onClick={handleZuordnenConfirm}>Importieren</Button>
           </div>
         </Modal>
 
@@ -1399,6 +1397,7 @@ const KlasseDetailPage = () => {
   const {
     getClass,
     updateClass,
+    deleteClass,
     getStudentsForClass,
     createStudent,
     updateStudent,
@@ -1418,7 +1417,6 @@ const KlasseDetailPage = () => {
 
   const [tab, setTab] = useState<Tab>('schueler')
   const [editingName, setEditingName] = useState(false)
-  const [nameValue, setNameValue] = useState('')
   const [adminSearch, setAdminSearch] = useState('')
   const [sortCol, setSortCol] = useState<'vorname' | 'nachname' | 'progress'>('vorname')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -1454,7 +1452,7 @@ const KlasseDetailPage = () => {
     return (
       <div className="page-container py-8 text-muted-foreground text-sm">
         Klasse nicht gefunden.{' '}
-        <Button variant="link" className="h-auto p-0" onClick={() => router.push('/klassen')}>Zur Übersicht</Button>
+        <Button variant="secondary" className="h-auto border-transparent bg-transparent p-0" onClick={() => router.push('/klassen')}>Zur Übersicht</Button>
       </div>
     )
   }
@@ -1466,28 +1464,18 @@ const KlasseDetailPage = () => {
           active={tab}
           onChange={setTab}
           title={klasse.name}
-          editingTitle={editingName}
-          onEditTitle={() => { setNameValue(klasse.name); setEditingName(true) }}
-          editNode={
-            <form
-              className="flex items-center gap-2"
-              onSubmit={(e) => {
-                e.preventDefault()
-                if (nameValue.trim()) updateClass(klassId, nameValue.trim())
-                setEditingName(false)
-              }}
-            >
-              <Input
-                value={nameValue}
-                onChange={(e) => setNameValue(e.target.value)}
-                className="h-7 w-28 px-2 text-sm font-semibold"
-                autoFocus
-                onKeyDown={(e) => e.key === 'Escape' && setEditingName(false)}
-              />
-              <Button size="sm" type="submit" disabled={!nameValue.trim()}>Speichern</Button>
-              <Button size="sm" variant="outline" type="button" onClick={() => setEditingName(false)}>Abbrechen</Button>
-            </form>
-          }
+          onEditTitle={() => setEditingName(true)}
+        />
+
+        <InputModal
+          open={editingName}
+          onOpenChange={setEditingName}
+          title="Klasse umbenennen"
+          label="Klassenname"
+          placeholder="z. B. 205"
+          initialValue={klasse.name}
+          submitLabel="Speichern"
+          onSubmit={(name) => updateClass(klassId, name)}
         />
       </div>
 
@@ -1511,7 +1499,7 @@ const KlasseDetailPage = () => {
                 placeholder="Schüler suchen …"
                 className="mb-2"
                 right={
-                  <Button size="sm" className="h-auto" onClick={() => setCreateOpen(true)}>
+                  <Button className="h-auto" onClick={() => setCreateOpen(true)}>
                     <Icon name="add" size={14} />
                     Neuer Schüler
                   </Button>
@@ -1613,8 +1601,8 @@ const KlasseDetailPage = () => {
                           <div className="flex items-center gap-1.5">
                             {competencies.length > 0 ? (
                               <>
-                                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                                  <div className={cn('h-full rounded-full transition-all', barColor)} style={{ width: `${cp}%` }} />
+                                <div className="flex-1">
+                                  <ProgressBar segments={[{ value: cp, className: barColor }]} total={100} size="xs" />
                                 </div>
                                 <span className={cn('text-3xs font-semibold tabular-nums w-6 text-right shrink-0', pctColor)}>
                                   {Math.round(cp)}%
@@ -1630,7 +1618,7 @@ const KlasseDetailPage = () => {
                         <TableCell align="right">
                           <div className="flex items-center justify-end gap-1">
                             <Button
-                              variant="ghost"
+                              variant="secondary"
                               size="icon-sm"
                               onClick={(e) => { e.stopPropagation(); setEditStudentId(student.id) }}
                               aria-label="Schüler bearbeiten"
@@ -1675,6 +1663,14 @@ const KlasseDetailPage = () => {
       {/* Berichte tab */}
       {tab === 'berichte' && (
         <BerichteTab klassId={klassId} />
+      )}
+
+      {/* Einstellungen tab */}
+      {tab === 'einstellungen' && (
+        <GefahrenzoneSettings
+          klassName={klasse.name}
+          onDelete={() => { deleteClass(klassId); router.push('/klassen') }}
+        />
       )}
 
       {/* Modals */}

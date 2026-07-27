@@ -8,6 +8,7 @@ import { FilterDropdown } from '@/components/shared/FilterDropdown'
 import { SegmentedControl } from '@/components/shared/SegmentedControl'
 import { UnderlineTabs } from '@/components/shared/UnderlineTabs'
 import { StatusCell } from '@/components/shared/StatusCell'
+import { ProgressBar } from '@/components/shared/ProgressBar'
 import { useData } from '@/contexts/DataContext'
 import { computeStudentKpis, themaCountsInStats } from '@/lib/student-kpis'
 import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach, Status } from '@/types/domain'
@@ -91,46 +92,23 @@ const KpiTile = ({ label, value, sub, valueClass }: {
 
 const LZStatusBar = ({ reached, partial, notReached }: {
   reached: number; partial: number; notReached: number
-}) => {
-  const total = reached + partial + notReached
-  if (total === 0) return null
-  const rp = (reached / total) * 100
-  const pp = (partial / total) * 100
-  const np = (notReached / total) * 100
-  return (
-    <div className="space-y-1.5">
-      <div className="flex h-2 w-full overflow-hidden bg-muted">
-        {rp > 0 && <div style={{ width: `${rp}%` }} className="h-full bg-status-reached transition-all" />}
-        {pp > 0 && <div style={{ width: `${pp}%` }} className="h-full bg-status-partial transition-all" />}
-        {np > 0 && <div style={{ width: `${np}%` }} className="h-full bg-status-none-soft transition-all" />}
-      </div>
-      <div className="flex gap-4 text-3xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span className="inline-block size-1.5 bg-status-reached shrink-0" />
-          {reached} erreicht
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block size-1.5 bg-status-partial shrink-0" />
-          {partial} teilweise
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block size-1.5 bg-status-none-soft shrink-0" />
-          {notReached} nicht erreicht
-        </span>
-      </div>
-    </div>
-  )
-}
-
-// ── Blue progress bar ──────────────────────────────────────────────────────
-
-const ProgressBar = ({ pct, h = 'h-1.5' }: { pct: number; h?: string }) => {
-  return (
-    <div className={cn('w-full bg-muted overflow-hidden', h)}>
-      <div className="h-full bg-primary transition-all" style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }} />
-    </div>
-  )
-}
+}) => (
+  <ProgressBar
+    size="sm"
+    rounded={false}
+    segments={[
+      { value: reached, className: 'bg-status-reached' },
+      { value: partial, className: 'bg-status-partial' },
+      { value: notReached, className: 'bg-status-none-soft' },
+    ]}
+    legend={[
+      { label: `${reached} erreicht`, className: 'bg-status-reached' },
+      { label: `${partial} teilweise`, className: 'bg-status-partial' },
+      { label: `${notReached} nicht erreicht`, className: 'bg-status-none-soft' },
+    ]}
+    emptyFallback={null}
+  />
+)
 
 // ── LZ row (single student) ────────────────────────────────────────────────
 
@@ -378,7 +356,7 @@ export const StudentAnalytics = ({ student, themen, lernziele, faecher, klassId 
                             </div>
                           </td>
                           <td className={cn('py-2 px-3 text-right tabular-nums font-bold text-sm', scoreColor(fk.pct))}>{fk.pct}%</td>
-                          <td className="py-2 px-3"><ProgressBar pct={fk.pct} h="h-1.5" /></td>
+                          <td className="py-2 px-3"><ProgressBar segments={[{ value: fk.pct, className: 'bg-primary' }]} total={100} size="xs" /></td>
                           <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{fk.gTotal > 0 ? `${fk.gPct}%` : '—'}</td>
                           <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{fk.aTotal > 0 ? `${fk.aPct}%` : '—'}</td>
                           <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{fk.total}</td>
@@ -447,7 +425,7 @@ export const StudentAnalytics = ({ student, themen, lernziele, faecher, klassId 
                             </div>
                           </td>
                           <td className={cn('py-2 px-3 text-right tabular-nums font-bold text-sm', scoreColor(pct))}>{pct}%</td>
-                          <td className="py-2 px-3"><ProgressBar pct={pct} h="h-1.5" /></td>
+                          <td className="py-2 px-3"><ProgressBar segments={[{ value: pct, className: 'bg-primary' }]} total={100} size="xs" /></td>
                           <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{gPct !== null ? `${gPct}%` : '—'}</td>
                           <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{aPct !== null ? `${aPct}%` : '—'}</td>
                           <td className="py-2 px-3 text-right tabular-nums text-xs text-muted-foreground">{total}</td>
@@ -560,7 +538,7 @@ export const StudentAnalytics = ({ student, themen, lernziele, faecher, klassId 
                       )}
                     </div>
                     {selectedPruefung.maxPunkte && studentErgebnis?.punkte !== undefined && (
-                      <ProgressBar pct={(studentErgebnis.punkte / selectedPruefung.maxPunkte) * 100} h="h-2" />
+                      <ProgressBar segments={[{ value: (studentErgebnis.punkte / selectedPruefung.maxPunkte) * 100, className: 'bg-primary' }]} total={100} size="sm" />
                     )}
                   </div>
                 ) : selectedPruefung.noteEnabled ? (

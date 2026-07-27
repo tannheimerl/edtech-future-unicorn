@@ -22,8 +22,7 @@ const AddLzRow = ({
   if (!editing) {
     return (
       <Button
-        variant="ghost"
-        size="sm"
+        variant="secondary"
         onClick={() => setEditing(true)}
         className="gap-1.5 px-3 py-2 h-auto text-muted-foreground hover:text-foreground w-full justify-start"
       >
@@ -157,7 +156,7 @@ const RilzLzHeader = ({ lz, studentId }: { lz: RilzLernziel; studentId: string }
           RILZ
         </Badge>
         <Button
-          variant="ghost"
+          variant="secondary"
           size="icon-xs"
           onClick={() => deleteRilzLernziel(studentId, lz.id)}
           className="size-3.5 text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 shrink-0"

@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { PillTabs } from '@/components/shared/PillTabs'
 import { SegmentedControl } from '@/components/shared/SegmentedControl'
 import { PruefungErstellenModal } from '@/components/pruefungen/PruefungErstellenModal'
+import { ProgressBar } from '@/components/shared/ProgressBar'
 import { BeurteilungGrid } from './BeurteilungGrid'
 import { LernkontrolleTab } from '@/components/lernkontrolle/LernkontrolleTab'
 import { cn } from '@/lib/utils'
@@ -57,8 +58,7 @@ export const BeurteilungTab = ({ klassId }: Props) => {
         {activePruefungId ? (
           <nav className="flex items-center gap-1.5 text-sm">
             <Button
-              variant="ghost"
-              size="sm"
+              variant="secondary"
               onClick={() => setActivePruefungId(null)}
               className="gap-1 text-muted-foreground"
             >
@@ -82,7 +82,7 @@ export const BeurteilungTab = ({ klassId }: Props) => {
       </div>
       <div className="flex items-center gap-2">
         {mode === 'pruefung' && !activePruefungId && (
-          <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
+          <Button onClick={() => setCreateOpen(true)} className="gap-1.5">
             <Icon name="add" size={16} /> Neue Lernzielkontrolle
           </Button>
         )}
@@ -159,7 +159,7 @@ export const BeurteilungTab = ({ klassId }: Props) => {
           title="Noch keine Lernzielkontrollen"
           description="Erstelle eine Lernzielkontrolle aus den Lernzielen dieser Klasse."
           action={
-            <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
+            <Button onClick={() => setCreateOpen(true)} className="gap-1.5">
               <Icon name="add" size={16} /> Neue Lernzielkontrolle
             </Button>
           }
@@ -199,7 +199,7 @@ export const BeurteilungTab = ({ klassId }: Props) => {
               >
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="secondary"
                   size="icon-sm"
                   onClick={e => { e.stopPropagation(); setConfirmDeleteId(p.id) }}
                   className="absolute right-3 top-3 hidden text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover:flex"
@@ -272,12 +272,7 @@ export const BeurteilungTab = ({ klassId }: Props) => {
                     </span>
                     <span className={pct === 100 ? 'text-status-reached font-medium' : ''}>{pct}%</span>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={cn('h-full rounded-full transition-all', pct === 100 ? 'bg-status-reached' : 'bg-primary')}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
+                  <ProgressBar segments={[{ value: pct, className: pct === 100 ? 'bg-status-reached' : 'bg-primary' }]} total={100} size="xs" />
                 </div>
               </div>
             )

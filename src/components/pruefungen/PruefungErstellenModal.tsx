@@ -154,14 +154,14 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
       footer={
         step === 1 ? (
           <>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Abbrechen</Button>
+            <Button variant="secondary" onClick={() => onOpenChange(false)}>Abbrechen</Button>
             <Button onClick={() => setStep(2)} disabled={!canProceedStep1}>
               Weiter <Icon name="chevron_right" size={16} className="ml-1" />
             </Button>
           </>
         ) : (
           <>
-            <Button variant="outline" onClick={() => setStep(1)}>
+            <Button variant="secondary" onClick={() => setStep(1)}>
               <Icon name="chevron_left" size={16} className="mr-1" /> Zurück
             </Button>
             <Button onClick={handleCreate}>
@@ -221,8 +221,7 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
                 <Button
                   key={f.id}
                   type="button"
-                  variant={fachId === f.id ? 'default' : 'outline'}
-                  size="sm"
+                  variant={fachId === f.id ? 'default' : 'secondary'}
                   onClick={() => handleFachChange(f.id)}
                 >
                   {f.name}
@@ -284,8 +283,7 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
                   <Button
                     key={t.id}
                     type="button"
-                    variant={selectedThemaIds.has(t.id) ? 'default' : 'outline'}
-                    size="sm"
+                    variant={selectedThemaIds.has(t.id) ? 'default' : 'secondary'}
                     onClick={() => toggleThemaChip(t.id)}
                   >
                     {t.name}

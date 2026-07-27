@@ -32,7 +32,7 @@ const EinstellungenPage = () => {
               title="Daten konnten nicht geladen werden"
               description="Prüfe deine Internetverbindung und versuche es erneut."
               action={
-                <Button variant="outline" size="sm" onClick={() => reloadData()}>
+                <Button variant="secondary" onClick={() => reloadData()}>
                   Erneut laden
                 </Button>
               }

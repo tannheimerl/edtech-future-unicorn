@@ -14,7 +14,7 @@ export const SearchBar = ({
   onChange: (v: string) => void
   placeholder: string
   /** Optionaler Inhalt rechts (z. B. Import-/Hinzufügen-Button oder Zähler).
-   *  Buttons mit `size="sm" className="h-auto"` übergeben → strecken sich auf Feldhöhe.
+   *  Buttons mit `className="h-auto"` übergeben → strecken sich auf Feldhöhe.
    *  Nicht-streckende Inhalte (z. B. Zähler) mit `self-center` übergeben. */
   right?: React.ReactNode
   className?: string

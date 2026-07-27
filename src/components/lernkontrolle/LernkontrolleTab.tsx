@@ -422,7 +422,7 @@ export const LernkontrolleTab = ({ klassId, filterFachIds }: { klassId: string; 
                 />
                 {i > 0 && (
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="icon-sm"
                     onClick={() => removeThema(i)}
                     className="h-5 w-5 text-muted-foreground/60 hover:text-foreground"

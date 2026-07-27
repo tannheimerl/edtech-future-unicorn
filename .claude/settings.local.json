@@ -6,7 +6,9 @@
       "Bash(curl -s http://localhost:3001/)",
       "Bash(npx next *)",
       "Bash(npx tsc *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(npm ls *)",
+      "Bash(node -e \"console.log\\(process.platform\\)\")"
     ]
   }
 }

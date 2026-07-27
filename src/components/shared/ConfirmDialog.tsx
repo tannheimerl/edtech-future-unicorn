@@ -50,7 +50,7 @@ export const ConfirmDialog = ({
       size="sm"
       footer={
         <>
-          <Button variant="outline" onClick={close}>
+          <Button variant="secondary" onClick={close}>
             Abbrechen
           </Button>
           <Button

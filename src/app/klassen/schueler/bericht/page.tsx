@@ -81,7 +81,7 @@ const BerichtPage = () => {
     return (
       <div className="page-container py-8 text-sm text-muted-foreground">
         Schüler nicht gefunden.{' '}
-        <Button variant="link" className="h-auto p-0 underline" onClick={() => router.push('/klassen')}>Zur Übersicht</Button>
+        <Button variant="secondary" className="h-auto border-transparent bg-transparent p-0 underline" onClick={() => router.push('/klassen')}>Zur Übersicht</Button>
       </div>
     )
   }
@@ -122,9 +122,9 @@ const BerichtPage = () => {
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Fach</p>
               <div className="flex flex-wrap gap-1">
-                <Button size="sm" variant={fachFilter === null ? 'default' : 'outline'} onClick={() => setFachFilter(null)}>Alle</Button>
+                <Button variant={fachFilter === null ? 'default' : 'secondary'} onClick={() => setFachFilter(null)}>Alle</Button>
                 {faecher.map(f => (
-                  <Button key={f.id} size="sm" variant={fachFilter === f.id ? 'default' : 'outline'} onClick={() => setFachFilter(f.id === fachFilter ? null : f.id)}>{f.name}</Button>
+                  <Button key={f.id} variant={fachFilter === f.id ? 'default' : 'secondary'} onClick={() => setFachFilter(f.id === fachFilter ? null : f.id)}>{f.name}</Button>
                 ))}
               </div>
             </div>
@@ -137,7 +137,7 @@ const BerichtPage = () => {
                 className="h-7 rounded border border-border bg-background text-xs px-2 focus:outline-none"
               />
               {zeitraumBis && (
-                <Button variant="link" onClick={() => setZeitraumBis('')} className="h-auto p-0 ml-1 text-3xs text-muted-foreground hover:text-foreground no-underline hover:no-underline">zurücksetzen</Button>
+                <Button variant="secondary" onClick={() => setZeitraumBis('')} className="h-auto border-transparent bg-transparent p-0 ml-1 text-3xs text-muted-foreground hover:text-foreground no-underline hover:no-underline">zurücksetzen</Button>
               )}
             </div>
           </div>

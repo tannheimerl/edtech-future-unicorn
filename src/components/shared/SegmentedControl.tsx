@@ -45,10 +45,13 @@ export const SegmentedControl = <T extends string,>({
             <Button
               key={o.key}
               type="button"
-              variant={active ? 'default' : 'outline'}
-              size={size}
+              variant={active ? 'default' : 'secondary'}
               onClick={() => onChange(o.key)}
-              className={cn('whitespace-nowrap', active && o.activeClass)}
+              className={cn(
+                'whitespace-nowrap rounded-sm',
+                size === 'xs' ? 'h-3 gap-1 px-1.5 text-xs' : 'h-4 gap-1 px-2 text-xs',
+                active && o.activeClass,
+              )}
             >
               {o.label}
             </Button>
