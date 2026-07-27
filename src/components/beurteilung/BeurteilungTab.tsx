@@ -21,11 +21,10 @@ type Props = {
 
 export const BeurteilungTab = ({ klassId }: Props) => {
   const {
-    getClass, getPruefungenForKlasse, getPruefungErgebnisse,
+    getPruefungenForKlasse, getPruefungErgebnisse,
     getStudentsForClass, faecher, deletePruefung, updatePruefung,
   } = useData()
 
-  const klasse = getClass(klassId)
 
   const pruefungen = getPruefungenForKlasse(klassId).sort(
     (a, b) => b.datum.localeCompare(a.datum)

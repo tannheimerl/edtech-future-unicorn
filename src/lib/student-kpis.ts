@@ -1,6 +1,14 @@
 import type { Schueler, Thema, Lernziel, Fach } from '@/types/domain'
 import { sv, weightedPct } from '@/lib/utils'
 
+/** Fortschritt über die Basis-Kompetenzen (0–100, ungerundet). */
+export const competencyPct = (student: Schueler, comps: { id: string }[]): number => {
+  if (comps.length === 0) return 0
+  const reached = comps.filter((c) => student.competencyStatus[c.id] === 'reached').length
+  const partial = comps.filter((c) => student.competencyStatus[c.id] === 'partially_reached').length
+  return ((reached + partial * 0.5) / comps.length) * 100
+}
+
 /**
  * Anspruchsvolle Lernziele werden für RILZ-Schüler:innen im betroffenen
  * Fach übersprungen — sie fließen weder in Bewertung noch Statistik ein.

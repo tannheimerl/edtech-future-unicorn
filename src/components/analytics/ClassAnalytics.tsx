@@ -1,8 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { cn, getFachColor, sv, scoreColor, categoryChipClasses, weightedPct, fullName } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { cn, getFachColor, sv, scoreColor, fullName } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
 import { FilterDropdown } from '@/components/shared/FilterDropdown'
@@ -13,163 +12,19 @@ import {
   FilterBar, SectionLabel, KpiTile, LZStatusBar, VIEW_OPTIONS,
   type KatFilter, type StatView,
 } from '@/components/analytics/shared'
+import { DistributionBar } from '@/components/analytics/DistributionBar'
+import { StudentRankingTable, type ScoredStudent, type StudentSort } from '@/components/analytics/StudentRankingTable'
+import { LZRow } from '@/components/analytics/LZRow'
 import { useData } from '@/contexts/DataContext'
 import { themaCountsInStats, isLZSkipped, adjustedLZScore, isSpecialStudent } from '@/lib/student-kpis'
 import { todayISO } from '@/lib/dates'
-import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach } from '@/types/domain'
+import type { Schueler, Thema, Lernziel, Fach } from '@/types/domain'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const studentLZScore = (student: Schueler, ids: string[]): number => {
   if (ids.length === 0) return 0
   return (ids.reduce((sum, id) => sum + sv(student.lernzielStatus[id] ?? 'not_reached'), 0) / ids.length) * 100
-}
-
-// ── Types ──────────────────────────────────────────────────────────────────
-
-type StudentSort = 'score' | 'name'
-
-type ScoredStudent = Schueler & { score: number; allScore: number }
-
-// ── Distribution bar ───────────────────────────────────────────────────────
-
-const DistributionBar = ({
-  excellent, progressing, struggling, total,
-}: {
-  excellent: number; progressing: number; struggling: number; total: number
-}) => {
-  if (total === 0) return null
-  return (
-    <ProgressBar
-      size="lg"
-      rounded={false}
-      segments={[
-        { value: excellent, className: 'bg-status-reached', label: <span className="text-white text-4xs font-bold tabular-nums">{excellent}</span> },
-        { value: progressing, className: 'bg-status-partial', label: <span className="text-white text-4xs font-bold tabular-nums">{progressing}</span> },
-        { value: struggling, className: 'bg-status-not-reached', label: <span className="text-white text-4xs font-bold tabular-nums">{struggling}</span> },
-      ]}
-      legend={[
-        { label: `${excellent} sehr gut (≥75%)`, className: 'bg-status-reached' },
-        { label: `${progressing} im Aufbau (25–74%)`, className: 'bg-status-partial' },
-        { label: <>{struggling} Förderbedarf (&lt;25%)</>, className: 'bg-status-not-reached' },
-      ]}
-    />
-  )
-}
-
-// ── Student ranking table ──────────────────────────────────────────────────
-
-const StudentRankingTable = ({
-  students, sort, onSortChange, onRowClick,
-}: {
-  students: ScoredStudent[]
-  sort: StudentSort
-  onSortChange: (s: StudentSort) => void
-  onRowClick?: (studentId: string) => void
-}) => {
-  const sorted = [...students].sort(
-    sort === 'score'
-      ? (a, b) => b.score - a.score
-      : (a, b) => fullName(a).localeCompare(fullName(b)),
-  )
-
-  const ColHeader = ({ field, children }: { field: StudentSort; children: React.ReactNode }) => {
-    return (
-      <Button
-        onClick={() => onSortChange(field)}
-        variant="secondary"
-        className={cn(
-          'h-auto border-transparent bg-transparent px-0 font-mono text-4xs uppercase tracking-widest hover:bg-transparent',
-          sort === field ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
-        )}
-      >
-        {children}{sort === field ? ' ↓' : ''}
-      </Button>
-    )
-  }
-
-  return (
-    <div className="overflow-y-auto max-h-[380px]">
-      <table className="w-full text-sm border-collapse">
-        <thead className="sticky top-0 bg-card z-10 border-b border-border">
-          <tr>
-            <th className="py-2 px-3 text-left text-4xs font-mono uppercase tracking-widest text-muted-foreground w-8">#</th>
-            <th className="py-2 px-2 text-left"><ColHeader field="name">Name</ColHeader></th>
-            <th className="py-2 px-2 text-right"><ColHeader field="score">Score</ColHeader></th>
-            <th className="py-2 px-2 w-20"></th>
-            <th className="py-2 px-3 w-14"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((s, i) => {
-            const pct = Math.round(s.score)
-            return (
-              <tr
-                key={s.id}
-                className={cn('border-b border-border hover:bg-accent transition-colors', onRowClick && 'cursor-pointer')}
-                onClick={() => onRowClick?.(s.id)}
-              >
-                <td className="py-2 px-3">
-                  <span className="inline-flex items-center justify-center size-5 rounded text-3xs font-bold tabular-nums bg-muted text-muted-foreground">
-                    {i + 1}
-                  </span>
-                </td>
-                <td className="py-2 px-2 text-sm font-medium">{fullName(s)}</td>
-                <td className={cn('py-2 px-2 text-right tabular-nums text-sm font-bold', scoreColor(pct))}>{pct}%</td>
-                <td className="py-2 px-2"><ProgressBar segments={[{ value: pct, className: 'bg-primary' }]} total={100} size="xs" /></td>
-                <td className="py-2 px-3 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    {s.rilzFachIds?.length
-                      ? <span className="text-4xs font-bold bg-rilz-soft text-rilz-foreground rounded px-1 py-0.5">RILZ</span>
-                      : null}
-                    {s.bvsa
-                      ? <span className="text-4xs font-bold bg-primary/10 text-primary rounded px-1 py-0.5">bVSA</span>
-                      : null}
-                  </div>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-// ── LZ performance row ─────────────────────────────────────────────────────
-
-const LZRow = ({
-  label, kategorie, reached, partial, total,
-}: {
-  label: string
-  kategorie: LernzielKategorie
-  reached: number
-  partial: number
-  total: number
-}) => {
-  const pct = weightedPct(reached, partial, total)
-  return (
-    <div className="py-1.5 px-2 hover:bg-accent transition-colors">
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <span className={cn(
-            'shrink-0 rounded px-1 py-0.5 text-4xs font-bold leading-none',
-            categoryChipClasses(kategorie),
-          )}>
-            {kategorie === 'grundlegend' ? 'G' : 'A'}
-          </span>
-          <span className="text-xs truncate">{label}</span>
-        </div>
-        <div className="flex items-center gap-2 shrink-0 text-xs">
-          <span className="text-3xs tabular-nums text-muted-foreground">
-            <span className="text-status-reached font-medium">{reached}</span>/{total}
-          </span>
-          <span className={cn('font-bold tabular-nums w-8 text-right', scoreColor(pct))}>{pct}%</span>
-        </div>
-      </div>
-      <ProgressBar segments={[{ value: pct, className: 'bg-primary' }]} total={100} size="xxs" />
-    </div>
-  )
 }
 
 // ── Main component ─────────────────────────────────────────────────────────

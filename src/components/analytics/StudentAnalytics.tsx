@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
-import { cn, getFachColor, scoreColor, categoryChipClasses } from '@/lib/utils'
+import { cn, getFachColor, scoreColor } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { FachChipFilter } from '@/components/shared/FachChipFilter'
 import { FilterDropdown } from '@/components/shared/FilterDropdown'
@@ -14,32 +14,9 @@ import {
 } from '@/components/analytics/shared'
 import { useData } from '@/contexts/DataContext'
 import { computeStudentKpis, themaCountsInStats, isLZSkipped, adjustedLZScore } from '@/lib/student-kpis'
+import { LZStudentRow } from '@/components/analytics/LZStudentRow'
 import { todayISO } from '@/lib/dates'
-import type { Schueler, Thema, Lernziel, Fach, Status } from '@/types/domain'
-
-// ── LZ row (single student) ────────────────────────────────────────────────
-
-const LZStudentRow = ({ lz, status, skipped }: {
-  lz: Lernziel
-  status: Status | undefined
-  skipped: boolean
-}) => {
-  return (
-    <div className={cn('py-2 px-3 flex items-center justify-between gap-3', skipped && 'opacity-40')}>
-      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        <span className={cn(
-          'shrink-0 rounded px-1 py-0.5 text-4xs font-bold leading-none',
-          categoryChipClasses(lz.kategorie),
-        )}>
-          {lz.kategorie === 'grundlegend' ? 'G' : 'A'}
-        </span>
-        <span className="text-xs truncate">{lz.label}</span>
-        {skipped && <span className="text-4xs text-rilz-foreground font-medium shrink-0">(RILZ)</span>}
-      </div>
-      {!skipped && <StatusCell status={status} readOnly onSelect={() => {}} />}
-    </div>
-  )
-}
+import type { Schueler, Thema, Lernziel, Fach } from '@/types/domain'
 
 
 // ── Main component ─────────────────────────────────────────────────────────
