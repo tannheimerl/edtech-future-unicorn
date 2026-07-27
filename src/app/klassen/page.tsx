@@ -113,8 +113,8 @@ const LernzielProgress = ({ klassId }: { klassId: string }) => {
           size="md"
           trackClassName="bg-muted/70"
           segments={[
-            { value: reachedPct, className: 'bg-status-reached' },
-            { value: partialPct, className: 'bg-status-partial' },
+            { value: reachedPct, className: "bg-status-reached" },
+            { value: partialPct, className: "bg-status-partial" },
           ]}
           total={100}
         />
@@ -194,7 +194,7 @@ const KlassenPage = () => {
     <div className="page-container py-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <h1>Deine eigenen Klassen</h1>
+        <h1>Deine Klassen</h1>
         {myClasses.length > 0 && (
           <Button
             variant="secondary"

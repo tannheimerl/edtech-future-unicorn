@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
@@ -19,8 +19,9 @@ import { AddThemenModal } from '@/components/shared/AddThemenModal'
 import { CreateThemaModal } from '@/components/shared/CreateThemaModal'
 import { Modal } from '@/components/shared/Modal'
 import { ModalRow } from '@/components/shared/ModalRow'
+import { ModalOptionList } from '@/components/shared/ModalOptionList'
+import { LernzielEditSection } from '@/components/shared/LernzielEditSection'
 import { InputModal } from '@/components/shared/InputModal'
-import { FachZuordnenRow } from '@/components/shared/FachZuordnenRow'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PillTabs } from '@/components/shared/PillTabs'
 import { SearchBar } from '@/components/shared/SearchBar'
@@ -28,11 +29,11 @@ import { GefahrenzoneSettings } from '@/components/einstellungen/GefahrenzoneSet
 import { cn, getFachColor, scoreColor, scoreBarColor, categoryChipClasses } from '@/lib/utils'
 import { todayISO, formatDateCH } from '@/lib/dates'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
-import { readLezioFiles, NEW_FACH, importDoneMsg } from '@/lib/lezioImport'
-import { findExactFachMatch, normalizeFachName, rankFachSuggestions, SUGGEST_THRESHOLD } from '@/lib/fachMatch'
+import { useLezioImport } from '@/hooks/useLezioImport'
+import { LezioImportModal } from '@/components/shared/LezioImportModal'
 import { themaCountsInStats } from '@/lib/student-kpis'
 
-import type { Schueler, Lernziel as LernzielType, LernzielKategorie, Fach, Thema, LezioExport, RilzLernziel } from '@/types/domain'
+import type { Schueler, Lernziel as LernzielType, Fach, Thema, RilzLernziel } from '@/types/domain'
 
 
 const compPct = (student: Schueler, comps: { id: string }[]): number => {
@@ -141,22 +142,6 @@ const TabBar = ({
       <div className="overflow-x-auto scrollbar-hide">
         <PillTabs variant="underline" options={tabs} value={active} onChange={onChange} />
       </div>
-    </div>
-  )
-}
-
-// ── Settings card wrapper ──────────────────────────────────────────────────
-
-const SettingsCard = ({ title, children, action }: {
-  title: string; children: React.ReactNode; action?: React.ReactNode
-}) => {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <h6>{title}</h6>
-        {action}
-      </div>
-      {children}
     </div>
   )
 }
@@ -360,12 +345,8 @@ const LernzielPopup = ({ lz, onClose }: { lz: LernzielType; onClose: () => void 
 const KlassenThemaEditModal = ({ themaId, klassId, allowRemove, onClose }: {
   themaId: string; klassId: string; allowRemove: boolean; onClose: () => void
 }) => {
-  const {
-    themen, faecher, lernziele, updateThema, removeThemaFromKlasse, exportThema,
-    createLernziel, updateLernziel, deleteLernziel,
-  } = useData()
+  const { themen, faecher, updateThema, removeThemaFromKlasse, exportThema } = useData()
   const thema = themen.find(t => t.id === themaId)
-  const themaLZ = lernziele.filter(lz => lz.themaId === themaId)
 
   // Step
   const [editStep, setEditStep] = useState<'meta' | 'lernziele'>('meta')
@@ -377,14 +358,6 @@ const KlassenThemaEditModal = ({ themaId, klassId, allowRemove, onClose }: {
   const [localTyp, setLocalTyp] = useState<'standard' | 'rilz'>(thema?.typ ?? 'standard')
   const [stufe, setStufe] = useState<number | undefined>(thema?.stufe?.[0])
   const [openRowId, setOpenRowId] = useState<string | null>(null)
-
-  // Lernziele state
-  const [newLZG, setNewLZG] = useState('')
-  const [newLZA, setNewLZA] = useState('')
-  const [editLzId, setEditLzId] = useState<string | null>(null)
-  const [editLzLabel, setEditLzLabel] = useState('')
-  const [editLzKategorie, setEditLzKategorie] = useState<LernzielKategorie>('grundlegend')
-  const [deleteLzId, setDeleteLzId] = useState<string | null>(null)
 
   if (!thema) return null
 
@@ -406,113 +379,6 @@ const KlassenThemaEditModal = ({ themaId, klassId, allowRemove, onClose }: {
 
   const openRow = (id: string, isOpen: boolean) => {
     setOpenRowId(isOpen ? id : null)
-  }
-
-  const renderSimpleOptions = (
-    opts: { value: string; label: string }[],
-    current: string,
-    onSelect: (v: string) => void,
-    clearLabel?: string
-  ) => {
-    return (
-      <div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto">
-        {clearLabel && current && (
-          <button
-            onClick={() => { onSelect(''); setOpenRowId(null) }}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 text-left"
-          >
-            <Icon name="close" size={12} className="shrink-0" />{clearLabel}
-          </button>
-        )}
-        {opts.map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => { onSelect(opt.value); setOpenRowId(null) }}
-            className={cn(
-              'flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors text-left',
-              opt.value === current ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted/60 text-foreground'
-            )}
-          >
-            {opt.value === current
-              ? <Icon name="check" size={12} className="shrink-0" />
-              : <span className="size-3 shrink-0" />
-            }
-            {opt.label}
-          </button>
-        ))}
-      </div>
-    )
-  }
-
-  // Lernziele helpers
-  const grundlegendLZ = themaLZ.filter(lz => lz.kategorie === 'grundlegend')
-  const anspruchsvollLZ = themaLZ.filter(lz => lz.kategorie === 'anspruchsvoll')
-
-  const addLZG = () => {
-    if (!newLZG.trim()) return
-    createLernziel(themaId, newLZG.trim(), 'grundlegend')
-    setNewLZG('')
-  }
-  const addLZA = () => {
-    if (!newLZA.trim()) return
-    createLernziel(themaId, newLZA.trim(), 'anspruchsvoll')
-    setNewLZA('')
-  }
-  const saveLZ = (id: string) => {
-    if (!editLzLabel.trim()) return
-    updateLernziel(id, { label: editLzLabel.trim(), kategorie: editLzKategorie })
-    setEditLzId(null)
-  }
-
-  const renderLZRow = (lz: (typeof themaLZ)[number], idx: number) => {
-    return (
-      <div key={lz.id} className="group flex items-center gap-2 py-1.5 hover:bg-accent/20 transition-colors px-1">
-        <span className="w-4 shrink-0 text-3xs font-mono text-muted-foreground">{idx + 1}</span>
-        {editLzId === lz.id ? (
-          <>
-            <div className="flex rounded border overflow-hidden shrink-0 h-6">
-              {(['grundlegend', 'anspruchsvoll'] as LernzielKategorie[]).map(k => (
-                <button key={k} onClick={() => setEditLzKategorie(k)}
-                  className={cn(
-                    'px-1.5 text-4xs font-medium transition-colors',
-                    editLzKategorie === k
-                      ? k === 'grundlegend' ? 'bg-category-grundlegend text-white' : 'bg-category-anspruchsvoll text-white'
-                      : 'bg-background text-muted-foreground hover:bg-muted',
-                  )}>
-                  {k === 'grundlegend' ? 'G' : 'A'}
-                </button>
-              ))}
-            </div>
-            <Input value={editLzLabel}
-              onChange={e => setEditLzLabel(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') saveLZ(lz.id); if (e.key === 'Escape') setEditLzId(null) }}
-              className="h-6 text-xs flex-1 px-1.5" autoFocus />
-            <Button size="icon-sm" variant="secondary" onClick={() => saveLZ(lz.id)}>
-              <Icon name="check" size={12} className="text-status-reached" />
-            </Button>
-            <Button size="icon-sm" variant="secondary" onClick={() => setEditLzId(null)}>
-              <Icon name="close" size={12} />
-            </Button>
-          </>
-        ) : (
-          <>
-            <span className="flex-1 text-xs leading-snug">{lz.label}</span>
-            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <Button size="icon-sm" variant="secondary"
-                onClick={() => { setEditLzId(lz.id); setEditLzLabel(lz.label); setEditLzKategorie(lz.kategorie) }}
-                aria-label="Bearbeiten">
-                <Icon name="edit" size={12} />
-              </Button>
-              <Button size="icon-sm" variant="secondary"
-                className="text-destructive/70 hover:text-destructive"
-                onClick={() => setDeleteLzId(lz.id)} aria-label="Löschen">
-                <Icon name="delete" size={12} />
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    )
   }
 
   return (
@@ -594,11 +460,11 @@ const KlassenThemaEditModal = ({ themaId, klassId, allowRemove, onClose }: {
                 open={openRowId === 'fach'}
                 onOpenChange={v => openRow('fach', v)}
               >
-                {renderSimpleOptions(
-                  faecher.map(f => ({ value: f.id, label: f.name })),
-                  localFachId,
-                  setLocalFachId
-                )}
+                <ModalOptionList
+                  options={faecher.map(f => ({ value: f.id, label: f.name }))}
+                  current={localFachId}
+                  onSelect={v => { setLocalFachId(v); setOpenRowId(null) }}
+                />
               </ModalRow>
             )}
 
@@ -609,11 +475,11 @@ const KlassenThemaEditModal = ({ themaId, klassId, allowRemove, onClose }: {
               open={openRowId === 'typ'}
               onOpenChange={v => openRow('typ', v)}
             >
-              {renderSimpleOptions(
-                [{ value: 'standard', label: 'Standard' }, { value: 'rilz', label: 'RILZ' }],
-                localTyp,
-                v => setLocalTyp(v as 'standard' | 'rilz')
-              )}
+              <ModalOptionList
+                options={[{ value: 'standard', label: 'Standard' }, { value: 'rilz', label: 'RILZ' }]}
+                current={localTyp}
+                onSelect={v => { setLocalTyp(v as 'standard' | 'rilz'); setOpenRowId(null) }}
+              />
             </ModalRow>
 
             {/* Schulstufe */}
@@ -624,82 +490,28 @@ const KlassenThemaEditModal = ({ themaId, klassId, allowRemove, onClose }: {
               open={openRowId === 'stufe'}
               onOpenChange={v => openRow('stufe', v)}
             >
-              {renderSimpleOptions(
-                [1,2,3,4,5,6,7,8,9].map(n => ({ value: String(n), label: `Kl. ${n}` })),
-                stufe ? String(stufe) : '',
-                v => setStufe(v ? Number(v) : undefined),
-                'Keine Auswahl'
-              )}
+              <ModalOptionList
+                options={[1,2,3,4,5,6,7,8,9].map(n => ({ value: String(n), label: `Kl. ${n}` }))}
+                current={stufe ? String(stufe) : ''}
+                onSelect={v => { setStufe(v ? Number(v) : undefined); setOpenRowId(null) }}
+                clearLabel="Keine Auswahl"
+              />
             </ModalRow>
           </div>
         </div>
       )}
 
       {/* Step 2: Lernziele */}
-      {editStep === 'lernziele' && (
-        <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
-          {/* Grundlegend */}
-          <div className="border-b border-border/40">
-            <div className="py-1 bg-muted/20 px-1">
-              <span className="text-3xs font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
-            </div>
-            <div className="divide-y divide-border/30">
-              {grundlegendLZ.length === 0 && (
-                <p className="py-1.5 px-1 text-3xs text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
-              )}
-              {grundlegendLZ.map((lz, i) => renderLZRow(lz, i))}
-            </div>
-            <div className="py-1.5 px-1 flex items-center gap-1.5 border-t border-border/30">
-              <Input value={newLZG} onChange={e => setNewLZG(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addLZG()}
-                placeholder="Grundlegendes Lernziel…" className="h-6 text-xs flex-1" />
-              <Button size="icon-sm" variant="secondary" onClick={addLZG} disabled={!newLZG.trim()}>
-                <Icon name="add" size={12} />
-              </Button>
-            </div>
-          </div>
-
-          {/* Anspruchsvoll */}
-          <div>
-            <div className="py-1 bg-muted/20 px-1">
-              <span className="text-3xs font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
-            </div>
-            <div className="divide-y divide-border/30">
-              {anspruchsvollLZ.length === 0 && (
-                <p className="py-1.5 px-1 text-3xs text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
-              )}
-              {anspruchsvollLZ.map((lz, i) => renderLZRow(lz, i))}
-            </div>
-            <div className="py-1.5 px-1 flex items-center gap-1.5 border-t border-border/30">
-              <Input value={newLZA} onChange={e => setNewLZA(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addLZA()}
-                placeholder="Anspruchsvolles Lernziel…" className="h-6 text-xs flex-1" />
-              <Button size="icon-sm" variant="secondary" onClick={addLZA} disabled={!newLZA.trim()}>
-                <Icon name="add" size={12} />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <ConfirmDialog
-        open={!!deleteLzId}
-        onOpenChange={o => { if (!o) setDeleteLzId(null) }}
-        title="Lernziel löschen"
-        description="Soll dieses Lernziel wirklich dauerhaft gelöscht werden?"
-        confirmLabel="Löschen"
-        onConfirm={() => { if (deleteLzId) deleteLernziel(deleteLzId) }}
-      />
+      {editStep === 'lernziele' && <LernzielEditSection themaId={themaId} />}
     </Modal>
   )
 }
-
 const LernzieleTab = ({ klassId }: { klassId: string }) => {
   const {
     getClass,
     faecher, themen, lernziele,
     assignThemaToKlasse, removeThemaFromKlasse,
-    createFach, deleteFach, exportThema, exportFach, importThemaData,
+    createFach, deleteFach, exportThema, exportFach,
     getStudentsForClass,
   } = useData()
 
@@ -722,91 +534,12 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
   const [removeFachId, setRemoveFachId] = useState<string | null>(null)
   const [deleteEmptyFachId, setDeleteEmptyFachId] = useState<string | null>(null)
 
-  // Import (Fächer-Zuordnungs-Maske wie in der Lernzielsammlung)
-  const [importItems, setImportItems] = useState<{ source: string; data: LezioExport }[]>([])
-  const [distinctFaecher, setDistinctFaecher] = useState<{ name: string; count: number }[]>([])
-  const [fachChoice, setFachChoice] = useState<Record<string, string>>({})
-  const [fachZuordnenOpen, setFachZuordnenOpen] = useState(false)
-  const [importFeedback, setImportFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  // Import (Fächer-Zuordnungs-Maske wie in der Lernzielsammlung);
+  // importierte Themen werden direkt dieser Klasse zugewiesen.
+  const lezio = useLezioImport({ onImported: (themaId) => assignThemaToKlasse(klassId, themaId) })
 
   const toggleThema = (themaId: string) => {
     setExpandedThemen(prev => { const n = new Set(prev); n.has(themaId) ? n.delete(themaId) : n.add(themaId); return n })
-  }
-
-  const showImportFeedback = (ok: boolean, msg: string) => {
-    setImportFeedback({ ok, msg })
-    setTimeout(() => setImportFeedback(null), 4000)
-  }
-
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? [])
-    e.target.value = ''
-    if (files.length === 0) return
-
-    const { items, errors } = await readLezioFiles(files)
-    if (items.length === 0) {
-      showImportFeedback(false, 'Keine gültigen Lernziel-Dateien gefunden.')
-      return
-    }
-
-    // Distinkte Fächernamen (normalisierter Schlüssel → Anzeigename + Anzahl Themen).
-    const distinctMap = new Map<string, { name: string; count: number }>()
-    for (const { data } of items) {
-      const key = normalizeFachName(data.fachName)
-      const entry = distinctMap.get(key)
-      if (entry) entry.count++
-      else distinctMap.set(key, { name: data.fachName, count: 1 })
-    }
-    const distinct = [...distinctMap.values()]
-
-    // Vorbelegung: exakter Treffer → dessen Fach; sonst guter Vorschlag; sonst „neu anlegen"
-    const choice: Record<string, string> = {}
-    for (const { name } of distinct) {
-      const key = normalizeFachName(name)
-      const exact = findExactFachMatch(name, faecher)
-      if (exact) { choice[key] = exact.id; continue }
-      const [best] = rankFachSuggestions(name, faecher)
-      choice[key] = best && best.score >= SUGGEST_THRESHOLD ? best.fach.id : NEW_FACH
-    }
-
-    setImportItems(items)
-    setDistinctFaecher(distinct)
-    setFachChoice(choice)
-    setFachZuordnenOpen(true)
-    if (errors > 0) showImportFeedback(false, `${errors} Datei(en) konnten nicht gelesen werden.`)
-  }
-
-  const handleZuordnenConfirm = () => {
-    const fachByKey: Record<string, string> = {}
-    let neueFaecher = 0
-    for (const { name } of distinctFaecher) {
-      const key = normalizeFachName(name)
-      const sel = fachChoice[key]
-      if (sel === NEW_FACH) {
-        fachByKey[key] = createFach(name)
-        neueFaecher++
-      } else if (sel) {
-        fachByKey[key] = sel
-      }
-    }
-    // Themen importieren und direkt dieser Klasse zuweisen.
-    for (const { data } of importItems) {
-      const fachId = fachByKey[normalizeFachName(data.fachName)]
-      if (!fachId) continue
-      const themaId = importThemaData(data, fachId)
-      assignThemaToKlasse(klassId, themaId)
-    }
-    const count = importItems.length
-    closeZuordnen()
-    showImportFeedback(true, importDoneMsg(count, neueFaecher, 0))
-  }
-
-  const closeZuordnen = () => {
-    setFachZuordnenOpen(false)
-    setImportItems([])
-    setDistinctFaecher([])
-    setFachChoice({})
   }
 
   // Alle Standard-Themen eines Fachs aus dieser Klasse abmelden (kein globales Löschen).
@@ -909,15 +642,15 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
           onChange={setSearch}
           placeholder="Lernziele, Themen oder Fächer suchen…"
           right={<>
-            {importFeedback && (
-              <span className={cn('self-center text-xs', importFeedback.ok ? 'text-status-reached' : 'text-status-not-reached')}>
-                {importFeedback.msg}
+            {lezio.feedback && (
+              <span className={cn('self-center text-xs', lezio.feedback.ok ? 'text-status-reached' : 'text-status-not-reached')}>
+                {lezio.feedback.msg}
               </span>
             )}
             <span className="self-center text-xs text-muted-foreground tabular-nums shrink-0">
               {`${klasse.assignedThemaIds.length} Themen · ${assignedLzIds.size} Lernziele`}
             </span>
-            <Button className="h-auto shrink-0" onClick={() => fileInputRef.current?.click()}>
+            <Button className="h-auto shrink-0" onClick={lezio.openFileDialog}>
               <Icon name="upload" size={14} /> Importieren
             </Button>
           </>}
@@ -1343,43 +1076,7 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
           onConfirm={() => { if (deleteEmptyFachId) { deleteFach(deleteEmptyFachId); setDeleteEmptyFachId(null) } }}
         />
 
-        {/* Fächer-Zuordnung beim Import */}
-        <Modal
-          open={fachZuordnenOpen}
-          onOpenChange={(o) => { if (!o) closeZuordnen() }}
-          title="Fächer zuordnen"
-          description={`${distinctFaecher.length} ${distinctFaecher.length === 1 ? 'Fach' : 'Fächer'} · ${importItems.length} ${importItems.length === 1 ? 'Thema' : 'Themen'} importieren. Ordne jedes Fach einem deiner Fächer zu oder lege es neu an:`}
-          size="md"
-        >
-          <div className="flex flex-col divide-y divide-border/40">
-            {distinctFaecher.map(({ name, count }) => {
-              const key = normalizeFachName(name)
-              return (
-                <FachZuordnenRow
-                  key={key}
-                  importName={name}
-                  count={count}
-                  faecher={faecher}
-                  value={fachChoice[key] ?? NEW_FACH}
-                  onChange={(v) => setFachChoice(prev => ({ ...prev, [key]: v }))}
-                />
-              )
-            })}
-          </div>
-          <div className="mt-4 flex justify-end gap-2 border-t pt-3">
-            <Button variant="secondary" onClick={closeZuordnen}>Abbrechen</Button>
-            <Button onClick={handleZuordnenConfirm}>Importieren</Button>
-          </div>
-        </Modal>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".lezio,.json,.zip"
-          multiple
-          className="hidden"
-          onChange={handleImportFile}
-        />
+        <LezioImportModal imp={lezio} />
 
       </div>
 
