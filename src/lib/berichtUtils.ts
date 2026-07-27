@@ -33,3 +33,27 @@ export const triggerDownload = (blob: Blob, filename: string): void => {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+// Entfernt Pfad-/Sonderzeichen aus Namensbestandteilen (Schüler- und
+// Themennamen sind Freitext) und ersetzt Whitespace durch Unterstriche.
+export const sanitizeFilename = (name: string): string => {
+  return name.replace(/[\\/:*?"<>|]/g, '').trim().replace(/\s+/g, '_')
+}
+
+/**
+ * Erzeugt alle Berichts-PDFs und lädt sie herunter:
+ * ein einzelnes PDF direkt, mehrere gebündelt als ZIP.
+ */
+export const downloadBerichte = async (
+  berichte: Array<{ filename: string; props: SchuelerBerichtPDFProps }>,
+  zipName: string
+): Promise<void> => {
+  const entries = await Promise.all(
+    berichte.map(async ({ filename, props }) => ({ filename, blob: await generatePdfBlob(props) }))
+  )
+  if (entries.length === 1) {
+    triggerDownload(entries[0].blob, entries[0].filename)
+  } else {
+    await downloadZip(entries, zipName)
+  }
+}

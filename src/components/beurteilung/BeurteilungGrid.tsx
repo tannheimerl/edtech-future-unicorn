@@ -6,7 +6,8 @@ import { useData } from '@/contexts/DataContext'
 import { StatusCell } from '@/components/shared/StatusCell'
 import { PruefungAnhangUpload } from '@/components/pruefungen/PruefungAnhangUpload'
 
-import { cn } from '@/lib/utils'
+import { cn, statusAvgPct, scoreColor, scoreChipClasses } from '@/lib/utils'
+import { todayISO, formatDateCH } from '@/lib/dates'
 import { Badge } from '@/components/ui/badge'
 import type { PruefungErgebnis, Schueler, Status, Thema, VersuchSnapshot } from '@/types/domain'
 
@@ -94,6 +95,12 @@ const StudentRow = ({
   const ergebnisId = useRef(ergebnis?.id ?? crypto.randomUUID())
   const firstRender = useRef(true)
 
+  // Taucht das Ergebnis später mit anderer id auf (z. B. nach reloadData),
+  // muss die Ref folgen — sonst legt der nächste Upsert einen Duplikat-Datensatz an.
+  useEffect(() => {
+    if (ergebnis?.id) ergebnisId.current = ergebnis.id
+  }, [ergebnis?.id])
+
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return }
     onUpsert({
@@ -112,7 +119,7 @@ const StudentRow = ({
             anzahlVersuche: (ergebnis.anzahlVersuche ?? 1) + 1,
             versuchSnapshots: [...(ergebnis.versuchSnapshots ?? []), {
               nr: ergebnis.anzahlVersuche ?? 1,
-              date: new Date().toISOString().slice(0, 10),
+              date: todayISO(),
               ...(ergebnis.punkte != null ? { punkte: ergebnis.punkte } : {}),
               ...(ergebnis.note ? { note: ergebnis.note } : {}),
               ...(ergebnis.kommentar ? { kommentar: ergebnis.kommentar } : {}),
@@ -150,23 +157,13 @@ const StudentRow = ({
   const stickyBg = isPending ? 'bg-status-partial-soft' : 'bg-card'
 
   const pct = (() => {
-    const applicable = allLzIds.filter(lzId => {
-      // skip A-LZ for RILZ students in this fach
-      const lzGroup = lzGroups.flatMap(g => g.anspruchsvoll).find(lz => lz.id === lzId)
-      return !(isRilzInFach && lzGroup)
-    })
-    if (applicable.length === 0) return 0
-    const sum = applicable.reduce((acc, lzId) => {
-      const st = student.lernzielStatus[lzId] ?? 'not_reached'
-      return acc + (st === 'reached' ? 1 : st === 'partially_reached' ? 0.5 : 0)
-    }, 0)
-    return Math.round((sum / applicable.length) * 100)
+    // skip A-LZ for RILZ students in this fach
+    const anspruchsvollIds = new Set(lzGroups.flatMap(g => g.anspruchsvoll).map(lz => lz.id))
+    const applicable = allLzIds.filter(lzId => !(isRilzInFach && anspruchsvollIds.has(lzId)))
+    return statusAvgPct(applicable.map(lzId => student.lernzielStatus[lzId]))
   })()
 
-  const pctColor =
-    pct >= 75 ? 'text-status-reached' :
-    pct >= 40 ? 'text-status-partial' :
-    'text-status-not-reached'
+  const pctColor = scoreColor(pct)
 
   return (
     <tr className={cn('transition-colors group', effectiveBg, isAbgeschlossen && 'opacity-60')}>
@@ -388,7 +385,7 @@ export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
     <div className="space-y-3">
       {/* Meta */}
       <p className="text-sm text-muted-foreground">
-        {selectedFachObj?.name} · {new Date(pruefung.datum).toLocaleDateString('de-CH')} ·{' '}
+        {selectedFachObj?.name} · {formatDateCH(pruefung.datum)} ·{' '}
         {allLzIds.length} Lernziel{allLzIds.length !== 1 ? 'e' : ''} ·{' '}
         {bewertet}/{mainStudents.length} abgeschlossen
         {rilzExcluded > 0 && ` · ${rilzExcluded} RILZ nicht enthalten`}
@@ -579,16 +576,8 @@ export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
                   return (
                     <React.Fragment key={group.thema.id}>
                       {[...group.grundlegend, ...group.anspruchsvoll].map((lz, lzIdx) => {
-                        const eligible = mainStudents
-                        const sum = eligible.reduce((acc, s) => {
-                          const st = s.lernzielStatus[lz.id] ?? 'not_reached'
-                          return acc + (st === 'reached' ? 1 : st === 'partially_reached' ? 0.5 : 0)
-                        }, 0)
-                        const pct = eligible.length > 0 ? Math.round((sum / eligible.length) * 100) : 0
-                        const color =
-                          pct >= 75 ? 'text-status-reached-fg bg-status-reached-soft' :
-                          pct >= 40 ? 'text-status-partial-fg bg-status-partial-soft' :
-                          'text-status-not-reached-fg bg-status-not-reached-soft'
+                        const pct = statusAvgPct(mainStudents.map(s => s.lernzielStatus[lz.id]))
+                        const color = scoreChipClasses(pct)
                         const isAEnd = lz.kategorie === 'anspruchsvoll' && !isLastGroup && lzIdx === group.grundlegend.length + group.anspruchsvoll.length - 1
                         const isGEnd = lz.kategorie === 'grundlegend' && group.anspruchsvoll.length > 0 && lzIdx === group.grundlegend.length - 1
                         return (

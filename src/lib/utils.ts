@@ -31,8 +31,38 @@ export const sv = (status: Status | string): number => {
   return status === 'reached' ? 1 : status === 'partially_reached' ? 0.5 : 0
 }
 
+export const fullName = (s: { vorname: string; nachname: string }): string => {
+  return `${s.vorname} ${s.nachname}`
+}
+
+// Durchschnittliche Erreichung (0–100, gerundet) über eine Liste von
+// Status-Werten; `undefined` zählt als "nicht erreicht".
+export const statusAvgPct = (statuses: (Status | undefined)[]): number => {
+  if (statuses.length === 0) return 0
+  return Math.round((statuses.reduce((sum, s) => sum + sv(s ?? 'not_reached'), 0) / statuses.length) * 100)
+}
+
+// Gerundeter Prozentwert aus Zählern — teilweise erreicht zählt halb.
+export const weightedPct = (reached: number, partial: number, total: number): number => {
+  return total > 0 ? Math.round(((reached + partial * 0.5) / total) * 100) : 0
+}
+
 export const scoreColor = (pct: number): string => {
   return pct >= 75 ? 'text-status-reached' : pct >= 25 ? 'text-status-partial' : 'text-status-not-reached'
+}
+
+// Balken-Variante von scoreColor (bg- statt text-Klassen).
+export const scoreBarColor = (pct: number): string => {
+  return pct >= 75 ? 'bg-status-reached' : pct >= 25 ? 'bg-status-partial' : 'bg-status-not-reached'
+}
+
+// Chip-Variante von scoreColor (soft bg + lesbare fg).
+export const scoreChipClasses = (pct: number): string => {
+  return pct >= 75
+    ? 'text-status-reached-fg bg-status-reached-soft'
+    : pct >= 25
+      ? 'text-status-partial-fg bg-status-partial-soft'
+      : 'text-status-not-reached-fg bg-status-not-reached-soft'
 }
 
 // Token-based chip classes for a RAG status (soft bg + readable fg).

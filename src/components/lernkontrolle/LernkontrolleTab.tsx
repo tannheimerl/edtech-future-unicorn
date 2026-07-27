@@ -5,8 +5,8 @@ import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { StatusCell, nextStatus } from '@/components/shared/StatusCell'
-import { Tooltip } from '@/components/ui/tooltip'
-import { cn, getFachColor, categoryChipClasses } from '@/lib/utils'
+import { cn, getFachColor, categoryChipClasses, statusAvgPct, scoreColor, scoreChipClasses } from '@/lib/utils'
+import { adjustedLZScore, isLZSkipped } from '@/lib/student-kpis'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { RilzStudentCard } from './RilzStudentCard'
@@ -225,18 +225,14 @@ const SLOT_STYLES = [
 
 export const LernkontrolleTab = ({ klassId, filterFachIds }: { klassId: string; filterFachIds?: string[] }) => {
   const {
-    getClass,
     getStudentsForClass,
     getThemenForKlasse,
     getLernzieleForThema,
-    getFachForThema,
     faecher,
     themen,
     updateLernzielStatus,
-    students: allStudents,
   } = useData()
 
-  const klasse = getClass(klassId)
 
   const students = getStudentsForClass(klassId)
   const allAssignedThemen = getThemenForKlasse(klassId)
@@ -244,24 +240,26 @@ export const LernkontrolleTab = ({ klassId, filterFachIds }: { klassId: string; 
     ? allAssignedThemen.filter(t => filterFachIds.includes(t.fachId))
     : allAssignedThemen
 
-  const [themaIds, setThemaIds] = useState<(string | null)[]>(
-    assignedThemen.length > 0 ? [assignedThemen[0].id] : [],
-  )
+  const [chosenThemaIds, setChosenThemaIds] = useState<(string | null)[]>([])
+
+  // Erste Zeile abgeleitet vorbelegen: die Themen laden asynchron und sind
+  // beim Mount noch leer — ein useState-Initialwert bliebe dauerhaft [].
+  const themaIds: (string | null)[] = chosenThemaIds.length > 0
+    ? chosenThemaIds
+    : assignedThemen.length > 0 ? [assignedThemen[0].id] : []
 
   const addThema = () => {
-    setThemaIds(prev => [...prev, null])
+    setChosenThemaIds([...themaIds, null])
   }
 
   const removeThema = (idx: number) => {
-    setThemaIds(prev => prev.filter((_, i) => i !== idx))
+    setChosenThemaIds(themaIds.filter((_, i) => i !== idx))
   }
 
   const updateThema = (idx: number, id: string) => {
-    setThemaIds(prev => {
-      const next = [...prev]
-      next[idx] = id
-      return next
-    })
+    const next = [...themaIds]
+    next[idx] = id
+    setChosenThemaIds(next)
   }
 
   const themenByFach = faecher
@@ -359,40 +357,21 @@ export const LernkontrolleTab = ({ klassId, filterFachIds }: { klassId: string; 
       e.preventDefault()
       const student = orderedStudents[row]
       const lz = allLernziele[col]
-      const s = allStudents.find(s => s.id === student.id)
-      const fach = getFachForThema(lz.themaId)
-      const isSkipped = !!(s?.rilzFachIds?.length && fach && s.rilzFachIds.includes(fach.id)) && lz.kategorie === 'anspruchsvoll'
-      if (!isSkipped) updateLernzielStatus(student.id, lz.id, nextStatus(student.lernzielStatus[lz.id] as Status | undefined))
+      if (!isLZSkipped(lz, student, themen)) {
+        updateLernzielStatus(student.id, lz.id, nextStatus(student.lernzielStatus[lz.id] as Status | undefined))
+      }
     } else if (e.key === 'Escape') {
       setFocusedCell(null)
     }
   }
 
   const lzReachedPct = (lzId: string): number => {
-    const eligible = regularStudents
-    if (eligible.length === 0) return 0
-    const sum = eligible.reduce((acc, s) => {
-      const st = s.lernzielStatus[lzId] ?? 'not_reached'
-      return acc + (st === 'reached' ? 1 : st === 'partially_reached' ? 0.5 : 0)
-    }, 0)
-    return Math.round((sum / eligible.length) * 100)
+    return statusAvgPct(regularStudents.map(s => s.lernzielStatus[lzId]))
   }
 
   const studentTotalPct = (studentId: string): number => {
-    if (allLernziele.length === 0) return 0
     const s = students.find(s => s.id === studentId)!
-    const applicable = allLernziele.filter(lz => {
-      if (lz.kategorie !== 'anspruchsvoll') return true
-      if (!s.rilzFachIds?.length) return true
-      const fach = getFachForThema(lz.themaId)
-      return !fach || !s.rilzFachIds.includes(fach.id)
-    })
-    if (applicable.length === 0) return 0
-    const sum = applicable.reduce((acc, lz) => {
-      const st = s.lernzielStatus[lz.id] ?? 'not_reached'
-      return acc + (st === 'reached' ? 1 : st === 'partially_reached' ? 0.5 : 0)
-    }, 0)
-    return Math.round((sum / applicable.length) * 100)
+    return Math.round(adjustedLZScore(s, allLernziele, themen))
   }
 
   return (
@@ -584,10 +563,7 @@ export const LernkontrolleTab = ({ klassId, filterFachIds }: { klassId: string; 
                   {orderedStudents.map((student, rowIdx) => {
                     const isRilzSeparator = rowIdx === regularStudents.length && bvsaStudents.length > 0
                     const pct = studentTotalPct(student.id)
-                    const pctColor =
-                      pct >= 75 ? 'text-status-reached' :
-                      pct >= 40 ? 'text-status-partial' :
-                      'text-status-not-reached'
+                    const pctColor = scoreColor(pct)
                     const rowBg = rowIdx % 2 === 0 ? 'bg-card' : 'bg-muted/10'
                     const totalCols = 1 + allLernziele.length + 1 + (showComment ? 1 : 0)
                     return (
@@ -617,13 +593,7 @@ export const LernkontrolleTab = ({ klassId, filterFachIds }: { klassId: string; 
                           {/* status cells */}
                           {lernzieleGroups.map(({ lernziele }, gi) =>
                             lernziele.map((lz, lzIdx) => {
-                              const hasRilz = (() => {
-                                const s = allStudents.find(s => s.id === student.id)
-                                if (!s?.rilzFachIds?.length) return false
-                                const fach = getFachForThema(lz.themaId)
-                                return fach ? s.rilzFachIds.includes(fach.id) : false
-                              })()
-                              const isSkipped = hasRilz && lz.kategorie === 'anspruchsvoll'
+                              const isSkipped = isLZSkipped(lz, student, themen)
                               const status = student.lernzielStatus[lz.id] as Status | undefined
                               const isLastInGroup = lzIdx === lernziele.length - 1 && gi < lernzieleGroups.length - 1
                               const colIdx = allLernziele.findIndex(l => l.id === lz.id)
@@ -674,10 +644,7 @@ export const LernkontrolleTab = ({ klassId, filterFachIds }: { klassId: string; 
                     {lernzieleGroups.map(({ lernziele }, gi) =>
                       lernziele.map((lz, lzIdx) => {
                         const pct = lzReachedPct(lz.id)
-                        const color =
-                          pct >= 75 ? 'text-status-reached-fg bg-status-reached-soft' :
-                          pct >= 40 ? 'text-status-partial-fg bg-status-partial-soft' :
-                          'text-status-not-reached-fg bg-status-not-reached-soft'
+                        const color = scoreChipClasses(pct)
                         const isLastInGroup = lzIdx === lernziele.length - 1 && gi < lernzieleGroups.length - 1
                         return (
                           <td

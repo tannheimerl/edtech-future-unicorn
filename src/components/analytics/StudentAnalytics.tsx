@@ -11,6 +11,7 @@ import { StatusCell } from '@/components/shared/StatusCell'
 import { ProgressBar } from '@/components/shared/ProgressBar'
 import { useData } from '@/contexts/DataContext'
 import { computeStudentKpis, themaCountsInStats } from '@/lib/student-kpis'
+import { todayISO } from '@/lib/dates'
 import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach, Status } from '@/types/domain'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -163,7 +164,7 @@ export const StudentAnalytics = ({ student, themen, lernziele, faecher, klassId 
   const [selectedThemaId, setSelectedThemaId] = useState<string>('')
   const [selectedPruefungId, setSelectedPruefungId] = useState<string>('')
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayISO()
 
   const activeThemen = useMemo(
     () => themen.filter(t => themaCountsInStats(t, today)),

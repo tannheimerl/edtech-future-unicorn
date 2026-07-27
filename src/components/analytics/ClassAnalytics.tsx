@@ -12,6 +12,7 @@ import { DistributionBars } from '@/components/analytics/DistributionBars'
 import { ProgressBar } from '@/components/shared/ProgressBar'
 import { useData } from '@/contexts/DataContext'
 import { themaCountsInStats } from '@/lib/student-kpis'
+import { todayISO } from '@/lib/dates'
 import type { Schueler, Thema, Lernziel, LernzielKategorie, Fach } from '@/types/domain'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -318,7 +319,7 @@ export const ClassAnalytics = ({
     return <p className="text-sm text-muted-foreground">Dieser Klasse sind noch keine Themen zugewiesen.</p>
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayISO()
   const activeThemen = themen.filter(t => themaCountsInStats(t, today))
 
   const assignedFachIds = [...new Set(themen.map(t => t.fachId))]

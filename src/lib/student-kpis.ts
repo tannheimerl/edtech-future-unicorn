@@ -1,5 +1,26 @@
 import type { Schueler, Thema, Lernziel, Fach } from '@/types/domain'
-import { sv } from '@/lib/utils'
+import { sv, weightedPct } from '@/lib/utils'
+
+/**
+ * Anspruchsvolle Lernziele werden für RILZ-Schüler:innen im betroffenen
+ * Fach übersprungen — sie fließen weder in Bewertung noch Statistik ein.
+ */
+export const isLZSkipped = (lz: Lernziel, student: Schueler, themen: Thema[]): boolean => {
+  if (lz.kategorie !== 'anspruchsvoll') return false
+  if (!student.rilzFachIds?.length) return false
+  const thema = themen.find(t => t.id === lz.themaId)
+  return !!thema && student.rilzFachIds.includes(thema.fachId)
+}
+
+/**
+ * Score (0–100, ungerundet) einer/eines Schüler:in über eine LZ-Liste,
+ * RILZ-übersprungene Lernziele ausgenommen.
+ */
+export const adjustedLZScore = (student: Schueler, lzList: Lernziel[], themen: Thema[]): number => {
+  const applicable = lzList.filter(lz => !isLZSkipped(lz, student, themen))
+  if (applicable.length === 0) return 0
+  return (applicable.reduce((sum, lz) => sum + sv(student.lernzielStatus[lz.id] ?? 'not_reached'), 0) / applicable.length) * 100
+}
 
 /**
  * Ein Thema zählt erst in Statistiken, wenn ein Fälligkeitsdatum gesetzt ist
@@ -82,7 +103,7 @@ export const computeStudentKpis = (
   const reached = applicableLZ.filter((lz) => student.lernzielStatus[lz.id] === 'reached').length
   const partial = applicableLZ.filter((lz) => student.lernzielStatus[lz.id] === 'partially_reached').length
   const notReached = total - reached - partial
-  const gesamtPct = total > 0 ? Math.round(((reached + partial * 0.5) / total) * 100) : 0
+  const gesamtPct = weightedPct(reached, partial, total)
   const openLz = total - reached
 
   const grundLZ = applicableLZ.filter((lz) => lz.kategorie === 'grundlegend')
@@ -91,8 +112,8 @@ export const computeStudentKpis = (
   const grundPartial = grundLZ.filter((lz) => student.lernzielStatus[lz.id] === 'partially_reached').length
   const ansprReached = ansprLZ.filter((lz) => student.lernzielStatus[lz.id] === 'reached').length
   const ansprPartial = ansprLZ.filter((lz) => student.lernzielStatus[lz.id] === 'partially_reached').length
-  const grundPct = grundLZ.length > 0 ? Math.round(((grundReached + grundPartial * 0.5) / grundLZ.length) * 100) : 0
-  const ansprPct = ansprLZ.length > 0 ? Math.round(((ansprReached + ansprPartial * 0.5) / ansprLZ.length) * 100) : 0
+  const grundPct = weightedPct(grundReached, grundPartial, grundLZ.length)
+  const ansprPct = weightedPct(ansprReached, ansprPartial, ansprLZ.length)
 
   const fachKpis: FachKpi[] = faecher
     .map((fach) => {
@@ -103,15 +124,15 @@ export const computeStudentKpis = (
       const r = ids.filter((id) => student.lernzielStatus[id] === 'reached').length
       const p = ids.filter((id) => student.lernzielStatus[id] === 'partially_reached').length
       const t = ids.length
-      const pct = Math.round(((r + p * 0.5) / t) * 100)
+      const pct = weightedPct(r, p, t)
       const gIds = fachLZ.filter((lz) => lz.kategorie === 'grundlegend').map((lz) => lz.id)
       const aIds = fachLZ.filter((lz) => lz.kategorie === 'anspruchsvoll').map((lz) => lz.id)
       const gR = gIds.filter((id) => student.lernzielStatus[id] === 'reached').length
       const aR = aIds.filter((id) => student.lernzielStatus[id] === 'reached').length
       const gP = gIds.filter((id) => student.lernzielStatus[id] === 'partially_reached').length
       const aP = aIds.filter((id) => student.lernzielStatus[id] === 'partially_reached').length
-      const gPct = gIds.length > 0 ? Math.round(((gR + gP * 0.5) / gIds.length) * 100) : 0
-      const aPct = aIds.length > 0 ? Math.round(((aR + aP * 0.5) / aIds.length) * 100) : 0
+      const gPct = weightedPct(gR, gP, gIds.length)
+      const aPct = weightedPct(aR, aP, aIds.length)
       return {
         fach,
         pct,
@@ -148,15 +169,15 @@ export const computeStudentKpis = (
       return {
         thema,
         fachId: thema.fachId,
-        pct: Math.round(((r + p * 0.5) / t) * 100),
+        pct: weightedPct(r, p, t),
         reached: r,
         partial: p,
         notReached: t - r - p,
         total: t,
-        gPct: gLZ.length > 0 ? Math.round(((gR + gP * 0.5) / gLZ.length) * 100) : 0,
+        gPct: weightedPct(gR, gP, gLZ.length),
         gReached: gR,
         gTotal: gLZ.length,
-        aPct: aLZ.length > 0 ? Math.round(((aR + aP * 0.5) / aLZ.length) * 100) : 0,
+        aPct: weightedPct(aR, aP, aLZ.length),
         aReached: aR,
         aTotal: aLZ.length,
       }

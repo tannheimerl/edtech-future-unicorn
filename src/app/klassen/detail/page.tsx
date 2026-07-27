@@ -25,7 +25,8 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { PillTabs } from '@/components/shared/PillTabs'
 import { SearchBar } from '@/components/shared/SearchBar'
 import { GefahrenzoneSettings } from '@/components/einstellungen/GefahrenzoneSettings'
-import { cn, getFachColor, scoreColor, categoryChipClasses } from '@/lib/utils'
+import { cn, getFachColor, scoreColor, scoreBarColor, categoryChipClasses } from '@/lib/utils'
+import { todayISO, formatDateCH } from '@/lib/dates'
 import { getInitials, getAvatarColor } from '@/lib/avatar-utils'
 import { readLezioFiles, NEW_FACH, importDoneMsg } from '@/lib/lezioImport'
 import { findExactFachMatch, normalizeFachName, rankFachSuggestions, SUGGEST_THRESHOLD } from '@/lib/fachMatch'
@@ -704,7 +705,7 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
 
   const klasse = getClass(klassId)!
   const klasseGrade = parseInt(klasse.name)
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayISO()
 
   const [collapsedFaecher, setCollapsedFaecher] = useState<Set<string>>(new Set())
   const [expandedThemen, setExpandedThemen] = useState<Set<string>>(new Set())
@@ -1025,7 +1026,7 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
                                     )}
                                   >
                                     <Icon name="calendar_today" size={12} />
-                                    {new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
+                                    {formatDateCH(thema.faelligAm, { day: 'numeric', month: 'short' })}
                                   </span>
                                 )
                               })() : (
@@ -1171,7 +1172,7 @@ const LernzieleTab = ({ klassId }: { klassId: string }) => {
                               {thema.faelligAm && (
                                 <Badge className="gap-1 tabular-nums">
                                   <Icon name="calendar_today" size={12} />
-                                  {new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
+                                  {formatDateCH(thema.faelligAm, { day: 'numeric', month: 'short' })}
                                 </Badge>
                               )}
                               <button
@@ -1403,7 +1404,6 @@ const KlasseDetailPage = () => {
     updateStudent,
     deleteStudent,
     faecher,
-    themen,
     lernziele,
     competencies,
     getThemenForKlasse,
@@ -1422,17 +1422,6 @@ const KlasseDetailPage = () => {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [editStudentId, setEditStudentId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
-  const todayStr = new Date().toISOString().slice(0, 10)
-  const themaFaelligMap = new Map(themen.map(t => [t.id, t.faelligAm]))
-  const assignedLZIds = klasse
-    ? lernziele
-        .filter(lz => {
-          if (!klasse.assignedThemaIds.includes(lz.themaId)) return false
-          const faellig = themaFaelligMap.get(lz.themaId)
-          return !faellig || faellig <= todayStr
-        })
-        .map(lz => lz.id)
-    : []
 
   const handleSortCol = (col: 'vorname' | 'nachname' | 'progress') => {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -1546,8 +1535,8 @@ const KlasseDetailPage = () => {
                   )}
                   {sortedStudents.map(student => {
                     const cp = compPct(student, competencies)
-                    const pctColor = cp >= 75 ? 'text-status-reached' : cp >= 40 ? 'text-status-partial' : 'text-status-not-reached'
-                    const barColor = cp >= 75 ? 'bg-status-reached' : cp >= 40 ? 'bg-status-partial' : 'bg-status-not-reached'
+                    const pctColor = scoreColor(cp)
+                    const barColor = scoreBarColor(cp)
                     return (
                       <TableRow key={student.id}>
                         <TableCell className="pr-0">

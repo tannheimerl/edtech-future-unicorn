@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
-import { cn, categoryChipClasses } from '@/lib/utils'
-import { generatePdfBlob, downloadZip, triggerDownload } from '@/lib/berichtUtils'
+import { cn, categoryChipClasses, fullName } from '@/lib/utils'
+import { formatDateCH } from '@/lib/dates'
+import { downloadBerichte, sanitizeFilename } from '@/lib/berichtUtils'
 import type { SchuelerBerichtPDFProps } from '@/components/berichte/SchuelerBerichtPDF'
 import { BerichtPreviewModal } from '@/components/berichte/BerichtPreviewModal'
 import { Button } from '@/components/ui/button'
@@ -33,10 +34,11 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
   // Basis selection: 'lz' = Lernziel-Basis, 'pruefung' = Prüfungs-Basis
   const [basis, setBasis] = useState<'lz' | 'pruefung'>('lz')
 
-  // Prüfungs-Basis state
-  const [pSelectedPruefungId, setPSelectedPruefungId] = useState<string | null>(
-    pruefungen.length > 0 ? pruefungen[0].id : null
-  )
+  // Prüfungs-Basis state. Fallback auf die neueste Prüfung erst zur
+  // Renderzeit ableiten — die Daten laden asynchron und sind beim ersten
+  // Mount noch leer, ein useState-Initialwert bliebe dauerhaft null.
+  const [chosenPruefungId, setPSelectedPruefungId] = useState<string | null>(null)
+  const pSelectedPruefungId = chosenPruefungId ?? pruefungen[0]?.id ?? null
   const [pStudentMode, setPStudentMode] = useState<'all' | 'individual' | null>(null)
   const [pSelectedStudentIds, setPSelectedStudentIds] = useState<Set<string>>(new Set())
   const [pReportKommentare, setPReportKommentare] = useState<Record<string, string>>({})
@@ -152,16 +154,16 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
     if (!pCanDownload || !pPruefung || !pFach) return
     setPIsGenerating(true)
     try {
-      const dateStr = new Date(pPruefung.datum).toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' })
+      const dateStr = formatDateCH(pPruefung.datum, { day: 'numeric', month: 'long', year: 'numeric' })
       const ergebnisse = getPruefungErgebnisse(pPruefung.id)
-      const entries = await Promise.all(
-        pTargetStudents.map(async (student) => {
+      await downloadBerichte(
+        pTargetStudents.map((student) => {
           const ergebnis = ergebnisse.find(e => e.schuelerId === student.id)
           const chosenNr = pSelectedVersuchNr[student.id] ?? ergebnis?.anzahlVersuche ?? 1
           const isLatest = chosenNr === (ergebnis?.anzahlVersuche ?? 1)
           const snap = ergebnis?.versuchSnapshots?.find(s => s.nr === chosenNr)
           const props: SchuelerBerichtPDFProps = {
-            studentName: `${student.vorname} ${student.nachname}`,
+            studentName: fullName(student),
             klassenName: klasse.name,
             fachName: pFach.name,
             themaName: pPruefung.name,
@@ -179,17 +181,10 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
             } : undefined,
             includeInBericht: { punkte: pIncludePunkte, note: pIncludeNote },
           }
-          const blob = await generatePdfBlob(props)
-          const safeName = `${student.vorname}_${student.nachname}`
-          const safePruefung = pPruefung.name.replace(/\s+/g, '_')
-          return { filename: `Bericht_${safeName}_${safePruefung}.pdf`, blob }
-        })
+          return { filename: `Bericht_${sanitizeFilename(fullName(student))}_${sanitizeFilename(pPruefung.name)}.pdf`, props }
+        }),
+        `Berichte_${sanitizeFilename(klasse.name)}_${sanitizeFilename(pPruefung.name)}.zip`
       )
-      if (entries.length === 1) {
-        triggerDownload(entries[0].blob, entries[0].filename)
-      } else {
-        await downloadZip(entries, `Berichte_${klasse.name.replace(/\s+/g, '_')}_${pPruefung.name.replace(/\s+/g, '_')}.zip`)
-      }
     } finally {
       setPIsGenerating(false)
     }
@@ -202,10 +197,11 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
     setIsGenerating(true)
     try {
       const dateStr = new Date().toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' })
-      const entries = await Promise.all(
-        targetStudents.map(async (student) => {
-          const props: SchuelerBerichtPDFProps = {
-            studentName: `${student.vorname} ${student.nachname}`,
+      await downloadBerichte(
+        targetStudents.map((student) => ({
+          filename: `Bericht_${sanitizeFilename(fullName(student))}_${sanitizeFilename(thema.name)}.pdf`,
+          props: {
+            studentName: fullName(student),
             klassenName: klasse.name,
             fachName: fach.name,
             themaName: thema.name,
@@ -216,18 +212,10 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
               status: student.lernzielStatus[lz.id] ?? 'not_reached',
             })),
             kommentar: reportKommentare[student.id] || undefined,
-          }
-          const blob = await generatePdfBlob(props)
-          const safeName = `${student.vorname}_${student.nachname}`
-          const safeThema = thema.name.replace(/\s+/g, '_')
-          return { filename: `Bericht_${safeName}_${safeThema}.pdf`, blob }
-        })
+          } satisfies SchuelerBerichtPDFProps,
+        })),
+        `Berichte_${sanitizeFilename(klasse.name)}.zip`
       )
-      if (entries.length === 1) {
-        triggerDownload(entries[0].blob, entries[0].filename)
-      } else {
-        await downloadZip(entries, `Berichte_${klasse.name.replace(/\s+/g, '_')}.zip`)
-      }
     } finally {
       setIsGenerating(false)
     }
@@ -311,7 +299,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
               <StepCard
                 step={1}
                 title="Lernzielkontrolle"
-                summary={pPruefung ? `${pPruefung.name} (${new Date(pPruefung.datum).toLocaleDateString('de-CH')})` : undefined}
+                summary={pPruefung ? `${pPruefung.name} (${formatDateCH(pPruefung.datum)})` : undefined}
                 isOpen={pOpenStep === 1}
                 onToggle={() => setPOpenStep(prev => prev === 1 ? null : 1)}
               >
@@ -326,7 +314,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
                         className="px-4 py-1.5 text-left"
                       >
                         <span className="font-medium">{p.name}</span>
-                        <span className="ml-2 text-xs opacity-70">{fach?.name} · {new Date(p.datum).toLocaleDateString('de-CH')}</span>
+                        <span className="ml-2 text-xs opacity-70">{fach?.name} · {formatDateCH(p.datum)}</span>
                       </Button>
                     )
                   })}

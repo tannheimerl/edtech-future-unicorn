@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
 import { Modal } from '@/components/shared/Modal'
 import { cn } from '@/lib/utils'
+import { todayISO, formatDateCH } from '@/lib/dates'
 import type { LezioExport, Thema } from '@/types/domain'
 
 type Step = 'picker' | 'browse' | 'upload'
@@ -40,7 +41,7 @@ const ThemaRow = ({
   disabledLabel?: string
   onToggle?: () => void
 }) => {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayISO()
   const isOverdue = thema.faelligAm ? thema.faelligAm < today : false
   const daysUntil = thema.faelligAm
     ? Math.ceil((new Date(thema.faelligAm).getTime() - Date.now()) / 86400000)
@@ -93,7 +94,7 @@ const ThemaRow = ({
                 ? 'bg-status-partial-soft text-status-partial-fg'
                 : 'bg-muted text-muted-foreground',
           )}>
-            {new Date(thema.faelligAm + 'T00:00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
+            {formatDateCH(thema.faelligAm, { day: 'numeric', month: 'short' })}
           </span>
         )}
       </div>

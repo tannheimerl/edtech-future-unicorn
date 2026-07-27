@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
 import { useData } from '@/contexts/DataContext'
 import { cn } from '@/lib/utils'
+import { todayISO } from '@/lib/dates'
 import type { PruefungTyp } from '@/types/domain'
 import { PRUEFUNG_TYP_GRUPPEN } from '@/types/domain'
 
@@ -39,7 +40,7 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
   const [rilzSchuelerIds, setRilzSchuelerIds] = useState<string[]>([])
 
   // Step 2: Bewertung & Termin
-  const [datum, setDatum] = useState(() => new Date().toISOString().slice(0, 10))
+  const [datum, setDatum] = useState(() => todayISO())
   const [punkteEnabled, setPunkteEnabled] = useState(false)
   const [noteEnabled, setNoteEnabled] = useState(false)
   const [anhangEnabled, setAnhangEnabled] = useState(false)
@@ -76,7 +77,7 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
       setSelectedLzIds(new Set())
       setNurRilz(false)
       setRilzSchuelerIds([])
-      setDatum(new Date().toISOString().slice(0, 10))
+      setDatum(todayISO())
       setPunkteEnabled(false)
       setNoteEnabled(false)
       setAnhangEnabled(false)

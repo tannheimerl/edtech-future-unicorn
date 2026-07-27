@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/Modal";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { themaCountsInStats, computeKlasseStats } from "@/lib/student-kpis";
+import { todayISO } from "@/lib/dates";
+import { scoreColor } from "@/lib/utils";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 
 // ── Klasse stats ──────────────────────────────────────────────────────────
@@ -56,7 +58,7 @@ const KlasseStats = ({ klassId }: { klassId: string }) => {
     );
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   const classThemen = getThemenForKlasse(klassId).filter((t) =>
     themaCountsInStats(t, today),
   );
@@ -71,13 +73,7 @@ const KlasseStats = ({ klassId }: { klassId: string }) => {
       <MetricPill
         value={hasData ? `${avgScore}%` : "—"}
         label="Durchschnittliche Lernziel-Erreichung"
-        valueClassName={
-          avgScore >= 75
-            ? "text-status-reached"
-            : avgScore >= 25
-              ? "text-status-partial"
-              : "text-status-not-reached"
-        }
+        valueClassName={scoreColor(avgScore)}
       />
       <MetricPill
         value={excellent}
@@ -99,7 +95,7 @@ const LernzielProgress = ({ klassId }: { klassId: string }) => {
   const { getStudentsForClass, getThemenForKlasse, lernziele } = useData();
   const students = getStudentsForClass(klassId);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   const classThemen = getThemenForKlasse(klassId).filter((t) =>
     themaCountsInStats(t, today),
   );

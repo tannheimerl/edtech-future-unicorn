@@ -3,7 +3,8 @@
 import React, { useState } from 'react'
 import { Icon } from "@/components/ui/Icon"
 import { useData } from '@/contexts/DataContext'
-import { cn, getFachColor } from '@/lib/utils'
+import { cn, getFachColor, statusAvgPct, scoreColor } from '@/lib/utils'
+import { StatusCell } from '@/components/shared/StatusCell'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { Schueler, Thema, Lernziel, Status, RilzLernziel } from '@/types/domain'
@@ -56,47 +57,6 @@ const AddLzRow = ({
       >
         <Icon name="check" size={14} />
       </Button>
-    </div>
-  )
-}
-
-// Square status cell — same visual as main grid, for class grundlegend Lernziele
-const StatusCell = ({
-  status,
-  onSelect,
-}: {
-  status: Status | undefined
-  onSelect: (s: Status | undefined) => void
-}) => {
-  const next = (s: Status | undefined): Status | undefined => {
-    if (s === undefined) return 'reached'
-    if (s === 'reached') return 'partially_reached'
-    if (s === 'partially_reached') return 'not_reached'
-    return undefined
-  }
-  return (
-    <div className="flex justify-center">
-      <button
-        onClick={() => onSelect(next(status))}
-        title={
-          status === 'reached' ? 'Erreicht'
-          : status === 'partially_reached' ? 'Teilweise erreicht'
-          : status === 'not_reached' ? 'Nicht erreicht'
-          : 'Nicht bewertet'
-        }
-        className={cn(
-          'w-7 h-7 rounded-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer',
-          status === 'reached'           ? 'bg-status-reached-soft text-status-reached-fg' :
-          status === 'partially_reached' ? 'bg-status-partial-soft text-status-partial-fg' :
-          status === 'not_reached'       ? 'bg-status-not-reached-soft text-status-not-reached-fg' :
-                                           'bg-status-none-soft text-status-none-fg',
-        )}
-      >
-        {status === 'reached'           && <Icon name="check" size={12} weight={600} />}
-        {status === 'partially_reached' && <Icon name="remove" size={12} weight={600} />}
-        {status === 'not_reached'       && <Icon name="close" size={12} weight={600} />}
-        {status === undefined           && <span className="size-1.5 rounded-full bg-status-none-fg" />}
-      </button>
     </div>
   )
 }
@@ -248,24 +208,12 @@ export const RilzStudentCard = ({
   const allRilzLibraryLz = colGroups.flatMap(g => g.rilzLibraryLz)
   const totalCols        = allClassLz.length + allRilzLz.length + allRilzLibraryLz.length
 
-  const computePct = (): number => {
-    if (totalCols === 0) return 0
-    const classSum = allClassLz.reduce((acc, lz) => {
-      const st = (student.lernzielStatus[lz.id] as Status | undefined) ?? 'not_reached'
-      return acc + (st === 'reached' ? 1 : st === 'partially_reached' ? 0.5 : 0)
-    }, 0)
-    const rilzSum = allRilzLz.reduce((acc, lz) => {
-      return acc + (lz.status === 'reached' ? 1 : lz.status === 'partially_reached' ? 0.5 : 0)
-    }, 0)
-    const librarySum = allRilzLibraryLz.reduce((acc, lz) => {
-      const st = (student.lernzielStatus[lz.id] as Status | undefined) ?? 'not_reached'
-      return acc + (st === 'reached' ? 1 : st === 'partially_reached' ? 0.5 : 0)
-    }, 0)
-    return Math.round(((classSum + rilzSum + librarySum) / totalCols) * 100)
-  }
-
-  const pct = computePct()
-  const pctColor = pct >= 75 ? 'text-status-reached' : pct >= 40 ? 'text-status-partial' : 'text-status-not-reached'
+  const pct = statusAvgPct([
+    ...allClassLz.map(lz => student.lernzielStatus[lz.id] as Status | undefined),
+    ...allRilzLz.map(lz => lz.status),
+    ...allRilzLibraryLz.map(lz => student.lernzielStatus[lz.id] as Status | undefined),
+  ])
+  const pctColor = scoreColor(pct)
   const showThemeGroupHeader = colGroups.length > 1
 
   return (

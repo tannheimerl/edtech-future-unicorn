@@ -13,6 +13,7 @@ import { ProgressBar } from '@/components/shared/ProgressBar'
 import { BeurteilungGrid } from './BeurteilungGrid'
 import { LernkontrolleTab } from '@/components/lernkontrolle/LernkontrolleTab'
 import { cn } from '@/lib/utils'
+import { formatDateCH } from '@/lib/dates'
 
 type Props = {
   klassId: string
@@ -38,11 +39,9 @@ export const BeurteilungTab = ({ klassId }: Props) => {
   const [filterFachId, setFilterFachId] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<'alle' | 'laufend' | 'abgeschlossen'>('alle')
 
-  if (activePruefungId && !pruefungen.some(p => p.id === activePruefungId)) {
-    setActivePruefungId(null)
-  }
-
-  const activePruefung = activePruefungId ? pruefungen.find(p => p.id === activePruefungId) : null
+  // Zeigt bei gelöschter/unbekannter Prüfung automatisch wieder die Liste —
+  // abgeleitet statt setState während des Renderns.
+  const activePruefung = activePruefungId ? pruefungen.find(p => p.id === activePruefungId) ?? null : null
 
   const pruefungenFachIds = new Set(pruefungen.map(p => p.fachId))
   const filterableFaecher = faecher.filter(f => pruefungenFachIds.has(f.id))
@@ -55,7 +54,7 @@ export const BeurteilungTab = ({ klassId }: Props) => {
   const header = (
     <div className="flex items-center justify-between flex-wrap gap-2">
       <div className="flex items-center gap-2">
-        {activePruefungId ? (
+        {activePruefung ? (
           <nav className="flex items-center gap-1.5 text-sm">
             <Button
               variant="secondary"
@@ -81,7 +80,7 @@ export const BeurteilungTab = ({ klassId }: Props) => {
         )}
       </div>
       <div className="flex items-center gap-2">
-        {mode === 'pruefung' && !activePruefungId && (
+        {mode === 'pruefung' && !activePruefung && (
           <Button onClick={() => setCreateOpen(true)} className="gap-1.5">
             <Icon name="add" size={16} /> Neue Lernzielkontrolle
           </Button>
@@ -101,11 +100,11 @@ export const BeurteilungTab = ({ klassId }: Props) => {
   }
 
   // ── Detailansicht: Prüfungs-Grid ─────────────────────────────────────────
-  if (activePruefungId) {
+  if (activePruefung) {
     return (
       <div className="space-y-4">
         {header}
-        <BeurteilungGrid pruefungId={activePruefungId} klassId={klassId} />
+        <BeurteilungGrid pruefungId={activePruefung.id} klassId={klassId} />
         <ConfirmDialog
           open={confirmDeleteId !== null}
           onOpenChange={v => { if (!v) setConfirmDeleteId(null) }}
@@ -230,7 +229,7 @@ export const BeurteilungTab = ({ klassId }: Props) => {
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Icon name="calendar_month" size={14} />
-                    {new Date(p.datum).toLocaleDateString('de-CH')}
+                    {formatDateCH(p.datum)}
                   </span>
                   {fach && (
                     <span className="flex items-center gap-1">
