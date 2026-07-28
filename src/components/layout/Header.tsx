@@ -1,26 +1,35 @@
-'use client'
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Icon } from "@/components/ui/Icon"
-import { cn } from "@/lib/utils"
-import type { WithClassName } from "@/types"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Icon } from "@/components/ui/Icon";
+import { cn } from "@/lib/utils";
+import type { WithClassName } from "@/types";
 
 const NAV_ITEMS = [
   { label: "Deine Klassen", href: "/klassen", icon: "school" },
-  { label: "Deine Lernzielsammlung", href: "/lernziele", icon: "target" },
+  {
+    label: "Vorlagen für Lernkontrollen",
+    href: "/lernziele",
+    icon: "target",
+  },
   { label: "Einstellungen", href: "/einstellungen", icon: "settings" },
-]
+];
 
 type HeaderProps = {
-  siteName?: string
-} & WithClassName
+  siteName?: string;
+} & WithClassName;
 
 export const Header = ({ siteName = "Lezio", className }: HeaderProps) => {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
-    <header className={cn("sticky top-0 z-50 w-full bg-card border-b border-border/70 shadow-sm", className)}>
+    <header
+      className={cn(
+        "sticky top-0 z-50 w-full bg-card border-b border-border/70 shadow-sm",
+        className,
+      )}
+    >
       <div className="page-container grid grid-cols-[1fr_auto_1fr] py-1.5 items-center">
         <Link
           href="/klassen"
@@ -34,7 +43,7 @@ export const Header = ({ siteName = "Lezio", className }: HeaderProps) => {
         <nav className="flex justify-end">
           <ul className="flex items-center gap-3">
             {NAV_ITEMS.map((item) => {
-              const isActive = pathname.startsWith(item.href)
+              const isActive = pathname.startsWith(item.href);
               return (
                 <li key={item.href}>
                   <Link
@@ -43,18 +52,18 @@ export const Header = ({ siteName = "Lezio", className }: HeaderProps) => {
                       "flex items-center gap-2 px-2 py-1 rounded-md text-sm font-medium transition-all whitespace-nowrap",
                       isActive
                         ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/60",
                     )}
                   >
                     {item.icon && <Icon name={item.icon} size={14} />}
                     {item.label}
                   </Link>
                 </li>
-              )
+              );
             })}
           </ul>
         </nav>
       </div>
     </header>
-  )
-}
+  );
+};

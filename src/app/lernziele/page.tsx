@@ -274,7 +274,7 @@ const LernzielePage = () => {
 
       {faecher.length > 0 && (
         <>
-          <h1 className="mb-6">Deine Lernzielsammlung</h1>
+          <h1 className="mb-6">Vorlagen für Lernkontrollen</h1>
           {/* Filter row */}
           <div className="flex flex-wrap items-center gap-2 mb-2">
             {aktiveKolonnen.map((colId) => {

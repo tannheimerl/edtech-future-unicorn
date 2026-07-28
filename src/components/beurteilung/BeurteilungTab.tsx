@@ -1,53 +1,60 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Icon } from "@/components/ui/Icon"
-import { useData } from '@/contexts/DataContext'
-import { Button } from '@/components/ui/button'
-import { EmptyState } from '@/components/shared/EmptyState'
-import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
-import { PillTabs } from '@/components/shared/PillTabs'
-import { SegmentedControl } from '@/components/shared/SegmentedControl'
-import { PruefungErstellenModal } from '@/components/pruefungen/PruefungErstellenModal'
-import { ProgressBar } from '@/components/shared/ProgressBar'
-import { BeurteilungGrid } from './BeurteilungGrid'
-import { LernkontrolleTab } from '@/components/lernkontrolle/LernkontrolleTab'
-import { cn } from '@/lib/utils'
-import { formatDateCH } from '@/lib/dates'
+import { useState } from "react";
+import { Icon } from "@/components/ui/Icon";
+import { useData } from "@/contexts/DataContext";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { PillTabs } from "@/components/shared/PillTabs";
+import { SegmentedControl } from "@/components/shared/SegmentedControl";
+import { PruefungErstellenModal } from "@/components/pruefungen/PruefungErstellenModal";
+import { ProgressBar } from "@/components/shared/ProgressBar";
+import { BeurteilungGrid } from "./BeurteilungGrid";
+import { LernkontrolleTab } from "@/components/lernkontrolle/LernkontrolleTab";
+import { cn } from "@/lib/utils";
+import { formatDateCH } from "@/lib/dates";
 
 type Props = {
-  klassId: string
-}
+  klassId: string;
+};
 
 export const BeurteilungTab = ({ klassId }: Props) => {
   const {
-    getPruefungenForKlasse, getPruefungErgebnisse,
-    getStudentsForClass, faecher, deletePruefung, updatePruefung,
-  } = useData()
+    getPruefungenForKlasse,
+    getPruefungErgebnisse,
+    getStudentsForClass,
+    faecher,
+    deletePruefung,
+    updatePruefung,
+  } = useData();
 
+  const pruefungen = getPruefungenForKlasse(klassId).sort((a, b) =>
+    b.datum.localeCompare(a.datum),
+  );
+  const students = getStudentsForClass(klassId);
 
-  const pruefungen = getPruefungenForKlasse(klassId).sort(
-    (a, b) => b.datum.localeCompare(a.datum)
-  )
-  const students = getStudentsForClass(klassId)
-
-  const [mode, setMode] = useState<'pruefung' | 'frei'>('pruefung')
-  const [activePruefungId, setActivePruefungId] = useState<string | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [filterFachId, setFilterFachId] = useState<string | null>(null)
-  const [filterStatus, setFilterStatus] = useState<'alle' | 'laufend' | 'abgeschlossen'>('alle')
+  const [mode, setMode] = useState<"pruefung" | "frei">("pruefung");
+  const [activePruefungId, setActivePruefungId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [filterFachId, setFilterFachId] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<
+    "alle" | "laufend" | "abgeschlossen"
+  >("alle");
 
   // Zeigt bei gelöschter/unbekannter Prüfung automatisch wieder die Liste —
   // abgeleitet statt setState während des Renderns.
-  const activePruefung = activePruefungId ? pruefungen.find(p => p.id === activePruefungId) ?? null : null
+  const activePruefung = activePruefungId
+    ? (pruefungen.find((p) => p.id === activePruefungId) ?? null)
+    : null;
 
-  const pruefungenFachIds = new Set(pruefungen.map(p => p.fachId))
-  const filterableFaecher = faecher.filter(f => pruefungenFachIds.has(f.id))
+  const pruefungenFachIds = new Set(pruefungen.map((p) => p.fachId));
+  const filterableFaecher = faecher.filter((f) => pruefungenFachIds.has(f.id));
 
   const filteredPruefungen = pruefungen
-    .filter(p => filterFachId === null || p.fachId === filterFachId)
-    .filter(p => filterStatus === 'alle' || p.status === filterStatus)
+    .filter((p) => filterFachId === null || p.fachId === filterFachId)
+    .filter((p) => filterStatus === "alle" || p.status === filterStatus);
 
   // ── Shared header ─────────────────────────────────────────────────────────
   const header = (
@@ -64,7 +71,9 @@ export const BeurteilungTab = ({ klassId }: Props) => {
               Beurteilung
             </Button>
             <span className="text-muted-foreground/40">/</span>
-            <span className="font-semibold text-foreground">{activePruefung?.name}</span>
+            <span className="font-semibold text-foreground">
+              {activePruefung?.name}
+            </span>
           </nav>
         ) : (
           <PillTabs
@@ -72,30 +81,30 @@ export const BeurteilungTab = ({ klassId }: Props) => {
             value={mode}
             onChange={setMode}
             options={[
-              { key: 'pruefung', label: 'Lernzielkontrollen' },
-              { key: 'frei', label: 'Freie Beurteilung' },
+              { key: "pruefung", label: "Lernzielkontrollen" },
+              { key: "frei", label: "Freie Beurteilung" },
             ]}
           />
         )}
       </div>
       <div className="flex items-center gap-2">
-        {mode === 'pruefung' && !activePruefung && (
+        {mode === "pruefung" && !activePruefung && (
           <Button onClick={() => setCreateOpen(true)} className="gap-1.5">
             <Icon name="add" size={16} /> Neue Lernzielkontrolle
           </Button>
         )}
       </div>
     </div>
-  )
+  );
 
   // ── Freie Beurteilung ─────────────────────────────────────────────────────
-  if (mode === 'frei') {
+  if (mode === "frei") {
     return (
       <div className="space-y-4">
         {header}
         <LernkontrolleTab klassId={klassId} />
       </div>
-    )
+    );
   }
 
   // ── Detailansicht: Prüfungs-Grid ─────────────────────────────────────────
@@ -106,16 +115,22 @@ export const BeurteilungTab = ({ klassId }: Props) => {
         <BeurteilungGrid pruefungId={activePruefung.id} klassId={klassId} />
         <ConfirmDialog
           open={confirmDeleteId !== null}
-          onOpenChange={v => { if (!v) setConfirmDeleteId(null) }}
+          onOpenChange={(v) => {
+            if (!v) setConfirmDeleteId(null);
+          }}
           title="Lernzielkontrolle löschen?"
           description="Alle Ergebnisse dieser Lernzielkontrolle werden unwiderruflich gelöscht."
           confirmLabel="Löschen"
           onConfirm={() => {
-            if (confirmDeleteId) { deletePruefung(confirmDeleteId); setConfirmDeleteId(null); setActivePruefungId(null) }
+            if (confirmDeleteId) {
+              deletePruefung(confirmDeleteId);
+              setConfirmDeleteId(null);
+              setActivePruefungId(null);
+            }
           }}
         />
       </div>
-    )
+    );
   }
 
   // ── Listenansicht ─────────────────────────────────────────────────────────
@@ -129,22 +144,22 @@ export const BeurteilungTab = ({ klassId }: Props) => {
           {filterableFaecher.length > 1 && (
             <SegmentedControl
               label="Fach"
-              value={filterFachId ?? ''}
-              onChange={v => setFilterFachId(v === '' ? null : v)}
+              value={filterFachId ?? ""}
+              onChange={(v) => setFilterFachId(v === "" ? null : v)}
               options={[
-                { key: '', label: 'Alle' },
-                ...filterableFaecher.map(f => ({ key: f.id, label: f.name })),
+                { key: "", label: "Alle" },
+                ...filterableFaecher.map((f) => ({ key: f.id, label: f.name })),
               ]}
             />
           )}
-          <SegmentedControl<'alle' | 'laufend' | 'abgeschlossen'>
+          <SegmentedControl<"alle" | "laufend" | "abgeschlossen">
             label="Status"
             value={filterStatus}
             onChange={setFilterStatus}
             options={[
-              { key: 'alle', label: 'Alle' },
-              { key: 'laufend', label: 'Laufend' },
-              { key: 'abgeschlossen', label: 'Abgeschlossen' },
+              { key: "alle", label: "Alle" },
+              { key: "laufend", label: "Laufend" },
+              { key: "abgeschlossen", label: "Abgeschlossen" },
             ]}
           />
         </div>
@@ -153,7 +168,13 @@ export const BeurteilungTab = ({ klassId }: Props) => {
       {/* Karten-Grid oder EmptyState */}
       {pruefungen.length === 0 ? (
         <EmptyState
-          icon={<Icon name="assignment" size={24} className="text-muted-foreground" />}
+          icon={
+            <Icon
+              name="assignment"
+              size={24}
+              className="text-muted-foreground"
+            />
+          }
           title="Noch keine Lernzielkontrollen"
           description="Erstelle eine Lernzielkontrolle aus den Lernzielen dieser Klasse."
           action={
@@ -163,32 +184,44 @@ export const BeurteilungTab = ({ klassId }: Props) => {
           }
         />
       ) : filteredPruefungen.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-8">Keine Lernzielkontrollen für die gewählten Filter.</p>
+        <p className="text-sm text-muted-foreground text-center py-8">
+          Keine Lernzielkontrollen für die gewählten Filter.
+        </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredPruefungen.map(p => {
-            const ergebnisse = getPruefungErgebnisse(p.id)
+          {filteredPruefungen.map((p) => {
+            const ergebnisse = getPruefungErgebnisse(p.id);
             const relevantStudents = p.nurRilz
-              ? students.filter(s => p.rilzSchuelerIds.includes(s.id))
-              : students.filter(s => !s.rilzFachIds?.includes(p.fachId))
-            const rilzExcluded = p.nurRilz ? 0 : students.filter(s => s.rilzFachIds?.includes(p.fachId)).length
-            const bewertet = relevantStudents.filter(s =>
-              ergebnisse.some(e => e.schuelerId === s.id && e.abgeschlossen)
-            ).length
-            const fach = faecher.find(f => f.id === p.fachId)
-            const pct = relevantStudents.length > 0 ? Math.round((bewertet / relevantStudents.length) * 100) : 0
-            const pending2nd = ergebnisse.filter(e =>
-              relevantStudents.some(s => s.id === e.schuelerId) &&
-              e.zweiterVersuchAusstehend && (e.anzahlVersuche ?? 1) < 2
-            ).length
-            const pending3rd = ergebnisse.filter(e =>
-              relevantStudents.some(s => s.id === e.schuelerId) &&
-              e.zweiterVersuchAusstehend && (e.anzahlVersuche ?? 1) >= 2
-            ).length
-            const open1st = relevantStudents.filter(s => {
-              const e = ergebnisse.find(er => er.schuelerId === s.id)
-              return !e?.abgeschlossen && !e?.zweiterVersuchAusstehend
-            }).length
+              ? students.filter((s) => p.rilzSchuelerIds.includes(s.id))
+              : students.filter((s) => !s.rilzFachIds?.includes(p.fachId));
+            const rilzExcluded = p.nurRilz
+              ? 0
+              : students.filter((s) => s.rilzFachIds?.includes(p.fachId))
+                  .length;
+            const bewertet = relevantStudents.filter((s) =>
+              ergebnisse.some((e) => e.schuelerId === s.id && e.abgeschlossen),
+            ).length;
+            const fach = faecher.find((f) => f.id === p.fachId);
+            const pct =
+              relevantStudents.length > 0
+                ? Math.round((bewertet / relevantStudents.length) * 100)
+                : 0;
+            const pending2nd = ergebnisse.filter(
+              (e) =>
+                relevantStudents.some((s) => s.id === e.schuelerId) &&
+                e.zweiterVersuchAusstehend &&
+                (e.anzahlVersuche ?? 1) < 2,
+            ).length;
+            const pending3rd = ergebnisse.filter(
+              (e) =>
+                relevantStudents.some((s) => s.id === e.schuelerId) &&
+                e.zweiterVersuchAusstehend &&
+                (e.anzahlVersuche ?? 1) >= 2,
+            ).length;
+            const open1st = relevantStudents.filter((s) => {
+              const e = ergebnisse.find((er) => er.schuelerId === s.id);
+              return !e?.abgeschlossen && !e?.zweiterVersuchAusstehend;
+            }).length;
             return (
               <div
                 key={p.id}
@@ -199,7 +232,10 @@ export const BeurteilungTab = ({ klassId }: Props) => {
                   type="button"
                   variant="secondary"
                   size="icon-sm"
-                  onClick={e => { e.stopPropagation(); setConfirmDeleteId(p.id) }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmDeleteId(p.id);
+                  }}
                   className="absolute right-3 top-3 hidden text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover:flex"
                   title="Lernzielkontrolle löschen"
                 >
@@ -210,18 +246,21 @@ export const BeurteilungTab = ({ klassId }: Props) => {
                   <p className="font-semibold leading-tight">{p.name}</p>
                   <button
                     type="button"
-                    onClick={e => {
-                      e.stopPropagation()
-                      updatePruefung(p.id, { status: p.status === 'laufend' ? 'abgeschlossen' : 'laufend' })
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updatePruefung(p.id, {
+                        status:
+                          p.status === "laufend" ? "abgeschlossen" : "laufend",
+                      });
                     }}
                     className={cn(
-                      'shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium transition-colors',
-                      p.status === 'abgeschlossen'
-                        ? 'bg-secondary text-muted-foreground hover:bg-muted'
-                        : 'bg-status-reached-soft text-status-reached-fg hover:bg-status-reached-soft/80',
+                      "shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium transition-colors",
+                      p.status === "abgeschlossen"
+                        ? "bg-secondary text-muted-foreground hover:bg-muted"
+                        : "bg-status-reached-soft text-status-reached-fg hover:bg-status-reached-soft/80",
                     )}
                   >
-                    {p.status === 'abgeschlossen' ? 'Abgeschlossen' : 'Laufend'}
+                    {p.status === "abgeschlossen" ? "Abgeschlossen" : "Laufend"}
                   </button>
                 </div>
 
@@ -239,26 +278,12 @@ export const BeurteilungTab = ({ klassId }: Props) => {
                 </div>
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{p.lernzielIds.length} Lernziel{p.lernzielIds.length !== 1 ? 'e' : ''}</span>
-                  {p.maxPunkte != null && <span>· max. {p.maxPunkte} Pkt.</span>}
-                </div>
-                <div className="space-y-0.5">
-                  {p.status === 'laufend' && open1st > 0 && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <span>{open1st} 1. Versuch offen</span>
-                    </div>
-                  )}
-                  {pending2nd > 0 && (
-                    <div className="flex items-center gap-1 text-xs font-medium text-status-partial">
-                      <Icon name="restart_alt" size={12} />
-                      <span>{pending2nd} 2. Versuch ausstehend</span>
-                    </div>
-                  )}
-                  {pending3rd > 0 && (
-                    <div className="flex items-center gap-1 text-xs font-medium text-status-partial">
-                      <Icon name="restart_alt" size={12} />
-                      <span>{pending3rd} 3. Versuch ausstehend</span>
-                    </div>
+                  <span>
+                    {p.lernzielIds.length} Lernziel
+                    {p.lernzielIds.length !== 1 ? "e" : ""}
+                  </span>
+                  {p.maxPunkte != null && (
+                    <span>· max. {p.maxPunkte} Pkt.</span>
                   )}
                 </div>
 
@@ -266,14 +291,34 @@ export const BeurteilungTab = ({ klassId }: Props) => {
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>
                       {bewertet}/{relevantStudents.length} abgeschlossen
-                      {rilzExcluded > 0 && <span className="ml-1 text-rilz-foreground">· {rilzExcluded} RILZ</span>}
+                      {rilzExcluded > 0 && (
+                        <span className="ml-1 text-rilz-foreground">
+                          · {rilzExcluded} RILZ
+                        </span>
+                      )}
                     </span>
-                    <span className={pct === 100 ? 'text-status-reached font-medium' : ''}>{pct}%</span>
+                    <span
+                      className={
+                        pct === 100 ? "text-status-reached font-medium" : ""
+                      }
+                    >
+                      {pct}%
+                    </span>
                   </div>
-                  <ProgressBar segments={[{ value: pct, className: pct === 100 ? 'bg-status-reached' : 'bg-primary' }]} total={100} size="xs" />
+                  <ProgressBar
+                    segments={[
+                      {
+                        value: pct,
+                        className:
+                          pct === 100 ? "bg-status-reached" : "bg-primary",
+                      },
+                    ]}
+                    total={100}
+                    size="xs"
+                  />
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       )}
@@ -282,19 +327,24 @@ export const BeurteilungTab = ({ klassId }: Props) => {
         open={createOpen}
         onOpenChange={setCreateOpen}
         klassId={klassId}
-        onCreated={id => setActivePruefungId(id)}
+        onCreated={(id) => setActivePruefungId(id)}
       />
 
       <ConfirmDialog
         open={confirmDeleteId !== null}
-        onOpenChange={v => { if (!v) setConfirmDeleteId(null) }}
+        onOpenChange={(v) => {
+          if (!v) setConfirmDeleteId(null);
+        }}
         title="Lernzielkontrolle löschen?"
         description="Alle Ergebnisse dieser Lernzielkontrolle werden unwiderruflich gelöscht."
         confirmLabel="Löschen"
         onConfirm={() => {
-          if (confirmDeleteId) { deletePruefung(confirmDeleteId); setConfirmDeleteId(null) }
+          if (confirmDeleteId) {
+            deletePruefung(confirmDeleteId);
+            setConfirmDeleteId(null);
+          }
         }}
       />
     </div>
-  )
-}
+  );
+};

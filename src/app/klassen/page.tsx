@@ -6,11 +6,6 @@ import { Icon } from "@/components/ui/Icon";
 import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/EmptyState";
-import {
-  GroupBadge,
-  KlasseStats,
-  LernzielProgress,
-} from "@/components/klassen/KlasseCardStats";
 import { KlasseFormModal } from "@/components/klassen/KlasseFormModal";
 
 // ── Page ──────────────────────────────────────────────────────────────────
@@ -37,13 +32,9 @@ const KlassenPage = () => {
       <div className="mb-6 flex items-center justify-between">
         <h1>Deine Klassen</h1>
         {myClasses.length > 0 && (
-          <Button
-            variant="secondary"
-            className="rounded-full"
-            onClick={() => setCreateOpen(true)}
-          >
+          <Button variant="secondary" onClick={() => setCreateOpen(true)}>
             <Icon name="add" size={16} />
-            Neue Klasse erstellen
+            Klasse erstellen
           </Button>
         )}
       </div>
@@ -95,53 +86,24 @@ const KlassenPage = () => {
       <div className="space-y-4">
         {myClasses.map((klasse) => {
           const students = getStudentsForClass(klasse.id);
-          const offeneNachpruefungen = getPruefungenForKlasse(
-            klasse.id,
-          ).flatMap((p) =>
-            getPruefungErgebnisse(p.id).filter(
-              (e) => e.zweiterVersuchAusstehend,
-            ),
-          );
+
           return (
             <div
               key={klasse.id}
-              className="group cursor-pointer rounded-2xl border border-border bg-card p-6 transition-all duration-150 hover:shadow-md hover:border-primary/30"
+              className="group cursor-pointer rounded-2xl border border-border bg-card p-3 transition-all duration-150 hover:shadow-md"
               onClick={() =>
                 router.push(`/klassen/detail?klassId=${klasse.id}`)
               }
             >
-              <div className="flex items-center gap-6">
-                {/* Left column: name + progress */}
-                <div className="flex h-full min-w-[160px] shrink-0 flex-col justify-between gap-6 self-stretch">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex gap-2 flex-col">
                   <h4>{klasse.name}</h4>
-                  <LernzielProgress klassId={klasse.id} />
-                </div>
-
-                {/* Right column: badge + metrics */}
-                <div className="flex min-w-0 flex-1 items-start gap-2">
-                  <GroupBadge count={students.length} />
-                  <KlasseStats klassId={klasse.id} />
+                  <span>{students.length} SchülerInnen</span>
                 </div>
 
                 {/* Actions */}
-                <div className="flex shrink-0 items-center gap-1">
-                  <Icon
-                    name="chevron_right"
-                    size={20}
-                    className="text-primary"
-                  />
-                </div>
+                <Icon name="chevron_right" size={24} className="text-primary" />
               </div>
-
-              {offeneNachpruefungen.length > 0 && (
-                <div className="mt-4 flex items-center gap-1.5 rounded-md bg-status-partial-soft px-2 py-1.5 text-xs font-medium text-status-partial-fg">
-                  <Icon name="restart_alt" size={12} className="shrink-0" />
-                  <span>
-                    {offeneNachpruefungen.length} offene
-                    {offeneNachpruefungen.length === 1 ? "r" : ""} 2. Versuch
-                  </span>
-                </div>
-              )}
             </div>
           );
         })}

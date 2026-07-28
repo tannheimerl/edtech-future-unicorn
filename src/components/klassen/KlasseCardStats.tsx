@@ -32,13 +32,6 @@ export const MetricPill = ({
   </div>
 );
 
-export const GroupBadge = ({ count }: { count: number }) => (
-  <div className="flex h-fit shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium">
-    <Icon name="group" size={14} className="text-muted-foreground" />
-    <span className="tabular-nums">{count}</span>
-  </div>
-);
-
 export const KlasseStats = ({ klassId }: { klassId: string }) => {
   const { getStudentsForClass, getThemenForKlasse, lernziele } = useData();
   const students = getStudentsForClass(klassId);
