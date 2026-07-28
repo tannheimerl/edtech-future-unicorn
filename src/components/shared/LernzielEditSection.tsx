@@ -10,15 +10,15 @@ import { useData } from '@/contexts/DataContext'
 import type { Lernziel, LernzielKategorie } from '@/types/domain'
 
 /**
- * Schritt „Lernziele" der Thema-Bearbeitung (Lernzielsammlung und
- * Klassen-Tab): Lernziele nach Kategorie gruppiert anzeigen, inline
- * anlegen, umbenennen, umkategorisieren und löschen.
+ * Schritt „Lernziele" der Lernkontrolle-Bearbeitung: Lernziele nach
+ * Kategorie gruppiert anzeigen, inline anlegen, umbenennen,
+ * umkategorisieren und löschen.
  */
-export const LernzielEditSection = ({ themaId }: { themaId: string }) => {
+export const LernzielEditSection = ({ lernkontrolleId }: { lernkontrolleId: string }) => {
   const { lernziele, createLernziel, updateLernziel, deleteLernziel } = useData()
-  const themaLZ = lernziele.filter(lz => lz.themaId === themaId)
-  const grundlegendLZ = themaLZ.filter(lz => lz.kategorie === 'grundlegend')
-  const anspruchsvollLZ = themaLZ.filter(lz => lz.kategorie === 'anspruchsvoll')
+  const lernkontrolleLZ = lernziele.filter(lz => lz.lernkontrolleId === lernkontrolleId)
+  const grundlegendLZ = lernkontrolleLZ.filter(lz => lz.kategorie === 'grundlegend')
+  const anspruchsvollLZ = lernkontrolleLZ.filter(lz => lz.kategorie === 'anspruchsvoll')
 
   const [newLZG, setNewLZG] = useState('')
   const [newLZA, setNewLZA] = useState('')
@@ -29,13 +29,13 @@ export const LernzielEditSection = ({ themaId }: { themaId: string }) => {
 
   const addLZG = () => {
     if (!newLZG.trim()) return
-    createLernziel(themaId, newLZG.trim(), 'grundlegend')
+    createLernziel(lernkontrolleId, newLZG.trim(), 'grundlegend')
     setNewLZG('')
   }
 
   const addLZA = () => {
     if (!newLZA.trim()) return
-    createLernziel(themaId, newLZA.trim(), 'anspruchsvoll')
+    createLernziel(lernkontrolleId, newLZA.trim(), 'anspruchsvoll')
     setNewLZA('')
   }
 

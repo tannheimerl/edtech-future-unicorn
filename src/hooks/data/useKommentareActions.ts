@@ -1,17 +1,17 @@
 import { useCallback } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
-import type { AssessmentKommentar, ThemaKommentar } from '@/types/domain'
+import type { AssessmentKommentar, LernkontrolleKommentar } from '@/types/domain'
 import {
   dbSaveKommentar, dbDeleteKommentar,
-  dbSaveThemaKommentar, dbDeleteThemaKommentar,
+  dbSaveLernkontrolleKommentar, dbDeleteLernkontrolleKommentar,
 } from '@/actions/db-write'
 import { notifyDbError } from '@/lib/toast'
 
 export function useKommentareActions(
   kommentare: AssessmentKommentar[],
   setKommentare: Dispatch<SetStateAction<AssessmentKommentar[]>>,
-  themaKommentare: ThemaKommentar[],
-  setThemaKommentare: Dispatch<SetStateAction<ThemaKommentar[]>>,
+  lernkontrolleKommentare: LernkontrolleKommentar[],
+  setLernkontrolleKommentare: Dispatch<SetStateAction<LernkontrolleKommentar[]>>,
 ) {
   const getKommentar = useCallback(
     (studentId: string, lernzielId: string) =>
@@ -19,10 +19,10 @@ export function useKommentareActions(
     [kommentare]
   )
 
-  const getThemaKommentar = useCallback(
-    (studentId: string, themaId: string) =>
-      themaKommentare.find((k) => k.studentId === studentId && k.themaId === themaId),
-    [themaKommentare]
+  const getLernkontrolleKommentar = useCallback(
+    (studentId: string, lernkontrolleId: string) =>
+      lernkontrolleKommentare.find((k) => k.studentId === studentId && k.lernkontrolleId === lernkontrolleId),
+    [lernkontrolleKommentare]
   )
 
   const upsertKommentar = useCallback((studentId: string, lernzielId: string, text: string) => {
@@ -46,11 +46,11 @@ export function useKommentareActions(
     dbDeleteKommentar(studentId, lernzielId).catch(notifyDbError)
   }, [setKommentare])
 
-  const upsertThemaKommentar = useCallback((studentId: string, themaId: string, text: string) => {
-    setThemaKommentare((prev) => {
-      const idx = prev.findIndex((k) => k.studentId === studentId && k.themaId === themaId)
-      const updated: ThemaKommentar = { studentId, themaId, text, updatedAt: new Date().toISOString() }
-      dbSaveThemaKommentar(updated).catch(notifyDbError)
+  const upsertLernkontrolleKommentar = useCallback((studentId: string, lernkontrolleId: string, text: string) => {
+    setLernkontrolleKommentare((prev) => {
+      const idx = prev.findIndex((k) => k.studentId === studentId && k.lernkontrolleId === lernkontrolleId)
+      const updated: LernkontrolleKommentar = { studentId, lernkontrolleId, text, updatedAt: new Date().toISOString() }
+      dbSaveLernkontrolleKommentar(updated).catch(notifyDbError)
       if (idx >= 0) {
         const next = [...prev]
         next[idx] = updated
@@ -58,21 +58,21 @@ export function useKommentareActions(
       }
       return [...prev, updated]
     })
-  }, [setThemaKommentare])
+  }, [setLernkontrolleKommentare])
 
-  const deleteThemaKommentar = useCallback((studentId: string, themaId: string) => {
-    setThemaKommentare((prev) =>
-      prev.filter((k) => !(k.studentId === studentId && k.themaId === themaId))
+  const deleteLernkontrolleKommentar = useCallback((studentId: string, lernkontrolleId: string) => {
+    setLernkontrolleKommentare((prev) =>
+      prev.filter((k) => !(k.studentId === studentId && k.lernkontrolleId === lernkontrolleId))
     )
-    dbDeleteThemaKommentar(studentId, themaId).catch(notifyDbError)
-  }, [setThemaKommentare])
+    dbDeleteLernkontrolleKommentar(studentId, lernkontrolleId).catch(notifyDbError)
+  }, [setLernkontrolleKommentare])
 
   return {
     getKommentar,
-    getThemaKommentar,
+    getLernkontrolleKommentar,
     upsertKommentar,
     deleteKommentar,
-    upsertThemaKommentar,
-    deleteThemaKommentar,
+    upsertLernkontrolleKommentar,
+    deleteLernkontrolleKommentar,
   }
 }

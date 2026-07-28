@@ -3,18 +3,17 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
+import { IconLink } from "@/components/ui/icon-link";
 import { useData } from "@/contexts/DataContext";
-import { ClassAnalytics } from "@/components/analytics/ClassAnalytics";
+import { KlasseKpis } from "@/components/analytics/KlasseKpis";
 import { BeurteilungTab } from "@/components/beurteilung/BeurteilungTab";
 import { BerichteTab } from "@/components/berichte/BerichteTab";
-import { LernzieleTab } from "@/components/klassen/LernzieleTab";
 import {
   KlasseTabBar,
   type KlasseTab,
 } from "@/components/klassen/KlasseTabBar";
 import { SchuelerFormModal } from "@/components/klassen/SchuelerFormModal";
 import { SchuelerBearbeitenModal } from "@/components/klassen/SchuelerBearbeitenModal";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -27,13 +26,11 @@ import {
   TableSortHeader,
   TableEmpty,
 } from "@/components/ui/table";
-import { ProgressBar } from "@/components/shared/ProgressBar";
 import { InputModal } from "@/components/shared/InputModal";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { GefahrenzoneSettings } from "@/components/einstellungen/GefahrenzoneSettings";
 import { cn, getFachColor, scoreColor, scoreBarColor } from "@/lib/utils";
-import { getInitials, getAvatarColor } from "@/lib/avatar-utils";
 import { competencyPct } from "@/lib/student-kpis";
 
 // ── Page ──────────────────────────────────────────────────────────────────
@@ -51,16 +48,15 @@ const KlasseDetailPage = () => {
     updateStudent,
     deleteStudent,
     faecher,
+    lernkontrollen,
     lernziele,
     competencies,
-    getThemenForKlasse,
     setRilzFach,
     setBvsa,
   } = useData();
 
   const klasse = getClass(klassId);
   const students = getStudentsForClass(klassId);
-  const assignedThemen = getThemenForKlasse(klassId);
 
   const [tab, setTab] = useState<KlasseTab>("schueler");
   const [editingName, setEditingName] = useState(false);
@@ -103,13 +99,7 @@ const KlasseDetailPage = () => {
     return (
       <div className="page-container py-8 text-muted-foreground text-sm">
         Klasse nicht gefunden.{" "}
-        <Button
-          variant="secondary"
-          className="h-auto border-transparent bg-transparent p-0"
-          onClick={() => router.push("/klassen")}
-        >
-          Zur Übersicht
-        </Button>
+        <IconLink href="/klassen">Zur Übersicht</IconLink>
       </div>
     );
   }
@@ -196,14 +186,6 @@ const KlasseDetailPage = () => {
                     Nachname
                   </TableSortHeader>
                   <TableHead className="w-full">Kategorie</TableHead>
-                  <TableSortHeader
-                    active={sortCol === "progress"}
-                    direction={sortDir}
-                    onClick={() => handleSortCol("progress")}
-                    className="w-28"
-                  >
-                    Fortschritt
-                  </TableSortHeader>
                   <TableHead className="w-20" />
                 </TableHeader>
 
@@ -214,9 +196,6 @@ const KlasseDetailPage = () => {
                     </TableEmpty>
                   )}
                   {sortedStudents.map((student) => {
-                    const cp = competencyPct(student, competencies);
-                    const pctColor = scoreColor(cp);
-                    const barColor = scoreBarColor(cp);
                     return (
                       <TableRow key={student.id}>
                         {/* Vorname */}
@@ -300,37 +279,6 @@ const KlasseDetailPage = () => {
                           </div>
                         </TableCell>
 
-                        {/* Mini progress bar */}
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            {competencies.length > 0 ? (
-                              <>
-                                <div className="flex-1">
-                                  <ProgressBar
-                                    segments={[
-                                      { value: cp, className: barColor },
-                                    ]}
-                                    total={100}
-                                    size="xs"
-                                  />
-                                </div>
-                                <span
-                                  className={cn(
-                                    "text-3xs font-semibold tabular-nums w-6 text-right shrink-0",
-                                    pctColor,
-                                  )}
-                                >
-                                  {Math.round(cp)}%
-                                </span>
-                              </>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">
-                                —
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-
                         {/* Actions */}
                         <TableCell align="right">
                           <div className="flex items-center justify-end gap-1">
@@ -343,7 +291,7 @@ const KlasseDetailPage = () => {
                               }}
                               aria-label="Schüler bearbeiten"
                             >
-                              <Icon name="edit" size={14} />
+                              <Icon name="edit" size={24} />
                             </Button>
                           </div>
                         </TableCell>
@@ -358,23 +306,17 @@ const KlasseDetailPage = () => {
       )}
 
       {/* Beurteilung tab */}
-      {tab === "beurteilung" && <BeurteilungTab klassId={klassId} />}
-
-      {/* Klassenübersicht tab */}
-      {tab === "klassenübersicht" && (
-        <div>
-          <ClassAnalytics
+      {tab === "beurteilung" && (
+        <div className="space-y-4">
+          <KlasseKpis
             klassId={klassId}
             students={students}
-            themen={assignedThemen}
+            themen={lernkontrollen}
             lernziele={lernziele}
-            faecher={faecher}
           />
+          <BeurteilungTab klassId={klassId} />
         </div>
       )}
-
-      {/* Lernziele tab */}
-      {tab === "lernziele" && <LernzieleTab klassId={klassId} />}
 
       {/* Berichte tab */}
       {tab === "berichte" && <BerichteTab klassId={klassId} />}
@@ -410,8 +352,9 @@ const KlasseDetailPage = () => {
       <SchuelerFormModal
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onSubmit={(vorname, nachname) =>
-          createStudent(klassId, vorname, nachname)
+        faecher={faecher}
+        onSubmit={(vorname, nachname, patch) =>
+          createStudent(klassId, vorname, nachname, patch)
         }
       />
     </div>

@@ -29,11 +29,11 @@ const BerichtPage = () => {
   const klassId = searchParams.get('klassId') ?? ''
   const studentId = searchParams.get('studentId') ?? ''
   const router = useRouter()
-  const { getClass, getStudent, getThemenForKlasse, getLernzieleForThema, getFachForThema, faecher, kommentare } = useData()
+  const { getClass, getStudent, lernkontrollen, getLernzieleForLernkontrolle, getFachForLernkontrolle, faecher, kommentare } = useData()
 
   const klasse = getClass(klassId)
   const student = getStudent(studentId)
-  const assignedThemen = getThemenForKlasse(klassId)
+  const assignedThemen = lernkontrollen
 
   const [includeGrundlegend, setIncludeGrundlegend] = useState(true)
   const [includeAnspruchsvoll, setIncludeAnspruchsvoll] = useState(true)
@@ -54,14 +54,14 @@ const BerichtPage = () => {
     if (!student) return []
     return filteredThemen
       .map(thema => {
-        const allLZ = getLernzieleForThema(thema.id)
+        const allLZ = getLernzieleForLernkontrolle(thema.id)
         const visibleLZ = allLZ.filter(lz => {
           if (!includeGrundlegend && lz.kategorie === 'grundlegend') return false
           if (!includeAnspruchsvoll && lz.kategorie === 'anspruchsvoll') return false
           return true
         })
         if (visibleLZ.length === 0) return null
-        const fach = getFachForThema(thema.id)
+        const fach = getFachForLernkontrolle(thema.id)
         return {
           fach: fach?.name ?? '',
           thema: thema.name,
@@ -75,7 +75,7 @@ const BerichtPage = () => {
         }
       })
       .filter((d): d is NonNullable<typeof d> => d !== null)
-  }, [filteredThemen, student, getLernzieleForThema, getFachForThema, kommentare, includeGrundlegend, includeAnspruchsvoll, includeKommentare])
+  }, [filteredThemen, student, getLernzieleForLernkontrolle, getFachForLernkontrolle, kommentare, includeGrundlegend, includeAnspruchsvoll, includeKommentare])
 
   if (!student || !klasse) {
     return (

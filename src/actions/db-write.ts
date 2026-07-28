@@ -4,7 +4,7 @@ import { getDrizzle } from '@/lib/drizzle/client'
 import { upsert } from '@/lib/drizzle/upsert'
 import * as schema from '@/lib/drizzle/schema'
 import { uploadPruefungAnhang, deletePruefungAnhang } from '@/lib/attachments'
-import type { Fach, Thema, Lernziel, Klasse, Schueler, AssessmentKommentar, ThemaKommentar, RilzLernziel, Status, Pruefung, PruefungErgebnis, KlasseBeurteilungSettings, TagKategorie } from '@/types/domain'
+import type { Fach, Lernkontrolle, Lernziel, Klasse, Schueler, AssessmentKommentar, LernkontrolleKommentar, Status, Pruefung, PruefungErgebnis, KlasseBeurteilungSettings } from '@/types/domain'
 
 // ── Klassen ──────────────────────────────────────────────────────────────────
 
@@ -16,11 +16,6 @@ export const dbSaveKlasse = async (klasse: Klasse) => {
     vorgaengerKlasseId: klasse.vorgaengerKlasseId ?? null,
     settings: klasse.beurteilungSettings ? JSON.stringify(klasse.beurteilungSettings) : null,
   })
-
-  await db.delete(schema.bridgeKlasseThemen).where(eq(schema.bridgeKlasseThemen.klasseId, klasse.id))
-  for (const themaId of klasse.assignedThemaIds) {
-    await db.insert(schema.bridgeKlasseThemen).values({ klasseId: klasse.id, themaId })
-  }
 
   await db.delete(schema.bridgeLpZuweisungen).where(eq(schema.bridgeLpZuweisungen.klasseId, klasse.id))
   for (const z of klasse.lpZuweisungen ?? []) {
@@ -49,7 +44,6 @@ export const dbSaveSchueler = async (s: Schueler) => {
     vorname: s.vorname, nachname: s.nachname,
     note: s.note ?? '', bvsa: toInt(s.bvsa ?? false),
     rilzFachIds: JSON.stringify(s.rilzFachIds ?? []),
-    rilzThemaIds: JSON.stringify(s.rilzThemaIds ?? []),
     competencyStatus: JSON.stringify(s.competencyStatus ?? {}),
     lernzielVersuche: JSON.stringify(s.lernzielVersuche ?? {}),
     progressHistory: JSON.stringify(s.progressHistory ?? []),
@@ -81,19 +75,6 @@ export const dbDeleteLernzielStatus = async (schueler_id: string, lernziel_id: s
   )
 }
 
-// ── RILZ Lernziele ────────────────────────────────────────────────────────────
-
-export const dbSaveRilzLernziel = async (schueler_id: string, rlz: RilzLernziel) => {
-  await upsert(schema.factRilzLernziele, {
-    id: rlz.id, schuelerId: schueler_id, themaId: rlz.themaId, label: rlz.label, status: rlz.status,
-  })
-}
-
-export const dbDeleteRilzLernziel = async (id: string) => {
-  const db = getDrizzle()
-  await db.delete(schema.factRilzLernziele).where(eq(schema.factRilzLernziele.id, id))
-}
-
 // ── Kommentare ────────────────────────────────────────────────────────────────
 
 export const dbSaveKommentar = async (k: AssessmentKommentar) => {
@@ -114,20 +95,20 @@ export const dbDeleteKommentar = async (studentId: string, lernzielId: string) =
   )
 }
 
-export const dbSaveThemaKommentar = async (k: ThemaKommentar) => {
+export const dbSaveLernkontrolleKommentar = async (k: LernkontrolleKommentar) => {
   await upsert(
-    schema.factThemaKommentare,
-    { schuelerId: k.studentId, themaId: k.themaId, text: k.text, updatedAt: k.updatedAt },
-    ['schuelerId', 'themaId'],
+    schema.factLernkontrolleKommentare,
+    { schuelerId: k.studentId, lernkontrolleId: k.lernkontrolleId, text: k.text, updatedAt: k.updatedAt },
+    ['schuelerId', 'lernkontrolleId'],
   )
 }
 
-export const dbDeleteThemaKommentar = async (studentId: string, themaId: string) => {
+export const dbDeleteLernkontrolleKommentar = async (studentId: string, lernkontrolleId: string) => {
   const db = getDrizzle()
-  await db.delete(schema.factThemaKommentare).where(
+  await db.delete(schema.factLernkontrolleKommentare).where(
     and(
-      eq(schema.factThemaKommentare.schuelerId, studentId),
-      eq(schema.factThemaKommentare.themaId, themaId),
+      eq(schema.factLernkontrolleKommentare.schuelerId, studentId),
+      eq(schema.factLernkontrolleKommentare.lernkontrolleId, lernkontrolleId),
     ),
   )
 }
@@ -143,52 +124,39 @@ export const dbDeleteFach = async (id: string) => {
   await db.delete(schema.dimFaecher).where(eq(schema.dimFaecher.id, id))
 }
 
-// ── Themen ────────────────────────────────────────────────────────────────────
+// ── Lernkontrollen ────────────────────────────────────────────────────────────
 
-export const dbSaveThema = async (t: Thema) => {
-  await upsert(schema.dimThemen, {
+export const dbSaveLernkontrolle = async (t: Lernkontrolle) => {
+  await upsert(schema.dimLernkontrollen, {
     id: t.id, fachId: t.fachId, name: t.name,
     typ: t.typ ?? 'standard',
-    standardThemaId: t.standardThemaId ?? null,
+    standardLernkontrolleId: t.standardLernkontrolleId ?? null,
     faelligAm: t.faelligAm ?? null,
     stufe: t.stufe ? JSON.stringify(t.stufe) : null,
     zyklus: t.zyklus ? JSON.stringify(t.zyklus) : null,
     autor: t.autor ?? null,
     autorLpId: t.autorLpId ?? null,
-    tags: JSON.stringify(t.tags ?? {}),
   })
 }
 
-// ── Tag-Kategorien ────────────────────────────────────────────────────────────
-
-export const dbSaveTagKategorie = async (kat: TagKategorie) => {
-  await upsert(schema.dimTagKategorien, { id: kat.id, name: kat.name, lpId: kat.lpId ?? null })
-}
-
-export const dbDeleteTagKategorie = async (id: string) => {
+export const dbDeleteLernkontrolle = async (id: string) => {
   const db = getDrizzle()
-  await db.delete(schema.dimTagKategorien).where(eq(schema.dimTagKategorien.id, id))
-}
-
-export const dbDeleteThema = async (id: string) => {
-  const db = getDrizzle()
-  // dim_lernziele.thema_id und fact_rilz_lernziele.thema_id haben KEIN
-  // ON DELETE CASCADE — diese Kinder müssen zuerst weg, sonst verweigert
-  // SQLite das Löschen des Themas (und es taucht nach Refresh wieder auf).
-  await db.delete(schema.factRilzLernziele).where(eq(schema.factRilzLernziele.themaId, id))
-  // RILZ-Themen, die dieses Thema als Standard referenzieren, entkoppeln.
-  await db.update(schema.dimThemen).set({ standardThemaId: null }).where(eq(schema.dimThemen.standardThemaId, id))
+  // dim_lernziele.lernkontrolle_id hat KEIN ON DELETE CASCADE — diese Kinder
+  // müssen zuerst weg, sonst verweigert SQLite das Löschen (und die
+  // Lernkontrolle taucht nach Refresh wieder auf).
+  // RILZ-Lernkontrollen, die diese als Standard referenzieren, entkoppeln.
+  await db.update(schema.dimLernkontrollen).set({ standardLernkontrolleId: null }).where(eq(schema.dimLernkontrollen.standardLernkontrolleId, id))
   // Lernziele löschen — deren fact_lernziel_status/fact_kommentare cascaden via lernziel_id.
-  await db.delete(schema.dimLernziele).where(eq(schema.dimLernziele.themaId, id))
-  // Thema selbst — bridge_klasse_themen & fact_thema_kommentare cascaden via thema_id.
-  await db.delete(schema.dimThemen).where(eq(schema.dimThemen.id, id))
+  await db.delete(schema.dimLernziele).where(eq(schema.dimLernziele.lernkontrolleId, id))
+  // Lernkontrolle selbst — fact_lernkontrolle_kommentare cascaded via lernkontrolle_id.
+  await db.delete(schema.dimLernkontrollen).where(eq(schema.dimLernkontrollen.id, id))
 }
 
 // ── Lernziele ─────────────────────────────────────────────────────────────────
 
 export const dbSaveLernziel = async (l: Lernziel) => {
   await upsert(schema.dimLernziele, {
-    id: l.id, themaId: l.themaId, kategorie: l.kategorie, label: l.label,
+    id: l.id, lernkontrolleId: l.lernkontrolleId, kategorie: l.kategorie, label: l.label,
     kriterien: l.kriterien ? JSON.stringify(l.kriterien) : null,
     stufe: l.stufe ? JSON.stringify(l.stufe) : null,
     beschreibung: l.beschreibung ?? null,

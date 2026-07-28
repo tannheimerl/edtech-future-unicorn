@@ -23,7 +23,7 @@ type Props = {
 }
 
 export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated }: Props) => {
-  const { getClass, faecher, themen, lernziele, createPruefung, getStudentsForClass } = useData()
+  const { faecher, lernkontrollen: themen, lernziele, createPruefung, getStudentsForClass } = useData()
 
   const [step, setStep] = useState(1)
 
@@ -46,15 +46,12 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
   const [anhangEnabled, setAnhangEnabled] = useState(false)
   const [maxPunkte, setMaxPunkte] = useState('')
 
-  const klasse = getClass(klassId)
-  const assignedThemaIds = klasse?.assignedThemaIds ?? []
-
   const availableFaecher = faecher.filter((f) =>
-    themen.some((t) => t.fachId === f.id && assignedThemaIds.includes(t.id) && t.typ !== 'rilz')
+    themen.some((t) => t.fachId === f.id && t.typ !== 'rilz')
   )
 
   const filteredThemen = themen.filter(
-    (t) => t.fachId === fachId && assignedThemaIds.includes(t.id) && (nurRilz ? true : t.typ !== 'rilz')
+    (t) => t.fachId === fachId && (nurRilz ? true : t.typ !== 'rilz')
   )
 
   const rilzSchuelerInFach = fachId
@@ -63,7 +60,7 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
 
   const themenWithLz = filteredThemen
     .filter((t) => selectedThemaIds.has(t.id))
-    .map((t) => ({ thema: t, lernziele: lernziele.filter((l) => l.themaId === t.id) }))
+    .map((t) => ({ thema: t, lernziele: lernziele.filter((l) => l.lernkontrolleId === t.id) }))
     .filter((t) => t.lernziele.length > 0)
 
   useEffect(() => {
@@ -92,7 +89,7 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
   }
 
   const toggleThemaChip = (themaId: string) => {
-    const lzIdsForThema = lernziele.filter((l) => l.themaId === themaId).map((l) => l.id)
+    const lzIdsForThema = lernziele.filter((l) => l.lernkontrolleId === themaId).map((l) => l.id)
     if (selectedThemaIds.has(themaId)) {
       setSelectedThemaIds((prev) => { const n = new Set(prev); n.delete(themaId); return n })
       setSelectedLzIds((prev) => {
@@ -278,7 +275,7 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
 
           {fachId && filteredThemen.length > 0 && (
             <div className="grid gap-1.5">
-              <Label>Thema</Label>
+              <Label>Lernkontrolle</Label>
               <div className="flex flex-wrap gap-2">
                 {filteredThemen.map((t) => (
                   <Button

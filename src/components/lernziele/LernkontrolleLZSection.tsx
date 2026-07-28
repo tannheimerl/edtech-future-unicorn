@@ -2,11 +2,19 @@
 
 import { useData } from "@/contexts/DataContext";
 
-export const ThemaLZSection = ({ themaId }: { themaId: string }) => {
+export const LernkontrolleLZSection = ({
+  lernkontrolleId,
+}: {
+  lernkontrolleId: string;
+}) => {
   const { lernziele } = useData();
-  const themaLZ = lernziele.filter((lz) => lz.themaId === themaId);
-  const grundlegendLZ = themaLZ.filter((lz) => lz.kategorie === "grundlegend");
-  const anspruchsvollLZ = themaLZ.filter(
+  const lernkontrolleLZ = lernziele.filter(
+    (lz) => lz.lernkontrolleId === lernkontrolleId,
+  );
+  const grundlegendLZ = lernkontrolleLZ.filter(
+    (lz) => lz.kategorie === "grundlegend",
+  );
+  const anspruchsvollLZ = lernkontrolleLZ.filter(
     (lz) => lz.kategorie === "anspruchsvoll",
   );
 

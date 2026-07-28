@@ -15,16 +15,16 @@ import { Textarea } from '@/components/ui/textarea'
 export const LernzielBerichtFlow = ({ klassId }: { klassId: string }) => {
   const {
     getClass,
-    getThemenForKlasse,
-    getLernzieleForThema,
+    lernkontrollen,
+    getLernzieleForLernkontrolle,
     getStudentsForClass,
     getKommentar,
-    getThemaKommentar,
+    getLernkontrolleKommentar,
     faecher,
   } = useData()
 
   const klasse = getClass(klassId)!
-  const allThemen = getThemenForKlasse(klassId)
+  const allThemen = lernkontrollen
   const students = getStudentsForClass(klassId)
 
   // Which accordion step is currently open (1–4, or null)
@@ -47,7 +47,7 @@ export const LernzielBerichtFlow = ({ klassId }: { klassId: string }) => {
   const themenForFach = selectedFachId ? allThemen.filter(t => t.fachId === selectedFachId) : []
   const thema = selectedThemaId ? allThemen.find(t => t.id === selectedThemaId) : null
   const fach = selectedFachId ? faecher.find(f => f.id === selectedFachId) : null
-  const allLz = selectedThemaId ? getLernzieleForThema(selectedThemaId) : []
+  const allLz = selectedThemaId ? getLernzieleForLernkontrolle(selectedThemaId) : []
   const activeLz = allLz.filter(lz => !excludedLzIds.has(lz.id))
 
   const targetStudents =
@@ -304,7 +304,7 @@ export const LernzielBerichtFlow = ({ klassId }: { klassId: string }) => {
         >
           <div className="space-y-4">
             {targetStudents.map(s => {
-              const themaKommentar = getThemaKommentar(s.id, selectedThemaId)
+              const themaKommentar = getLernkontrolleKommentar(s.id, selectedThemaId)
               const lzKommentare = activeLz
                 .map(lz => ({ lz, k: getKommentar(s.id, lz.id) }))
                 .filter(({ k }) => !!k)
@@ -359,7 +359,7 @@ export const LernzielBerichtFlow = ({ klassId }: { klassId: string }) => {
             activeLz={activeLz}
             kommentar={reportKommentare[s.id] ?? ''}
             onKommentarChange={(val) => setReportKommentare(prev => ({ ...prev, [s.id]: val }))}
-            themaKommentar={getThemaKommentar(s.id, selectedThemaId!)?.text}
+            themaKommentar={getLernkontrolleKommentar(s.id, selectedThemaId!)?.text}
             inspirationNotes={activeLz
               .map(lz => ({ lz, k: getKommentar(s.id, lz.id) }))
               .filter(({ k }) => !!k)

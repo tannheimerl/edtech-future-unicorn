@@ -5,7 +5,7 @@ import { StatusCell } from '@/components/shared/StatusCell'
 import { PruefungAnhangUpload } from '@/components/pruefungen/PruefungAnhangUpload'
 import { cn, statusAvgPct, scoreColor } from '@/lib/utils'
 import { todayISO } from '@/lib/dates'
-import type { PruefungErgebnis, Schueler, Status, Thema, VersuchSnapshot } from '@/types/domain'
+import type { PruefungErgebnis, Schueler, Status, Lernkontrolle, VersuchSnapshot } from '@/types/domain'
 
 // Eine Schüler-Zeile des Prüfungs-Grids: Status-Zellen, Punkte/Note/Kommentar
 // (debounced Autosave) und Versuchs-Verwaltung.
@@ -50,7 +50,7 @@ type StudentRowProps = {
   student: Schueler
   pruefungId: string
   maxPunkte?: number
-  lzGroups: { thema: Thema; grundlegend: { id: string; label: string }[]; anspruchsvoll: { id: string; label: string }[] }[]
+  lzGroups: { thema: Lernkontrolle; grundlegend: { id: string; label: string }[]; anspruchsvoll: { id: string; label: string }[] }[]
   allLzIds: string[]
   ergebnis: PruefungErgebnis | undefined
   settings: AssessmentSettings

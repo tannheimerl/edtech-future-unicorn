@@ -1,52 +1,43 @@
 import { useCallback } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type {
-  Fach, Klasse, LezioExport, LezioExportLernziel, Lernziel, LernzielKategorie, Thema,
+  Fach, LezioExport, LezioExportLernziel, Lernkontrolle, Lernziel, LernzielKategorie,
 } from '@/types/domain'
 import {
   dbSaveFach, dbDeleteFach,
-  dbSaveThema, dbDeleteThema,
+  dbSaveLernkontrolle, dbDeleteLernkontrolle,
   dbSaveLernziel, dbDeleteLernziel,
 } from '@/actions/db-write'
 import { notifyDbError } from '@/lib/toast'
 import { findExactFachMatch } from '@/lib/fachMatch'
 import { parseLezio } from '@/lib/lezioImport'
 
-export function useFaecherThemenLernzielActions(
+export function useFaecherLernkontrollenLernzielActions(
   faecher: Fach[],
   setFaecher: Dispatch<SetStateAction<Fach[]>>,
-  themen: Thema[],
-  setThemen: Dispatch<SetStateAction<Thema[]>>,
+  lernkontrollen: Lernkontrolle[],
+  setLernkontrollen: Dispatch<SetStateAction<Lernkontrolle[]>>,
   lernziele: Lernziel[],
   setLernziele: Dispatch<SetStateAction<Lernziel[]>>,
-  setClasses: Dispatch<SetStateAction<Klasse[]>>,
   reloadData: () => Promise<void>,
 ) {
-  const getThemenForKlasse = useCallback(
-    (classes: Klasse[], klassId: string) => {
-      const klasse = classes.find((c) => c.id === klassId)
-      if (!klasse) return []
-      return themen.filter((t) => klasse.assignedThemaIds.includes(t.id))
-    },
-    [themen]
-  )
-  const getLernzieleForThema = useCallback(
-    (themaId: string) =>
+  const getLernzieleForLernkontrolle = useCallback(
+    (lernkontrolleId: string) =>
       lernziele
-        .filter((l) => l.themaId === themaId)
+        .filter((l) => l.lernkontrolleId === lernkontrolleId)
         .sort((a, b) => {
           if (a.kategorie === b.kategorie) return 0
           return a.kategorie === 'grundlegend' ? -1 : 1
         }),
     [lernziele]
   )
-  const getFachForThema = useCallback(
-    (themaId: string) => {
-      const thema = themen.find((t) => t.id === themaId)
-      if (!thema) return undefined
-      return faecher.find((f) => f.id === thema.fachId)
+  const getFachForLernkontrolle = useCallback(
+    (lernkontrolleId: string) => {
+      const lernkontrolle = lernkontrollen.find((t) => t.id === lernkontrolleId)
+      if (!lernkontrolle) return undefined
+      return faecher.find((f) => f.id === lernkontrolle.fachId)
     },
-    [themen, faecher]
+    [lernkontrollen, faecher]
   )
 
   const createFach = useCallback((name: string): string => {
@@ -76,55 +67,47 @@ export function useFaecherThemenLernzielActions(
   }, [setFaecher])
 
   const deleteFach = useCallback((id: string) => {
-    const themenToDelete = new Set<string>()
-    setThemen((prev) => {
+    const lernkontrollenToDelete = new Set<string>()
+    setLernkontrollen((prev) => {
       const remaining = prev.filter((t) => {
-        if (t.fachId === id) { themenToDelete.add(t.id); return false }
+        if (t.fachId === id) { lernkontrollenToDelete.add(t.id); return false }
         return true
       })
       return remaining
     })
-    setLernziele((prev) => prev.filter((l) => !themenToDelete.has(l.themaId)))
-    setClasses((prev) =>
-      prev.map((c) => ({
-        ...c, assignedThemaIds: c.assignedThemaIds.filter((tid) => !themenToDelete.has(tid)),
-      }))
-    )
+    setLernziele((prev) => prev.filter((l) => !lernkontrollenToDelete.has(l.lernkontrolleId)))
     setFaecher((prev) => prev.filter((f) => f.id !== id))
-    dbDeleteFach(id).catch(notifyDbError) // cascade in DB handles themen + lernziele
-  }, [setThemen, setLernziele, setClasses, setFaecher])
+    dbDeleteFach(id).catch(notifyDbError) // cascade in DB handles lernkontrollen + lernziele
+  }, [setLernkontrollen, setLernziele, setFaecher])
 
-  const createThema = useCallback((fachId: string, name: string, typ?: 'standard' | 'rilz', standardThemaId?: string): string => {
+  const createLernkontrolle = useCallback((fachId: string, name: string, typ?: 'standard' | 'rilz', standardLernkontrolleId?: string): string => {
     const id = crypto.randomUUID()
-    const newThema: Thema = { id, fachId, name, typ: typ ?? 'standard', standardThemaId }
-    setThemen((prev) => [...prev, newThema])
-    dbSaveThema(newThema).catch(notifyDbError)
+    const newLernkontrolle: Lernkontrolle = { id, fachId, name, typ: typ ?? 'standard', standardLernkontrolleId }
+    setLernkontrollen((prev) => [...prev, newLernkontrolle])
+    dbSaveLernkontrolle(newLernkontrolle).catch(notifyDbError)
     return id
-  }, [setThemen])
+  }, [setLernkontrollen])
 
-  const updateThema = useCallback((id: string, patch: Partial<Pick<Thema, 'name' | 'fachId' | 'faelligAm' | 'typ' | 'standardThemaId' | 'stufe' | 'tags'>>) => {
-    setThemen((prev) => prev.map((t) => {
+  const updateLernkontrolle = useCallback((id: string, patch: Partial<Pick<Lernkontrolle, 'name' | 'fachId' | 'faelligAm' | 'typ' | 'standardLernkontrolleId' | 'stufe'>>) => {
+    setLernkontrollen((prev) => prev.map((t) => {
       if (t.id !== id) return t
       const updated = { ...t, ...patch }
-      dbSaveThema(updated).catch(notifyDbError)
+      dbSaveLernkontrolle(updated).catch(notifyDbError)
       return updated
     }))
-  }, [setThemen])
+  }, [setLernkontrollen])
 
-  const deleteThema = useCallback((id: string) => {
-    setLernziele((prev) => prev.filter((l) => l.themaId !== id))
-    setClasses((prev) =>
-      prev.map((c) => ({ ...c, assignedThemaIds: c.assignedThemaIds.filter((tid) => tid !== id) }))
-    )
-    setThemen((prev) => prev.filter((t) => t.id !== id))
-    dbDeleteThema(id).catch(() => {
+  const deleteLernkontrolle = useCallback((id: string) => {
+    setLernziele((prev) => prev.filter((l) => l.lernkontrolleId !== id))
+    setLernkontrollen((prev) => prev.filter((t) => t.id !== id))
+    dbDeleteLernkontrolle(id).catch(() => {
       notifyDbError()
       reloadData() // optimistic removal war falsch → DB-Wahrheit wiederherstellen
     })
-  }, [setLernziele, setClasses, setThemen, reloadData])
+  }, [setLernziele, setLernkontrollen, reloadData])
 
-  const createLernziel = useCallback((themaId: string, label: string, kategorie: LernzielKategorie) => {
-    const newLZ: Lernziel = { id: crypto.randomUUID(), themaId, kategorie, label }
+  const createLernziel = useCallback((lernkontrolleId: string, label: string, kategorie: LernzielKategorie) => {
+    const newLZ: Lernziel = { id: crypto.randomUUID(), lernkontrolleId, kategorie, label }
     setLernziele((prev) => [...prev, newLZ])
     dbSaveLernziel(newLZ).catch(notifyDbError)
   }, [setLernziele])
@@ -143,13 +126,13 @@ export function useFaecherThemenLernzielActions(
     dbDeleteLernziel(id).catch(notifyDbError)
   }, [setLernziele])
 
-  const exportThema = useCallback((themaId: string): void => {
-    const thema = themen.find((t) => t.id === themaId)
-    if (!thema) return
-    const fach = faecher.find((f) => f.id === thema.fachId)
+  const exportLernkontrolle = useCallback((lernkontrolleId: string): void => {
+    const lernkontrolle = lernkontrollen.find((t) => t.id === lernkontrolleId)
+    if (!lernkontrolle) return
+    const fach = faecher.find((f) => f.id === lernkontrolle.fachId)
     if (!fach) return
     const exportLZ: LezioExportLernziel[] = lernziele
-      .filter((l) => l.themaId === themaId)
+      .filter((l) => l.lernkontrolleId === lernkontrolleId)
       .map(({ kategorie, label, kriterien, beschreibung }) => ({
         kategorie, label,
         ...(kriterien ? { kriterien } : {}),
@@ -157,27 +140,27 @@ export function useFaecherThemenLernzielActions(
       }))
     const payload: LezioExport = {
       version: '1', exportedAt: new Date().toISOString(), fachName: fach.name,
-      thema: { name: thema.name, ...(thema.typ ? { typ: thema.typ } : {}), ...(thema.stufe ? { stufe: thema.stufe } : {}) },
+      lernkontrolle: { name: lernkontrolle.name, ...(lernkontrolle.typ ? { typ: lernkontrolle.typ } : {}), ...(lernkontrolle.stufe ? { stufe: lernkontrolle.stufe } : {}) },
       lernziele: exportLZ,
     }
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${thema.name}.lezio`
+    a.download = `${lernkontrolle.name}.lezio`
     a.click()
     URL.revokeObjectURL(url)
-  }, [themen, faecher, lernziele])
+  }, [lernkontrollen, faecher, lernziele])
 
   const exportFach = useCallback(async (fachId: string): Promise<void> => {
     const fach = faecher.find((f) => f.id === fachId)
     if (!fach) return
     const JSZip = (await import('jszip')).default
     const zip = new JSZip()
-    const fachThemen = themen.filter((t) => t.fachId === fachId)
-    for (const thema of fachThemen) {
+    const fachLernkontrollen = lernkontrollen.filter((t) => t.fachId === fachId)
+    for (const lernkontrolle of fachLernkontrollen) {
       const exportLZ: LezioExportLernziel[] = lernziele
-        .filter((l) => l.themaId === thema.id)
+        .filter((l) => l.lernkontrolleId === lernkontrolle.id)
         .map(({ kategorie, label, kriterien, beschreibung }) => ({
           kategorie, label,
           ...(kriterien ? { kriterien } : {}),
@@ -185,10 +168,10 @@ export function useFaecherThemenLernzielActions(
         }))
       const payload: LezioExport = {
         version: '1', exportedAt: new Date().toISOString(), fachName: fach.name,
-        thema: { name: thema.name, ...(thema.typ ? { typ: thema.typ } : {}), ...(thema.stufe ? { stufe: thema.stufe } : {}) },
+        lernkontrolle: { name: lernkontrolle.name, ...(lernkontrolle.typ ? { typ: lernkontrolle.typ } : {}), ...(lernkontrolle.stufe ? { stufe: lernkontrolle.stufe } : {}) },
         lernziele: exportLZ,
       }
-      zip.file(`${thema.name}.lezio`, JSON.stringify(payload, null, 2))
+      zip.file(`${lernkontrolle.name}.lezio`, JSON.stringify(payload, null, 2))
     }
     const blob = await zip.generateAsync({ type: 'blob' })
     const url = URL.createObjectURL(blob)
@@ -197,34 +180,33 @@ export function useFaecherThemenLernzielActions(
     a.download = `${fach.name}.zip`
     a.click()
     URL.revokeObjectURL(url)
-  }, [themen, faecher, lernziele])
+  }, [lernkontrollen, faecher, lernziele])
 
-  // Legt aus bereits geparsten Importdaten ein Thema + Lernziele unter dem aufgelösten Fach an.
+  // Legt aus bereits geparsten Importdaten eine Lernkontrolle + Lernziele unter dem aufgelösten Fach an.
   // Kein Matching – die fachId muss vom Aufrufer aufgelöst sein (Einzel- und Batch-Import).
-  // Gibt die ID des neu angelegten Themas zurück (z. B. um es direkt einer Klasse zuzuweisen).
-  const importThemaData = useCallback((data: LezioExport, fachId: string): string => {
-    const themaId = crypto.randomUUID()
-    const newThema: Thema = {
-      id: themaId, fachId, name: data.thema.name,
-      typ: data.thema.typ ?? 'standard',
-      ...(data.thema.stufe ? { stufe: data.thema.stufe } : {}),
+  const importLernkontrolleData = useCallback((data: LezioExport, fachId: string): string => {
+    const lernkontrolleId = crypto.randomUUID()
+    const newLernkontrolle: Lernkontrolle = {
+      id: lernkontrolleId, fachId, name: data.lernkontrolle.name,
+      typ: data.lernkontrolle.typ ?? 'standard',
+      ...(data.lernkontrolle.stufe ? { stufe: data.lernkontrolle.stufe } : {}),
     }
-    setThemen((prev) => [...prev, newThema])
-    dbSaveThema(newThema).catch(notifyDbError)
+    setLernkontrollen((prev) => [...prev, newLernkontrolle])
+    dbSaveLernkontrolle(newLernkontrolle).catch(notifyDbError)
 
     if (Array.isArray(data.lernziele) && data.lernziele.length > 0) {
       const newLZ: Lernziel[] = data.lernziele.map((lz) => ({
-        id: crypto.randomUUID(), themaId, kategorie: lz.kategorie, label: lz.label,
+        id: crypto.randomUUID(), lernkontrolleId, kategorie: lz.kategorie, label: lz.label,
         ...(lz.kriterien ? { kriterien: lz.kriterien } : {}),
         ...(lz.beschreibung ? { beschreibung: lz.beschreibung } : {}),
       }))
       setLernziele((prev) => [...prev, ...newLZ])
       for (const lz of newLZ) dbSaveLernziel(lz).catch(notifyDbError)
     }
-    return themaId
-  }, [setThemen, setLernziele])
+    return lernkontrolleId
+  }, [setLernkontrollen, setLernziele])
 
-  const importThema = useCallback(async (file: File, targetFachId?: string): Promise<void> => {
+  const importLernkontrolle = useCallback(async (file: File, targetFachId?: string): Promise<void> => {
     const data = parseLezio(await file.text())
 
     let fachId: string
@@ -235,26 +217,25 @@ export function useFaecherThemenLernzielActions(
       if (!existingFach) throw new Error('FACH_NOT_FOUND')
       fachId = existingFach.id
     }
-    importThemaData(data, fachId)
-  }, [faecher, importThemaData])
+    importLernkontrolleData(data, fachId)
+  }, [faecher, importLernkontrolleData])
 
   return {
-    getThemenForKlasse,
-    getLernzieleForThema,
-    getFachForThema,
+    getLernzieleForLernkontrolle,
+    getFachForLernkontrolle,
     createFach,
     updateFach,
     updateFachColor,
     deleteFach,
-    createThema,
-    updateThema,
-    deleteThema,
+    createLernkontrolle,
+    updateLernkontrolle,
+    deleteLernkontrolle,
     createLernziel,
     updateLernziel,
     deleteLernziel,
-    exportThema,
+    exportLernkontrolle,
     exportFach,
-    importThema,
-    importThemaData,
+    importLernkontrolle,
+    importLernkontrolleData,
   }
 }

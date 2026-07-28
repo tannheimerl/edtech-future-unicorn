@@ -21,24 +21,23 @@ export const dimLehrpersonen = sqliteTable('dim_lehrpersonen', {
   createdAt: createdAt(),
 })
 
-export const dimThemen = sqliteTable('dim_themen', {
+export const dimLernkontrollen = sqliteTable('dim_lernkontrollen', {
   id: text('id').primaryKey(),
   fachId: text('fach_id').notNull().references(() => dimFaecher.id),
   name: text('name').notNull(),
   typ: text('typ').$type<'standard' | 'rilz'>().default('standard'),
-  standardThemaId: text('standard_thema_id'),
+  standardLernkontrolleId: text('standard_lernkontrolle_id'),
   faelligAm: text('faellig_am'),
   stufe: text('stufe'),
   zyklus: text('zyklus'),
   autor: text('autor'),
   autorLpId: text('autor_lp_id').references(() => dimLehrpersonen.id),
-  tags: text('tags').notNull().default('{}'),
   createdAt: createdAt(),
 })
 
 export const dimLernziele = sqliteTable('dim_lernziele', {
   id: text('id').primaryKey(),
-  themaId: text('thema_id').notNull().references(() => dimThemen.id),
+  lernkontrolleId: text('lernkontrolle_id').notNull().references(() => dimLernkontrollen.id),
   kategorie: text('kategorie').$type<'grundlegend' | 'anspruchsvoll'>().notNull(),
   label: text('label').notNull(),
   kriterien: text('kriterien'),
@@ -55,13 +54,6 @@ export const dimKlassen = sqliteTable('dim_klassen', {
   settings: text('settings'),
   createdAt: createdAt(),
 })
-
-export const bridgeKlasseThemen = sqliteTable('bridge_klasse_themen', {
-  klasseId: text('klasse_id').notNull().references(() => dimKlassen.id),
-  themaId: text('thema_id').notNull().references(() => dimThemen.id).unique(),
-}, (t) => [
-  primaryKey({ columns: [t.klasseId, t.themaId] }),
-])
 
 export const bridgeLpZuweisungen = sqliteTable('bridge_lp_zuweisungen', {
   id: text('id').primaryKey(),
@@ -81,18 +73,9 @@ export const dimSchueler = sqliteTable('dim_schueler', {
   note: text('note').default(''),
   bvsa: integer('bvsa').default(0),
   rilzFachIds: text('rilz_fach_ids').default('[]'),
-  rilzThemaIds: text('rilz_thema_ids').default('[]'),
   competencyStatus: text('competency_status').default('{}'),
   lernzielVersuche: text('lernziel_versuche').default('{}'),
   progressHistory: text('progress_history').default('[]'),
-  createdAt: createdAt(),
-})
-
-export const dimTagKategorien = sqliteTable('dim_tag_kategorien', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  lpId: text('lp_id').references(() => dimLehrpersonen.id),
-  position: integer('position').notNull().default(0),
   createdAt: createdAt(),
 })
 
@@ -105,15 +88,6 @@ export const factLernzielStatus = sqliteTable('fact_lernziel_status', {
   primaryKey({ columns: [t.schuelerId, t.lernzielId] }),
 ])
 
-export const factRilzLernziele = sqliteTable('fact_rilz_lernziele', {
-  id: text('id').primaryKey(),
-  schuelerId: text('schueler_id').notNull().references(() => dimSchueler.id),
-  themaId: text('thema_id').notNull().references(() => dimThemen.id),
-  label: text('label').notNull(),
-  status: text('status').$type<'not_reached' | 'partially_reached' | 'reached'>().notNull().default('not_reached'),
-  createdAt: createdAt(),
-})
-
 export const factKommentare = sqliteTable('fact_kommentare', {
   schuelerId: text('schueler_id').notNull().references(() => dimSchueler.id),
   lernzielId: text('lernziel_id').notNull().references(() => dimLernziele.id),
@@ -123,13 +97,13 @@ export const factKommentare = sqliteTable('fact_kommentare', {
   primaryKey({ columns: [t.schuelerId, t.lernzielId] }),
 ])
 
-export const factThemaKommentare = sqliteTable('fact_thema_kommentare', {
+export const factLernkontrolleKommentare = sqliteTable('fact_lernkontrolle_kommentare', {
   schuelerId: text('schueler_id').notNull().references(() => dimSchueler.id),
-  themaId: text('thema_id').notNull().references(() => dimThemen.id),
+  lernkontrolleId: text('lernkontrolle_id').notNull().references(() => dimLernkontrollen.id),
   text: text('text').notNull(),
   updatedAt: text('updated_at').notNull(),
 }, (t) => [
-  primaryKey({ columns: [t.schuelerId, t.themaId] }),
+  primaryKey({ columns: [t.schuelerId, t.lernkontrolleId] }),
 ])
 
 export const factPruefungen = sqliteTable('fact_pruefungen', {

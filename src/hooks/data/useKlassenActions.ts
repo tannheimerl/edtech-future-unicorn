@@ -16,7 +16,7 @@ export function useKlassenActions(
 
   const createClass = useCallback((name: string): string => {
     const id = crypto.randomUUID()
-    const newKlasse: Klasse = { id, name, assignedThemaIds: [] }
+    const newKlasse: Klasse = { id, name }
     setClasses((prev) => [...prev, newKlasse])
     dbSaveKlasse(newKlasse).catch(notifyDbError)
     return id
@@ -42,32 +42,6 @@ export function useKlassenActions(
       c.id === klassId ? { ...c, beurteilungSettings: settings } : c
     ))
     dbSaveBeurteilungSettings(klassId, settings).catch(notifyDbError)
-  }, [setClasses])
-
-  const assignThemaToKlasse = useCallback((klassId: string, themaId: string) => {
-    setClasses((prev) => {
-      const alreadyElsewhere = prev.some(
-        (c) => c.id !== klassId && c.assignedThemaIds.includes(themaId)
-      )
-      if (alreadyElsewhere) return prev
-      return prev.map((c) => {
-        if (c.id !== klassId || c.assignedThemaIds.includes(themaId)) return c
-        const updated = { ...c, assignedThemaIds: [...c.assignedThemaIds, themaId] }
-        dbSaveKlasse(updated).catch(notifyDbError)
-        return updated
-      })
-    })
-  }, [setClasses])
-
-  const removeThemaFromKlasse = useCallback((klassId: string, themaId: string) => {
-    setClasses((prev) =>
-      prev.map((c) => {
-        if (c.id !== klassId) return c
-        const updated = { ...c, assignedThemaIds: c.assignedThemaIds.filter((id) => id !== themaId) }
-        dbSaveKlasse(updated).catch(notifyDbError)
-        return updated
-      })
-    )
   }, [setClasses])
 
   const createFolgeklasse = useCallback(
@@ -106,8 +80,6 @@ export function useKlassenActions(
     updateClass,
     deleteClass,
     updateBeurteilungSettings,
-    assignThemaToKlasse,
-    removeThemaFromKlasse,
     createFolgeklasse,
   }
 }

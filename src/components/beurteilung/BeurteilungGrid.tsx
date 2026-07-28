@@ -16,7 +16,7 @@ type Props = {
 
 export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
   const {
-    pruefungen, getPruefungErgebnisse, getStudentsForClass, lernziele, themen,
+    pruefungen, getPruefungErgebnisse, getStudentsForClass, lernziele, lernkontrollen,
     faecher, updateLernzielStatus, upsertPruefungErgebnis, uploadAnhang, deleteAnhang, updatePruefung,
   } = useData()
 
@@ -43,17 +43,17 @@ export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
   // Build LZ groups from pruefung.lernzielIds → grouped by Thema → split G/A
   const lzGroups = (() => {
     if (!pruefung) return []
-    // collect unique thema ids in order
+    // collect unique lernkontrolle ids in order
     const themaOrder: string[] = []
     for (const lzId of pruefung.lernzielIds) {
       const lz = lernziele.find(l => l.id === lzId)
-      if (lz && !themaOrder.includes(lz.themaId)) themaOrder.push(lz.themaId)
+      if (lz && !themaOrder.includes(lz.lernkontrolleId)) themaOrder.push(lz.lernkontrolleId)
     }
     return themaOrder.map(themaId => {
-      const thema = themen.find(t => t.id === themaId)!
+      const thema = lernkontrollen.find(t => t.id === themaId)!
       const lzsForThema = pruefung.lernzielIds
         .map(id => lernziele.find(l => l.id === id))
-        .filter((l): l is NonNullable<typeof l> => l != null && l.themaId === themaId)
+        .filter((l): l is NonNullable<typeof l> => l != null && l.lernkontrolleId === themaId)
       return {
         thema,
         grundlegend: lzsForThema.filter(l => l.kategorie === 'grundlegend'),

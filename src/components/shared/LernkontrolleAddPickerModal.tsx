@@ -11,16 +11,16 @@ type Props = {
   onNeuErstellen: () => void
 }
 
-export const ThemaAddPickerModal = ({ open, onOpenChange, fachName, onImportieren, onNeuErstellen }: Props) => {
+export const LernkontrolleAddPickerModal = ({ open, onOpenChange, fachName, onImportieren, onNeuErstellen }: Props) => {
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title="Thema hinzufügen" size="xs">
+    <Modal open={open} onOpenChange={onOpenChange} title="Lernkontrolle hinzufügen" size="xs">
       <div className="grid gap-2 pt-1 pb-2">
         {fachName && (
           <p className="text-xs text-muted-foreground pb-1">Für Fach: {fachName}</p>
         )}
         {([
           { iconName: 'upload', label: 'Importieren', desc: '.lezio-Datei importieren', action: onImportieren },
-          { iconName: 'add',    label: 'Neu erstellen', desc: 'Eigenes Thema mit Lernzielen', action: onNeuErstellen },
+          { iconName: 'add',    label: 'Neu erstellen', desc: 'Eigene Lernkontrolle mit Lernzielen', action: onNeuErstellen },
         ] as const).map(({ iconName, label, desc, action }) => (
           <button
             key={label}

@@ -17,7 +17,7 @@ export type LezioImportState = ReturnType<typeof useLezioImport>
  * einer Klasse zuzuweisen). Rendering übernimmt `<LezioImportModal imp={…}>`.
  */
 export const useLezioImport = ({ onImported }: { onImported?: (themaId: string) => void } = {}) => {
-  const { faecher, createFach, importThemaData } = useData()
+  const { faecher, createFach, importLernkontrolleData } = useData()
 
   const [importItems, setImportItems] = useState<{ source: string; data: LezioExport }[]>([])
   const [distinctFaecher, setDistinctFaecher] = useState<{ name: string; count: number }[]>([])
@@ -95,7 +95,7 @@ export const useLezioImport = ({ onImported }: { onImported?: (themaId: string) 
     for (const { data } of importItems) {
       const fachId = fachByKey[normalizeFachName(data.fachName)]
       if (!fachId) continue
-      const themaId = importThemaData(data, fachId)
+      const themaId = importLernkontrolleData(data, fachId)
       onImported?.(themaId)
     }
     const count = importItems.length

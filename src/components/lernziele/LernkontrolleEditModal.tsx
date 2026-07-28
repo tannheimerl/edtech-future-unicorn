@@ -6,90 +6,58 @@ import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { InputModal } from "@/components/shared/InputModal";
 import { Modal } from "@/components/shared/Modal";
 import { ModalRow } from "@/components/shared/ModalRow";
 import { ModalOptionList } from "@/components/shared/ModalOptionList";
 import { LernzielEditSection } from "@/components/shared/LernzielEditSection";
 
-export const ThemaEditModal = ({
-  themaId,
+export const LernkontrolleEditModal = ({
+  lernkontrolleId,
   onClose,
   onRequestDelete,
 }: {
-  themaId: string;
+  lernkontrolleId: string;
   onClose: () => void;
   onRequestDelete: () => void;
 }) => {
-  const {
-    themen,
-    faecher,
-    updateThema,
-    exportThema,
-    tagKategorien,
-    deleteTagKategorie,
-    getTagWerte,
-    createTagKategorie,
-  } = useData();
-  const thema = themen.find((t) => t.id === themaId);
+  const { lernkontrollen, faecher, updateLernkontrolle, exportLernkontrolle } =
+    useData();
+  const lernkontrolle = lernkontrollen.find((t) => t.id === lernkontrolleId);
 
   // Step
   const [editStep, setEditStep] = useState<"meta" | "lernziele">("meta");
 
   // Meta state
-  const [localName, setLocalName] = useState(thema?.name ?? "");
-  const [localFachId, setLocalFachId] = useState(thema?.fachId ?? "");
+  const [localName, setLocalName] = useState(lernkontrolle?.name ?? "");
+  const [faelligAm, setFaelligAm] = useState(lernkontrolle?.faelligAm ?? "");
+  const [localFachId, setLocalFachId] = useState(lernkontrolle?.fachId ?? "");
   const [localTyp, setLocalTyp] = useState<"standard" | "rilz">(
-    thema?.typ ?? "standard",
+    lernkontrolle?.typ ?? "standard",
   );
-  const [stufe, setStufe] = useState<number | undefined>(thema?.stufe?.[0]);
-  const [localTagValues, setLocalTagValues] = useState<Record<string, string>>(
-    () =>
-      Object.fromEntries(
-        Object.entries(thema?.tags ?? {}).map(([k, v]) => [
-          k,
-          Array.isArray(v) ? (v[0] ?? "") : "",
-        ]),
-      ),
-  );
+  const [stufe, setStufe] = useState<number | undefined>(lernkontrolle?.stufe?.[0]);
   const [openRowId, setOpenRowId] = useState<string | null>(null);
-  const [deleteKatId, setDeleteKatId] = useState<string | null>(null);
-  const [addValueKatId, setAddValueKatId] = useState<string | null>(null);
-  const [newKatOpen, setNewKatOpen] = useState(false);
 
   useEffect(() => {
-    if (!thema) return;
-    setLocalName(thema.name);
-    setLocalFachId(thema.fachId);
-    setLocalTyp(thema.typ ?? "standard");
-    setStufe(thema.stufe?.[0]);
-    setLocalTagValues(
-      Object.fromEntries(
-        Object.entries(thema.tags ?? {}).map(([k, v]) => [
-          k,
-          Array.isArray(v) ? (v[0] ?? "") : "",
-        ]),
-      ),
-    );
+    if (!lernkontrolle) return;
+    setLocalName(lernkontrolle.name);
+    setFaelligAm(lernkontrolle.faelligAm ?? "");
+    setLocalFachId(lernkontrolle.fachId);
+    setLocalTyp(lernkontrolle.typ ?? "standard");
+    setStufe(lernkontrolle.stufe?.[0]);
     setOpenRowId(null);
     setEditStep("meta");
-  }, [themaId]);
+  }, [lernkontrolleId]);
 
-  if (!thema) return null;
+  if (!lernkontrolle) return null;
 
   const save = () => {
     if (!localName.trim()) return;
-    updateThema(themaId, {
+    updateLernkontrolle(lernkontrolleId, {
       name: localName.trim(),
       fachId: localFachId,
       typ: localTyp,
       stufe: stufe ? [stufe] : undefined,
-      tags: Object.fromEntries(
-        Object.entries(localTagValues)
-          .filter(([, v]) => v.trim())
-          .map(([k, v]) => [k, [v]]),
-      ),
+      faelligAm: faelligAm || undefined,
     });
     onClose();
   };
@@ -98,22 +66,13 @@ export const ThemaEditModal = ({
     setOpenRowId(isOpen ? id : null);
   };
 
-  const setTagValue = (katId: string, value: string) => {
-    setLocalTagValues((prev) => ({
-      ...prev,
-      [katId]: prev[katId] === value ? "" : value,
-    }));
-    setOpenRowId(null);
-  };
-
   return (
-    <>
       <Modal
         open
         onOpenChange={(v) => {
           if (!v) onClose();
         }}
-        title={thema.name}
+        title={lernkontrolle.name}
         size="md"
         footer={
           editStep === "meta" ? (
@@ -128,7 +87,7 @@ export const ThemaEditModal = ({
               <div className="flex items-center gap-2">
                 <Button
                   variant="secondary"
-                  onClick={() => exportThema(themaId)}
+                  onClick={() => exportLernkontrolle(lernkontrolleId)}
                   aria-label="Exportieren"
                   className="text-muted-foreground"
                 >
@@ -178,8 +137,28 @@ export const ThemaEditModal = ({
               <Input
                 value={localName}
                 onChange={(e) => setLocalName(e.target.value)}
-                placeholder="Themabezeichnung"
+                placeholder="Bezeichnung der Lernkontrolle"
               />
+            </div>
+
+            {/* Fällig am */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                Fällig am <span className="font-normal">(opt.)</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  type="date"
+                  value={faelligAm}
+                  onChange={(e) => setFaelligAm(e.target.value)}
+                  className="pr-8 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                />
+                <Icon
+                  name="calendar_today"
+                  size={14}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                />
+              </div>
             </div>
 
             {/* Dropdown rows */}
@@ -244,104 +223,14 @@ export const ThemaEditModal = ({
                   clearLabel="Keine Auswahl"
                 />
               </ModalRow>
-
-              {/* Tag categories — one row each, list with add-value dialog */}
-              {tagKategorien.map((kat) => {
-                const currentVal = localTagValues[kat.id] ?? "";
-                const allVals = getTagWerte(kat.id);
-
-                return (
-                  <ModalRow
-                    key={kat.id}
-                    label={kat.name}
-                    displayValue={currentVal || undefined}
-                    open={openRowId === kat.id}
-                    onOpenChange={(v) => openRow(kat.id, v)}
-                  >
-                    <ModalOptionList
-                      options={allVals.map((v) => ({ value: v, label: v }))}
-                      current={currentVal}
-                      onSelect={(v) => setTagValue(kat.id, v)}
-                      clearLabel="Auswahl aufheben"
-                    />
-                    <div className="border-t border-border/40 mt-0.5 pt-0.5">
-                      <button
-                        onClick={() => setAddValueKatId(kat.id)}
-                        className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs text-primary hover:bg-primary/5 transition-colors"
-                      >
-                        <Icon name="add" size={12} className="shrink-0" />
-                        Wert hinzufügen
-                      </button>
-                      <button
-                        onClick={() => {
-                          setDeleteKatId(kat.id);
-                          setOpenRowId(null);
-                        }}
-                        className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
-                      >
-                        <Icon name="delete" size={12} className="shrink-0" />
-                        Kategorie löschen
-                      </button>
-                    </div>
-                  </ModalRow>
-                );
-              })}
-
-              {/* Add category */}
-              <button
-                onClick={() => setNewKatOpen(true)}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-3 py-1.5 w-full"
-              >
-                <Icon name="add" size={12} />
-                Kategorie hinzufügen
-              </button>
             </div>
           </div>
         )}
 
         {/* Step 2: Lernziele */}
-        {editStep === "lernziele" && <LernzielEditSection themaId={themaId} />}
-
-        <ConfirmDialog
-          open={!!deleteKatId}
-          onOpenChange={(o) => {
-            if (!o) setDeleteKatId(null);
-          }}
-          title="Kategorie löschen"
-          description="Soll diese Tag-Kategorie wirklich gelöscht werden? Alle zugewiesenen Werte in den Themen bleiben erhalten, sind aber nicht mehr filterbar."
-          confirmLabel="Löschen"
-          onConfirm={() => {
-            if (deleteKatId) {
-              deleteTagKategorie(deleteKatId);
-              setDeleteKatId(null);
-            }
-          }}
-        />
+        {editStep === "lernziele" && (
+          <LernzielEditSection lernkontrolleId={lernkontrolleId} />
+        )}
       </Modal>
-
-      <InputModal
-        open={newKatOpen}
-        onOpenChange={setNewKatOpen}
-        title="Neue Tag-Kategorie"
-        label="Bezeichnung"
-        placeholder="z. B. Semester, Lerngruppe …"
-        onSubmit={(name) => {
-          createTagKategorie(name);
-        }}
-      />
-
-      <InputModal
-        open={!!addValueKatId}
-        onOpenChange={(o) => {
-          if (!o) setAddValueKatId(null);
-        }}
-        title="Wert hinzufügen"
-        label="Wert"
-        placeholder="z. B. 1"
-        onSubmit={(v) => {
-          if (addValueKatId) setTagValue(addValueKatId, v);
-        }}
-      />
-    </>
   );
 };

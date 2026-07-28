@@ -41,18 +41,18 @@ const SchuelerDetailPage = () => {
   const {
     getClass,
     getStudent,
-    getThemenForKlasse,
-    getLernzieleForThema,
+    lernkontrollen,
+    getLernzieleForLernkontrolle,
     faecher,
     lernziele,
     kommentare,
     getVersuche,
-    getFachForThema,
+    getFachForLernkontrolle,
   } = useData()
 
   const klasse = getClass(klassId)
   const student = getStudent(studentId)
-  const assignedThemen = getThemenForKlasse(klassId)
+  const assignedThemen = lernkontrollen
 
   const [lzKatFilter, setLzKatFilter] = useState<'all' | 'grundlegend' | 'anspruchsvoll'>('all')
   const [selectedFachIds, setSelectedFachIds] = useState<string[]>([])
@@ -85,14 +85,14 @@ const SchuelerDetailPage = () => {
   const showFachContext = assignedFaecher.length > 1 && selectedFachIds.length !== 1
 
   const filteredThemaKpis = selectedFachIds.length === 0
-    ? kpis.themaKpis
-    : kpis.themaKpis.filter(tk => selectedFachIds.includes(tk.fachId))
+    ? kpis.lernkontrolleKpis
+    : kpis.lernkontrolleKpis.filter(tk => selectedFachIds.includes(tk.fachId))
 
   const fullName = `${student.vorname} ${student.nachname}`
   const studentKommentare = kommentare.filter((k) => k.studentId === student.id)
   const lzWithMultipleVersuche = lernziele.filter((lz) => getVersuche(student, lz.id).length >= 2)
 
-  const selectedThemaKpi = filteredThemaKpis.find(tk => tk.thema.id === selectedLzThemaId)
+  const selectedThemaKpi = filteredThemaKpis.find(tk => tk.lernkontrolle.id === selectedLzThemaId)
 
   return (
     <div className="page-container py-5">
@@ -193,7 +193,7 @@ const SchuelerDetailPage = () => {
                     const dot = getFachColor(fach.id, allFachIds, fach.colorIndex).dot
                     return filteredThemaKpis
                       .filter((tk) => tk.fachId === fach.id)
-                      .map((tk) => ({ value: tk.thema.id, label: tk.thema.name, dot }))
+                      .map((tk) => ({ value: tk.lernkontrolle.id, label: tk.lernkontrolle.name, dot }))
                   }),
                 ]}
               />
@@ -205,7 +205,7 @@ const SchuelerDetailPage = () => {
               <p className="text-sm text-muted-foreground">Wähle ein Thema um die Lernziele zu sehen.</p>
             ) : (() => {
               const tk = selectedThemaKpi
-              const allThemaLZ = getLernzieleForThema(tk.thema.id)
+              const allThemaLZ = getLernzieleForLernkontrolle(tk.lernkontrolle.id)
               const hasRilz = (student.rilzFachIds ?? []).includes(tk.fachId)
               const applicableLZ = hasRilz
                 ? allThemaLZ.filter(lz => lz.kategorie === 'grundlegend')
@@ -229,7 +229,7 @@ const SchuelerDetailPage = () => {
                             {fachName}
                           </span>
                         )}
-                        <span className="text-sm font-medium">{tk.thema.name}</span>
+                        <span className="text-sm font-medium">{tk.lernkontrolle.name}</span>
                         {hasRilz && (
                           <Badge variant="rilz" size="sm">RILZ</Badge>
                         )}
@@ -295,8 +295,8 @@ const SchuelerDetailPage = () => {
             <div className="space-y-2">
               {studentKommentare.map((k) => {
                 const lz = lernziele.find((l) => l.id === k.lernzielId)
-                const thema = lz ? assignedThemen.find((t) => t.id === lz.themaId) : null
-                const fach = thema ? getFachForThema(thema.id) : null
+                const thema = lz ? assignedThemen.find((t) => t.id === lz.lernkontrolleId) : null
+                const fach = thema ? getFachForLernkontrolle(thema.id) : null
                 return (
                   <div key={`${k.studentId}-${k.lernzielId}`} className="rounded-lg border border-border bg-muted/20 px-3 py-2 space-y-0.5">
                     <p className="text-3xs text-muted-foreground">
@@ -317,8 +317,8 @@ const SchuelerDetailPage = () => {
             <div className="space-y-2">
               {lzWithMultipleVersuche.map((lz) => {
                 const versuche = getVersuche(student, lz.id)
-                const thema = assignedThemen.find((t) => t.id === lz.themaId)
-                const fach = thema ? getFachForThema(thema.id) : null
+                const thema = assignedThemen.find((t) => t.id === lz.lernkontrolleId)
+                const fach = thema ? getFachForLernkontrolle(thema.id) : null
                 return (
                   <div key={lz.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2">
                     <p className="text-3xs text-muted-foreground mb-1">

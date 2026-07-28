@@ -13,17 +13,17 @@ import {
   type KatFilter, type StatView,
 } from '@/components/analytics/shared'
 import { useData } from '@/contexts/DataContext'
-import { computeStudentKpis, themaCountsInStats, isLZSkipped, adjustedLZScore } from '@/lib/student-kpis'
+import { computeStudentKpis, lernkontrolleCountsInStats, isLZSkipped, adjustedLZScore } from '@/lib/student-kpis'
 import { LZStudentRow } from '@/components/analytics/LZStudentRow'
 import { todayISO } from '@/lib/dates'
-import type { Schueler, Thema, Lernziel, Fach } from '@/types/domain'
+import type { Schueler, Lernkontrolle, Lernziel, Fach } from '@/types/domain'
 
 
 // ── Main component ─────────────────────────────────────────────────────────
 
 type StudentAnalyticsProps = {
   student: Schueler
-  themen: Thema[]
+  themen: Lernkontrolle[]
   lernziele: Lernziel[]
   faecher: Fach[]
   klassId: string
@@ -41,7 +41,7 @@ export const StudentAnalytics = ({ student, themen, lernziele, faecher, klassId 
   const today = todayISO()
 
   const activeThemen = useMemo(
-    () => themen.filter(t => themaCountsInStats(t, today)),
+    () => themen.filter(t => lernkontrolleCountsInStats(t, today)),
     [themen, today],
   )
 
@@ -60,7 +60,7 @@ export const StudentAnalytics = ({ student, themen, lernziele, faecher, klassId 
     ? activeThemen
     : activeThemen.filter(t => selectedFachIds.includes(t.fachId))
 
-  const allScopedLZ = scopedThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
+  const allScopedLZ = scopedThemen.flatMap(t => lernziele.filter(lz => lz.lernkontrolleId === t.id))
   const scopedLZ = katFilter === 'all' ? allScopedLZ : allScopedLZ.filter(lz => lz.kategorie === katFilter)
 
   const scopedApplicable = scopedLZ.filter(lz => !isLZSkipped(lz, student, activeThemen))
@@ -76,10 +76,10 @@ export const StudentAnalytics = ({ student, themen, lernziele, faecher, klassId 
   }))
 
   const selectedThema = themaOptions.find(o => o.thema.id === selectedThemaId)
-  const themaAllLZ = selectedThemaId ? lernziele.filter(lz => lz.themaId === selectedThemaId) : []
+  const themaAllLZ = selectedThemaId ? lernziele.filter(lz => lz.lernkontrolleId === selectedThemaId) : []
   const themaKatFilteredLZ = katFilter === 'all' ? themaAllLZ : themaAllLZ.filter(lz => lz.kategorie === katFilter)
 
-  const themaKpi = kpis.themaKpis.find(tk => tk.thema.id === selectedThemaId)
+  const themaKpi = kpis.lernkontrolleKpis.find(tk => tk.lernkontrolle.id === selectedThemaId)
   const themaScore = themaKpi ? themaKpi.pct : 0
 
   const themaApplicable = themaKatFilteredLZ.filter(lz => !isLZSkipped(lz, student, activeThemen))
@@ -127,13 +127,13 @@ export const StudentAnalytics = ({ student, themen, lernziele, faecher, klassId 
         )}
         {view === 'thema' && (
           <FilterDropdown
-            label="Thema"
+            label="Lernkontrolle"
             allLabel="wählen…"
             showSearch
             value={selectedThemaId}
             onChange={setSelectedThemaId}
             options={[
-              { value: '', label: 'Kein Thema' },
+              { value: '', label: 'Keine Lernkontrolle' },
               ...assignedFaecher.flatMap(fach => {
                 const dot = getFachColor(fach.id, allFachIds, fach.colorIndex).dot
                 return themaOptions
@@ -256,7 +256,7 @@ export const StudentAnalytics = ({ student, themen, lernziele, faecher, klassId 
 
             const rows = filteredFaecher.map(fach => {
               const fachThemen = activeThemen.filter(t => t.fachId === fach.id)
-              const fachAllLZ = fachThemen.flatMap(t => lernziele.filter(lz => lz.themaId === t.id))
+              const fachAllLZ = fachThemen.flatMap(t => lernziele.filter(lz => lz.lernkontrolleId === t.id))
               const fachLZ = katFilter === 'all' ? fachAllLZ : fachAllLZ.filter(lz => lz.kategorie === katFilter)
               const applicable = fachLZ.filter(lz => !isLZSkipped(lz, student, activeThemen))
               if (applicable.length === 0) return null
@@ -320,7 +320,7 @@ export const StudentAnalytics = ({ student, themen, lernziele, faecher, klassId 
       {view === 'thema' && (
         <div className="space-y-4">
           {!selectedThema ? (
-            <p className="text-sm text-muted-foreground">Wähle ein Thema um die Statistiken zu sehen.</p>
+            <p className="text-sm text-muted-foreground">Wähle eine Lernkontrolle um die Statistiken zu sehen.</p>
           ) : (
             <div className="border border-border rounded-2xl overflow-hidden">
               {/* Header */}

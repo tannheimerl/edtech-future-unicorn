@@ -7,8 +7,8 @@ import { PruefungBerichtFlow } from '@/components/berichte/PruefungBerichtFlow'
 import { LernzielBerichtFlow } from '@/components/berichte/LernzielBerichtFlow'
 
 export const BerichteTab = ({ klassId }: { klassId: string }) => {
-  const { getThemenForKlasse } = useData()
-  const allThemen = getThemenForKlasse(klassId)
+  const { lernkontrollen } = useData()
+  const allThemen = lernkontrollen
 
   // Basis selection: 'lz' = Lernziel-Basis, 'pruefung' = Prüfungs-Basis
   const [basis, setBasis] = useState<'lz' | 'pruefung'>('lz')
@@ -16,8 +16,8 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
   if (allThemen.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center space-y-2">
-        <p className="text-sm text-muted-foreground">Dieser Klasse sind noch keine Themen zugewiesen.</p>
-        <p className="text-xs text-muted-foreground">Füge zuerst Themen unter <strong>Lernziel-Management</strong> hinzu.</p>
+        <p className="text-sm text-muted-foreground">Es sind noch keine Lernkontrollen im Katalog.</p>
+        <p className="text-xs text-muted-foreground">Füge zuerst Lernkontrollen unter <strong>Vorlagen für Lernkontrollen</strong> hinzu.</p>
       </div>
     )
   }
@@ -27,7 +27,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
 
       {/* Subtitle */}
       <p className="text-sm text-muted-foreground pb-1">
-        Wähle Berichtsbasis, Thema und Schüler:innen — dann kannst du individuelle Berichte herunterladen.
+        Wähle Berichtsbasis, Lernkontrolle und Schüler:innen — dann kannst du individuelle Berichte herunterladen.
       </p>
 
       {/* Basis selector */}
@@ -46,7 +46,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
             </div>
             <div>
               <p className="text-sm font-medium">Lernziel-Basis</p>
-              <p className="text-xs text-muted-foreground">Bericht über ein Thema mit Lernzielen</p>
+              <p className="text-xs text-muted-foreground">Bericht über eine Lernkontrolle mit Lernzielen</p>
             </div>
           </label>
           <label className="flex items-start gap-3 cursor-pointer group ml-6">

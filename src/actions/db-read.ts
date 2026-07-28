@@ -1,10 +1,9 @@
-import { asc } from 'drizzle-orm'
 import { getDrizzle } from '@/lib/drizzle/client'
 import * as schema from '@/lib/drizzle/schema'
 import type {
-  Fach, Thema, Lernziel, LernzielKategorie, Lehrperson,
-  Klasse, KlasseBeurteilungSettings, Schueler, AssessmentKommentar, ThemaKommentar,
-  Pruefung, PruefungErgebnis, VersuchSnapshot, Status, TagKategorie,
+  Fach, Lernkontrolle, Lernziel, LernzielKategorie, Lehrperson,
+  Klasse, KlasseBeurteilungSettings, Schueler, AssessmentKommentar, LernkontrolleKommentar,
+  Pruefung, PruefungErgebnis, VersuchSnapshot, Status,
 } from '@/types/domain'
 
 const parseArr = <T>(v: unknown): T[] => {
@@ -23,26 +22,23 @@ export const fetchAllData = async () => {
   const db = getDrizzle()
 
   const [
-    dbFaecher, dbThemen, dbLernziele, dbLehrpersonen, dbKlassen,
-    dbKlasseThemen, dbLpZuweisungen, dbSchueler, dbLernzielStatus,
-    dbRilzLernziele, dbKommentare, dbThemaKommentare,
-    dbPruefungen, dbPruefungErg, dbTagKategorien,
+    dbFaecher, dbLernkontrollen, dbLernziele, dbLehrpersonen, dbKlassen,
+    dbLpZuweisungen, dbSchueler, dbLernzielStatus,
+    dbKommentare, dbLernkontrolleKommentare,
+    dbPruefungen, dbPruefungErg,
   ] = await Promise.all([
     db.select().from(schema.dimFaecher),
-    db.select().from(schema.dimThemen),
+    db.select().from(schema.dimLernkontrollen),
     db.select().from(schema.dimLernziele),
     db.select().from(schema.dimLehrpersonen),
     db.select().from(schema.dimKlassen),
-    db.select().from(schema.bridgeKlasseThemen),
     db.select().from(schema.bridgeLpZuweisungen),
     db.select().from(schema.dimSchueler),
     db.select().from(schema.factLernzielStatus),
-    db.select().from(schema.factRilzLernziele),
     db.select().from(schema.factKommentare),
-    db.select().from(schema.factThemaKommentare),
+    db.select().from(schema.factLernkontrolleKommentare),
     db.select().from(schema.factPruefungen),
     db.select().from(schema.factPruefungErgebnisse),
-    db.select().from(schema.dimTagKategorien).orderBy(asc(schema.dimTagKategorien.position)),
   ])
 
   const faecher: Fach[] = dbFaecher.map((f) => ({
@@ -50,23 +46,19 @@ export const fetchAllData = async () => {
     ...(f.colorIndex != null ? { colorIndex: f.colorIndex } : {}),
   }))
 
-  const themen: Thema[] = dbThemen.map((t) => ({
+  const lernkontrollen: Lernkontrolle[] = dbLernkontrollen.map((t) => ({
     id: t.id, fachId: t.fachId, name: t.name,
     ...(t.typ ? { typ: t.typ as 'standard' | 'rilz' } : {}),
-    ...(t.standardThemaId ? { standardThemaId: t.standardThemaId } : {}),
+    ...(t.standardLernkontrolleId ? { standardLernkontrolleId: t.standardLernkontrolleId } : {}),
     ...(t.faelligAm ? { faelligAm: t.faelligAm } : {}),
     ...(t.stufe ? { stufe: parseArr<number>(t.stufe) } : {}),
     ...(t.zyklus ? { zyklus: parseArr<number>(t.zyklus) } : {}),
     ...(t.autor ? { autor: t.autor } : {}),
     ...(t.autorLpId ? { autorLpId: t.autorLpId } : {}),
-    ...(() => {
-      const tags = parseObj<Record<string, string[]>>(t.tags, {})
-      return Object.keys(tags).length > 0 ? { tags } : {}
-    })(),
   }))
 
   const lernziele: Lernziel[] = dbLernziele.map((l) => ({
-    id: l.id, themaId: l.themaId,
+    id: l.id, lernkontrolleId: l.lernkontrolleId,
     kategorie: l.kategorie as LernzielKategorie, label: l.label,
     ...(l.kriterien ? { kriterien: parseArr<string>(l.kriterien) } : {}),
     ...(l.stufe ? { stufe: parseArr<number>(l.stufe) } : {}),
@@ -81,9 +73,6 @@ export const fetchAllData = async () => {
     id: k.id, name: k.name,
     ...(k.schuljahr ? { schuljahr: k.schuljahr } : {}),
     ...(k.vorgaengerKlasseId ? { vorgaengerKlasseId: k.vorgaengerKlasseId } : {}),
-    assignedThemaIds: dbKlasseThemen
-      .filter((kt) => kt.klasseId === k.id)
-      .map((kt) => kt.themaId),
     lpZuweisungen: dbLpZuweisungen
       .filter((z) => z.klasseId === k.id)
       .map((z) => ({
@@ -100,7 +89,6 @@ export const fetchAllData = async () => {
     note: sc.note ?? '',
     bvsa: bool(sc.bvsa),
     rilzFachIds: parseArr<string>(sc.rilzFachIds),
-    rilzThemaIds: parseArr<string>(sc.rilzThemaIds),
     competencyStatus: parseObj<Record<string, Status>>(sc.competencyStatus, {}),
     lernzielStatus: Object.fromEntries(
       dbLernzielStatus
@@ -109,12 +97,6 @@ export const fetchAllData = async () => {
     ),
     lernzielVersuche: parseObj(sc.lernzielVersuche, {}),
     progressHistory: parseArr(sc.progressHistory),
-    rilzLernziele: dbRilzLernziele
-      .filter((rl) => rl.schuelerId === sc.id)
-      .map((rl) => ({
-        id: rl.id, themaId: rl.themaId,
-        label: rl.label, status: rl.status,
-      })),
   }))
 
   const kommentare: AssessmentKommentar[] = dbKommentare.map((k) => ({
@@ -122,8 +104,8 @@ export const fetchAllData = async () => {
     text: k.text, createdAt: k.createdAt,
   }))
 
-  const themaKommentare: ThemaKommentar[] = dbThemaKommentare.map((k) => ({
-    studentId: k.schuelerId, themaId: k.themaId,
+  const lernkontrolleKommentare: LernkontrolleKommentar[] = dbLernkontrolleKommentare.map((k) => ({
+    studentId: k.schuelerId, lernkontrolleId: k.lernkontrolleId,
     text: k.text, updatedAt: k.updatedAt,
   }))
 
@@ -158,10 +140,5 @@ export const fetchAllData = async () => {
     createdAt: e.createdAt as string,
   }))
 
-  const tagKategorien: TagKategorie[] = dbTagKategorien.map((k) => ({
-    id: k.id, name: k.name,
-    ...(k.lpId ? { lpId: k.lpId } : {}),
-  }))
-
-  return { faecher, themen, lernziele, lehrpersonen, classes, students, kommentare, themaKommentare, pruefungen, pruefungErgebnisse, tagKategorien }
+  return { faecher, lernkontrollen, lernziele, lehrpersonen, classes, students, kommentare, lernkontrolleKommentare, pruefungen, pruefungErgebnisse }
 }

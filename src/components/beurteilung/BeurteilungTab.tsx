@@ -6,12 +6,10 @@ import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { PillTabs } from "@/components/shared/PillTabs";
 import { SegmentedControl } from "@/components/shared/SegmentedControl";
 import { PruefungErstellenModal } from "@/components/pruefungen/PruefungErstellenModal";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { BeurteilungGrid } from "./BeurteilungGrid";
-import { LernkontrolleTab } from "@/components/lernkontrolle/LernkontrolleTab";
 import { cn } from "@/lib/utils";
 import { formatDateCH } from "@/lib/dates";
 
@@ -34,7 +32,6 @@ export const BeurteilungTab = ({ klassId }: Props) => {
   );
   const students = getStudentsForClass(klassId);
 
-  const [mode, setMode] = useState<"pruefung" | "frei">("pruefung");
   const [activePruefungId, setActivePruefungId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -76,19 +73,11 @@ export const BeurteilungTab = ({ klassId }: Props) => {
             </span>
           </nav>
         ) : (
-          <PillTabs
-            size="sm"
-            value={mode}
-            onChange={setMode}
-            options={[
-              { key: "pruefung", label: "Lernzielkontrollen" },
-              { key: "frei", label: "Freie Beurteilung" },
-            ]}
-          />
+          <h2 className="text-lg font-semibold">Lernzielkontrollen</h2>
         )}
       </div>
       <div className="flex items-center gap-2">
-        {mode === "pruefung" && !activePruefung && (
+        {!activePruefung && (
           <Button onClick={() => setCreateOpen(true)} className="gap-1.5">
             <Icon name="add" size={16} /> Neue Lernzielkontrolle
           </Button>
@@ -96,16 +85,6 @@ export const BeurteilungTab = ({ klassId }: Props) => {
       </div>
     </div>
   );
-
-  // ── Freie Beurteilung ─────────────────────────────────────────────────────
-  if (mode === "frei") {
-    return (
-      <div className="space-y-4">
-        {header}
-        <LernkontrolleTab klassId={klassId} />
-      </div>
-    );
-  }
 
   // ── Detailansicht: Prüfungs-Grid ─────────────────────────────────────────
   if (activePruefung) {

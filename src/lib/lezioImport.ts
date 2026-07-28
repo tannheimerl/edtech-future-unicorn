@@ -17,7 +17,7 @@ export type LezioImportItem = {
 /** Parst und validiert den Inhalt einer einzelnen `.lezio`/`.json`-Datei. */
 export const parseLezio = (text: string): LezioExport => {
   const data = JSON.parse(text) as LezioExport
-  if (data.version !== '1' || !data.fachName || !data.thema?.name) {
+  if (data.version !== '1' || !data.fachName || !data.lernkontrolle?.name) {
     throw new Error('Ungültiges Dateiformat')
   }
   return data
@@ -72,7 +72,7 @@ export const NEW_FACH = '__new__'
 
 /** Baut die Erfolgsmeldung nach einem Import zusammen. */
 export const importDoneMsg = (themen: number, neueFaecher: number, errors: number): string => {
-  const teile = [`${themen} ${themen === 1 ? 'Thema' : 'Themen'} importiert`]
+  const teile = [`${themen} ${themen === 1 ? 'Lernkontrolle' : 'Lernkontrollen'} importiert`]
   if (neueFaecher > 0) teile.push(`${neueFaecher} ${neueFaecher === 1 ? 'neues Fach' : 'neue Fächer'} angelegt`)
   if (errors > 0) teile.push(`${errors} übersprungen`)
   return teile.join(' · ')

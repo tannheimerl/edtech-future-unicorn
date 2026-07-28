@@ -1,55 +1,63 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { Icon } from '@/components/ui/Icon'
-import { Button } from '@/components/ui/button'
-import { SectionBlock } from '@/components/shared/SectionBlock'
-import { toast } from '@/lib/toast'
-import { getDbPath, changeDbPath, importDb, exportDb } from '@/lib/db-settings'
+import { useEffect, useState } from "react";
+import { Icon } from "@/components/ui/Icon";
+import { Button } from "@/components/ui/button";
+import { SectionBlock } from "@/components/shared/SectionBlock";
+import { toast } from "@/lib/toast";
+import { getDbPath, changeDbPath, importDb, exportDb } from "@/lib/db-settings";
 
 type DatenbankSettingsProps = {
   /** Refetches app data after the active database connection changes. */
-  onDataChanged: () => Promise<void>
-}
+  onDataChanged: () => Promise<void>;
+};
 
-export const DatenbankSettings = ({ onDataChanged }: DatenbankSettingsProps) => {
-  const [path, setPath] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+export const DatenbankSettings = ({
+  onDataChanged,
+}: DatenbankSettingsProps) => {
+  const [path, setPath] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    getDbPath().then(setPath).catch(() => toast.error('Datenbankpfad konnte nicht gelesen werden.'))
-  }, [])
+    getDbPath()
+      .then(setPath)
+      .catch(() => toast.error("Datenbankpfad konnte nicht gelesen werden."));
+  }, []);
 
-  const runSwitch = async (action: () => Promise<string | null | boolean>, successMessage: string) => {
-    setBusy(true)
+  const runSwitch = async (
+    action: () => Promise<string | null | boolean>,
+    successMessage: string,
+  ) => {
+    setBusy(true);
     try {
-      const result = await action()
-      if (result === false || result === null) return
-      const newPath = await getDbPath()
-      setPath(newPath)
-      await onDataChanged()
-      toast.success(successMessage)
+      const result = await action();
+      if (result === false || result === null) return;
+      const newPath = await getDbPath();
+      setPath(newPath);
+      await onDataChanged();
+      toast.success(successMessage);
     } catch {
-      toast.error('Datenbankvorgang fehlgeschlagen.')
+      toast.error("Datenbankvorgang fehlgeschlagen.");
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
-  const handleChangePath = () => runSwitch(changeDbPath, 'Datenbankpfad geändert.')
-  const handleImport = () => runSwitch(importDb, 'Datenbank importiert.')
+  const handleChangePath = () =>
+    runSwitch(changeDbPath, "Datenbankpfad geändert.");
+  const handleImport = () => runSwitch(importDb, "Datenbank importiert.");
 
   const handleExport = async () => {
-    setBusy(true)
+    setBusy(true);
     try {
-      const dest = await exportDb()
-      if (dest) toast.success('Datenbank exportiert.')
+      const dest = await exportDb();
+      if (dest) toast.success("Datenbank exportiert.");
     } catch {
-      toast.error('Export fehlgeschlagen.')
+      toast.error("Export fehlgeschlagen.");
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
   return (
     <SectionBlock
@@ -58,15 +66,32 @@ export const DatenbankSettings = ({ onDataChanged }: DatenbankSettingsProps) => 
       className="mb-6"
     >
       <div className="grid gap-3">
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
-          <Icon name="database" size={16} className="shrink-0 text-muted-foreground" />
-          <span className="truncate font-mono text-xs text-foreground" title={path ?? undefined}>
-            {path ?? 'Wird geladen…'}
+        {
+          // TODO: Make this look less like an input field that can be clicked.
+        }
+        <div className="flex items-center gap-2 rounded-lg border px-3 h-[48px]">
+          <Icon
+            name="database"
+            size={16}
+            className="shrink-0 text-muted-foreground"
+          />
+          <span
+            className="truncate font-mono text-xs text-foreground"
+            title={path ?? undefined}
+          >
+            {path ?? "Wird geladen…"}
           </span>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" disabled={busy} onClick={handleChangePath}>
+          {
+            // TODO: Add option to select other (existing) database
+          }
+          <Button
+            variant="secondary"
+            disabled={busy}
+            onClick={handleChangePath}
+          >
             Pfad ändern…
           </Button>
           <Button variant="secondary" disabled={busy} onClick={handleImport}>
@@ -78,5 +103,5 @@ export const DatenbankSettings = ({ onDataChanged }: DatenbankSettingsProps) => 
         </div>
       </div>
     </SectionBlock>
-  )
-}
+  );
+};

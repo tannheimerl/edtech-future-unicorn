@@ -20,7 +20,7 @@ export const LezioImportModal = ({ imp }: { imp: LezioImportState }) => {
         open={imp.zuordnenOpen}
         onOpenChange={(o) => { if (!o) imp.closeZuordnen() }}
         title="Fächer zuordnen"
-        description={`${imp.distinctFaecher.length} ${imp.distinctFaecher.length === 1 ? 'Fach' : 'Fächer'} · ${imp.importItems.length} ${imp.importItems.length === 1 ? 'Thema' : 'Themen'} importieren. Ordne jedes Fach einem deiner Fächer zu oder lege es neu an:`}
+        description={`${imp.distinctFaecher.length} ${imp.distinctFaecher.length === 1 ? 'Fach' : 'Fächer'} · ${imp.importItems.length} ${imp.importItems.length === 1 ? 'Lernkontrolle' : 'Lernkontrollen'} importieren. Ordne jedes Fach einem deiner Fächer zu oder lege es neu an:`}
         size="md"
       >
         <div className="flex flex-col divide-y divide-border/40">

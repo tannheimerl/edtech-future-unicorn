@@ -8,20 +8,17 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Modal } from '@/components/shared/Modal'
 import { ModalRow } from '@/components/shared/ModalRow'
-import { InputModal } from '@/components/shared/InputModal'
-import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import type { LernzielKategorie } from '@/types/domain'
 
-export const CreateThemaModal = ({ open, onOpenChange, fachId, onCreated }: {
+export const CreateLernkontrolleModal = ({ open, onOpenChange, fachId, onCreated }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   fachId: string
-  onCreated?: (themaId: string) => void
+  onCreated?: (lernkontrolleId: string) => void
 }) => {
   const {
-    faecher, tagKategorien, getTagWerte, createTagKategorie, deleteTagKategorie,
-    createThema, updateThema, createLernziel,
+    faecher, createLernkontrolle, updateLernkontrolle, createLernziel,
   } = useData()
 
   const [step, setStep] = useState<'meta' | 'lernziele'>('meta')
@@ -31,11 +28,7 @@ export const CreateThemaModal = ({ open, onOpenChange, fachId, onCreated }: {
   const [localFachId, setLocalFachId] = useState(fachId)
   const [typ, setTyp] = useState<'standard' | 'rilz'>('standard')
   const [stufe, setStufe] = useState<number | undefined>()
-  const [localTagValues, setLocalTagValues] = useState<Record<string, string>>({})
   const [openRowId, setOpenRowId] = useState<string | null>(null)
-  const [deleteKatId, setDeleteKatId] = useState<string | null>(null)
-  const [addValueKatId, setAddValueKatId] = useState<string | null>(null)
-  const [newKatOpen, setNewKatOpen] = useState(false)
 
   // Lernziele state
   const [lernziele, setLernziele] = useState<{ id: string; label: string; kategorie: LernzielKategorie }[]>([])
@@ -49,7 +42,6 @@ export const CreateThemaModal = ({ open, onOpenChange, fachId, onCreated }: {
       setLocalFachId(fachId)
       setTyp('standard')
       setStufe(undefined)
-      setLocalTagValues({})
       setOpenRowId(null)
       setLernziele([])
       setNewLzG('')
@@ -59,11 +51,6 @@ export const CreateThemaModal = ({ open, onOpenChange, fachId, onCreated }: {
 
   const openRow = (id: string, isOpen: boolean) => {
     setOpenRowId(isOpen ? id : null)
-  }
-
-  const setTagValue = (katId: string, value: string) => {
-    setLocalTagValues(prev => ({ ...prev, [katId]: prev[katId] === value ? '' : value }))
-    setOpenRowId(null)
   }
 
   const renderSimpleOptions = (
@@ -116,14 +103,9 @@ export const CreateThemaModal = ({ open, onOpenChange, fachId, onCreated }: {
 
   const submit = () => {
     if (!name.trim()) return
-    const id = createThema(localFachId, name.trim(), typ)
-    updateThema(id, {
+    const id = createLernkontrolle(localFachId, name.trim(), typ)
+    updateLernkontrolle(id, {
       stufe: stufe ? [stufe] : undefined,
-      tags: Object.fromEntries(
-        Object.entries(localTagValues)
-          .filter(([, v]) => v.trim())
-          .map(([k, v]) => [k, [v]])
-      ),
     })
     for (const lz of lernziele) {
       createLernziel(id, lz.label, lz.kategorie)
@@ -140,7 +122,7 @@ export const CreateThemaModal = ({ open, onOpenChange, fachId, onCreated }: {
       <Modal
         open={open}
         onOpenChange={onOpenChange}
-        title="Neues Thema"
+        title="Neue Lernkontrolle"
         size="md"
         footer={
           step === 'meta' ? (
@@ -222,54 +204,6 @@ export const CreateThemaModal = ({ open, onOpenChange, fachId, onCreated }: {
                   'Keine Auswahl'
                 )}
               </ModalRow>
-
-              {/* Tag categories */}
-              {tagKategorien.map(kat => {
-                const currentVal = localTagValues[kat.id] ?? ''
-                const allVals = getTagWerte(kat.id)
-
-                return (
-                  <ModalRow
-                    key={kat.id}
-                    label={kat.name}
-                    displayValue={currentVal || undefined}
-                    open={openRowId === kat.id}
-                    onOpenChange={v => openRow(kat.id, v)}
-                  >
-                    {renderSimpleOptions(
-                      allVals.map(v => ({ value: v, label: v })),
-                      currentVal,
-                      v => setTagValue(kat.id, v),
-                      'Auswahl aufheben',
-                    )}
-                    <div className="border-t border-border/40 mt-0.5 pt-0.5">
-                      <button
-                        onClick={() => setAddValueKatId(kat.id)}
-                        className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs text-primary hover:bg-primary/5 transition-colors"
-                      >
-                        <Icon name="add" size={12} className="shrink-0" />
-                        Wert hinzufügen
-                      </button>
-                      <button
-                        onClick={() => { setDeleteKatId(kat.id); setOpenRowId(null) }}
-                        className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
-                      >
-                        <Icon name="delete" size={12} className="shrink-0" />
-                        Kategorie löschen
-                      </button>
-                    </div>
-                  </ModalRow>
-                )
-              })}
-
-              {/* Add category */}
-              <button
-                onClick={() => setNewKatOpen(true)}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-3 py-1.5 w-full"
-              >
-                <Icon name="add" size={12} />
-                Kategorie hinzufügen
-              </button>
             </div>
           </div>
         )}
@@ -338,34 +272,7 @@ export const CreateThemaModal = ({ open, onOpenChange, fachId, onCreated }: {
             </div>
           </div>
         )}
-
-        <ConfirmDialog
-          open={!!deleteKatId}
-          onOpenChange={(o) => { if (!o) setDeleteKatId(null) }}
-          title="Kategorie löschen"
-          description="Soll diese Tag-Kategorie wirklich gelöscht werden? Alle zugewiesenen Werte in den Themen bleiben erhalten, sind aber nicht mehr filterbar."
-          confirmLabel="Löschen"
-          onConfirm={() => { if (deleteKatId) { deleteTagKategorie(deleteKatId); setDeleteKatId(null) } }}
-        />
       </Modal>
-
-      <InputModal
-        open={newKatOpen}
-        onOpenChange={setNewKatOpen}
-        title="Neue Tag-Kategorie"
-        label="Bezeichnung"
-        placeholder="z. B. Semester, Lerngruppe …"
-        onSubmit={(name) => { createTagKategorie(name) }}
-      />
-
-      <InputModal
-        open={!!addValueKatId}
-        onOpenChange={(o) => { if (!o) setAddValueKatId(null) }}
-        title="Wert hinzufügen"
-        label="Wert"
-        placeholder="z. B. 1"
-        onSubmit={(v) => { if (addValueKatId) setTagValue(addValueKatId, v) }}
-      />
     </>
   )
 }

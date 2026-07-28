@@ -21,31 +21,24 @@ export type Fach = {
   colorIndex?: number
 }
 
-export type TagKategorie = {
-  id: string
-  name: string
-  lpId?: string
-}
-
-export type Thema = {
+export type Lernkontrolle = {
   id: string
   fachId: string
   name: string
-  faelligAm?: string      // ISO YYYY-MM-DD — Datum bis wann dieses Thema beherrscht sein soll
+  faelligAm?: string      // ISO YYYY-MM-DD — Datum bis wann diese Lernkontrolle beherrscht sein soll
   typ?: 'standard' | 'rilz'  // default = 'standard'
-  standardThemaId?: string    // für RILZ-Themen: welches Standard-Thema wird ersetzt
-  stufe?: number[]            // e.g. [5, 6] — Schulstufen für die dieses Thema gedacht ist (1–9)
+  standardLernkontrolleId?: string    // für RILZ-Lernkontrollen: welche Standard-Lernkontrolle wird ersetzt
+  stufe?: number[]            // e.g. [5, 6] — Schulstufen für die diese Lernkontrolle gedacht ist (1–9)
   zyklus?: number[]           // e.g. [2, 3] — Lehrplanzyklus (1–3)
-  autor?: string              // Anzeigename der Lehrperson, die dieses Thema erstellt hat
-  autorLpId?: string          // ID der Lehrperson, die dieses Thema erstellt hat
-  tags?: Record<string, string[]>  // { kategorieId: [wert1, wert2] }
+  autor?: string              // Anzeigename der Lehrperson, die diese Lernkontrolle erstellt hat
+  autorLpId?: string          // ID der Lehrperson, die diese Lernkontrolle erstellt hat
 }
 
 export type LernzielKategorie = 'grundlegend' | 'anspruchsvoll'
 
 export type Lernziel = {
   id: string
-  themaId: string
+  lernkontrolleId: string
   kategorie: LernzielKategorie
   label: string
   kriterien?: string[]
@@ -65,7 +58,7 @@ export type LezioExport = {
   version: '1'
   exportedAt: string
   fachName: string
-  thema: Pick<Thema, 'name' | 'typ' | 'stufe'>
+  lernkontrolle: Pick<Lernkontrolle, 'name' | 'typ' | 'stufe'>
   lernziele: LezioExportLernziel[]
 }
 
@@ -86,7 +79,6 @@ export type KlasseBeurteilungSettings = {
 export type Klasse = {
   id: string
   name: string
-  assignedThemaIds: string[]
   lpZuweisungen?: LpZuweisung[]
   schuljahr?: string           // e.g. "2025/26"
   vorgaengerKlasseId?: string  // pointer to previous year's class
@@ -107,18 +99,11 @@ export type AssessmentKommentar = {
   createdAt: string  // ISO timestamp
 }
 
-export type ThemaKommentar = {
+export type LernkontrolleKommentar = {
   studentId: string
-  themaId: string
+  lernkontrolleId: string
   text: string
   updatedAt: string  // ISO timestamp
-}
-
-export type RilzLernziel = {
-  id: string
-  themaId: string
-  label: string
-  status: Status
 }
 
 export type Schueler = {
@@ -129,8 +114,6 @@ export type Schueler = {
   note: string
   bvsa?: boolean             // Besonderer Förderbedarf — gets report even without grades in some subjects
   rilzFachIds?: string[]     // Fach IDs where student has reduced learning goals (RILZ)
-  rilzLernziele?: RilzLernziel[]  // Individual RILZ learning goals written by Heilpädagogin (ad-hoc)
-  rilzThemaIds?: string[]    // RILZ-Themen aus der Bibliothek, die diesem Schüler zugewiesen sind
   competencyStatus: Record<string, Status>
   lernzielStatus: Record<string, Status>
   lernzielVersuche?: Record<string, Versuch[]>  // attempt history per LZ (replaces lernzielStatus long-term)

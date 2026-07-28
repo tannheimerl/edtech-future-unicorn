@@ -1,4 +1,4 @@
-import type { Schueler, Thema, Lernziel, Fach } from '@/types/domain'
+import type { Schueler, Lernkontrolle, Lernziel, Fach } from '@/types/domain'
 import { sv, weightedPct } from '@/lib/utils'
 
 /** Fortschritt über die Basis-Kompetenzen (0–100, ungerundet). */
@@ -13,35 +13,36 @@ export const competencyPct = (student: Schueler, comps: { id: string }[]): numbe
  * Anspruchsvolle Lernziele werden für RILZ-Schüler:innen im betroffenen
  * Fach übersprungen — sie fließen weder in Bewertung noch Statistik ein.
  */
-export const isLZSkipped = (lz: Lernziel, student: Schueler, themen: Thema[]): boolean => {
+export const isLZSkipped = (lz: Lernziel, student: Schueler, lernkontrollen: Lernkontrolle[]): boolean => {
   if (lz.kategorie !== 'anspruchsvoll') return false
   if (!student.rilzFachIds?.length) return false
-  const thema = themen.find(t => t.id === lz.themaId)
-  return !!thema && student.rilzFachIds.includes(thema.fachId)
+  const lernkontrolle = lernkontrollen.find(t => t.id === lz.lernkontrolleId)
+  return !!lernkontrolle && student.rilzFachIds.includes(lernkontrolle.fachId)
 }
 
 /**
  * Score (0–100, ungerundet) einer/eines Schüler:in über eine LZ-Liste,
  * RILZ-übersprungene Lernziele ausgenommen.
  */
-export const adjustedLZScore = (student: Schueler, lzList: Lernziel[], themen: Thema[]): number => {
-  const applicable = lzList.filter(lz => !isLZSkipped(lz, student, themen))
+export const adjustedLZScore = (student: Schueler, lzList: Lernziel[], lernkontrollen: Lernkontrolle[]): number => {
+  const applicable = lzList.filter(lz => !isLZSkipped(lz, student, lernkontrollen))
   if (applicable.length === 0) return 0
   return (applicable.reduce((sum, lz) => sum + sv(student.lernzielStatus[lz.id] ?? 'not_reached'), 0) / applicable.length) * 100
 }
 
 /**
- * Ein Thema zählt erst in Statistiken, wenn ein Fälligkeitsdatum gesetzt ist
- * und bereits erreicht/überschritten wurde. So fließen weder undatierte noch
- * zukünftig fällige (i. d. R. noch unbewertete) Themen in die Auswertung ein.
+ * Eine Lernkontrolle zählt erst in Statistiken, wenn ein Fälligkeitsdatum
+ * gesetzt ist und bereits erreicht/überschritten wurde. So fließen weder
+ * undatierte noch zukünftig fällige (i. d. R. noch unbewertete)
+ * Lernkontrollen in die Auswertung ein.
  * @param today aktuelles Datum im Format `YYYY-MM-DD`
  */
-export const themaCountsInStats = (t: Thema, today: string): boolean => {
+export const lernkontrolleCountsInStats = (t: Lernkontrolle, today: string): boolean => {
   return !!t.faelligAm && t.faelligAm <= today
 }
 
-type ThemaKpi = {
-  thema: Thema
+type LernkontrolleKpi = {
+  lernkontrolle: Lernkontrolle
   fachId: string
   pct: number
   reached: number
@@ -84,26 +85,26 @@ export type StudentKpis = {
   partial: number
   notReached: number
   fachKpis: FachKpi[]
-  themaKpis: ThemaKpi[]
+  lernkontrolleKpis: LernkontrolleKpi[]
 }
 
 export const computeStudentKpis = (
   student: Schueler,
-  assignedThemen: Thema[],
+  lernkontrollen: Lernkontrolle[],
   allLernziele: Lernziel[],
   faecher: Fach[],
 ): StudentKpis => {
-  const allLZ = assignedThemen.flatMap((t) =>
-    allLernziele.filter((lz) => lz.themaId === t.id)
+  const allLZ = lernkontrollen.flatMap((t) =>
+    allLernziele.filter((lz) => lz.lernkontrolleId === t.id)
   )
 
   // For RILZ students, exclude anspruchsvoll LZ in RILZ subjects
   const rilzFachIds = new Set(student.rilzFachIds ?? [])
-  const themaFachMap = new Map(assignedThemen.map((t) => [t.id, t.fachId]))
+  const lernkontrolleFachMap = new Map(lernkontrollen.map((t) => [t.id, t.fachId]))
 
   const applicableLZ = allLZ.filter((lz) => {
     if (lz.kategorie !== 'anspruchsvoll') return true
-    const fachId = themaFachMap.get(lz.themaId)
+    const fachId = lernkontrolleFachMap.get(lz.lernkontrolleId)
     return fachId ? !rilzFachIds.has(fachId) : true
   })
 
@@ -125,8 +126,8 @@ export const computeStudentKpis = (
 
   const fachKpis: FachKpi[] = faecher
     .map((fach) => {
-      const fachThemen = assignedThemen.filter((t) => t.fachId === fach.id)
-      const fachLZ = fachThemen.flatMap((t) => allLernziele.filter((lz) => lz.themaId === t.id))
+      const fachLernkontrollen = lernkontrollen.filter((t) => t.fachId === fach.id)
+      const fachLZ = fachLernkontrollen.flatMap((t) => allLernziele.filter((lz) => lz.lernkontrolleId === t.id))
       if (fachLZ.length === 0) return null
       const ids = fachLZ.map((lz) => lz.id)
       const r = ids.filter((id) => student.lernzielStatus[id] === 'reached').length
@@ -157,12 +158,12 @@ export const computeStudentKpis = (
     })
     .filter((k): k is FachKpi => k !== null)
 
-  const themaKpis: ThemaKpi[] = assignedThemen
-    .map((thema) => {
-      const themaLZ = allLernziele.filter((lz) => lz.themaId === thema.id)
-      const applicable = themaLZ.filter((lz) => {
+  const lernkontrolleKpis: LernkontrolleKpi[] = lernkontrollen
+    .map((lernkontrolle) => {
+      const lernkontrolleLZ = allLernziele.filter((lz) => lz.lernkontrolleId === lernkontrolle.id)
+      const applicable = lernkontrolleLZ.filter((lz) => {
         if (lz.kategorie !== 'anspruchsvoll') return true
-        return !rilzFachIds.has(thema.fachId)
+        return !rilzFachIds.has(lernkontrolle.fachId)
       })
       if (applicable.length === 0) return null
       const r = applicable.filter((lz) => student.lernzielStatus[lz.id] === 'reached').length
@@ -175,8 +176,8 @@ export const computeStudentKpis = (
       const aR = aLZ.filter((lz) => student.lernzielStatus[lz.id] === 'reached').length
       const aP = aLZ.filter((lz) => student.lernzielStatus[lz.id] === 'partially_reached').length
       return {
-        thema,
-        fachId: thema.fachId,
+        lernkontrolle,
+        fachId: lernkontrolle.fachId,
         pct: weightedPct(r, p, t),
         reached: r,
         partial: p,
@@ -190,7 +191,7 @@ export const computeStudentKpis = (
         aTotal: aLZ.length,
       }
     })
-    .filter((k): k is ThemaKpi => k !== null)
+    .filter((k): k is LernkontrolleKpi => k !== null)
 
   return {
     gesamtPct,
@@ -206,7 +207,7 @@ export const computeStudentKpis = (
     partial,
     notReached,
     fachKpis,
-    themaKpis,
+    lernkontrolleKpis,
   }
 }
 
@@ -227,10 +228,10 @@ export type KlasseStatsResult = {
 /** Aggregierte Fortschritts-Kennzahlen einer Klasse für die Klassenkarte auf /klassen. */
 export const computeKlasseStats = (
   students: Schueler[],
-  classThemen: Thema[],
+  klasseLernkontrollen: Lernkontrolle[],
   lernziele: Lernziel[],
 ): KlasseStatsResult => {
-  const allLZ = classThemen.flatMap((t) => lernziele.filter((lz) => lz.themaId === t.id))
+  const allLZ = klasseLernkontrollen.flatMap((t) => lernziele.filter((lz) => lz.lernkontrolleId === t.id))
   const allLZIds = allLZ.map((lz) => lz.id)
   const regularStudents = students.filter((s) => !isSpecialStudent(s))
 
@@ -243,8 +244,8 @@ export const computeKlasseStats = (
       const applicable = allLZ.filter((lz) => {
         if (lz.kategorie !== 'anspruchsvoll') return true
         if (!s.rilzFachIds?.length) return true
-        const thema = classThemen.find((t) => t.id === lz.themaId)
-        return !thema || !s.rilzFachIds.includes(thema.fachId)
+        const lernkontrolle = klasseLernkontrollen.find((t) => t.id === lz.lernkontrolleId)
+        return !lernkontrolle || !s.rilzFachIds.includes(lernkontrolle.fachId)
       })
       if (applicable.length === 0) return 0
       return (

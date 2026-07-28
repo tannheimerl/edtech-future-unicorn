@@ -14,17 +14,16 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type {
-  Klasse, Kompetenz, Schueler, Fach, Thema, Lernziel,
-  AssessmentKommentar, ThemaKommentar, Lehrperson, Pruefung, PruefungErgebnis, TagKategorie,
+  Klasse, Kompetenz, Schueler, Fach, Lernkontrolle, Lernziel,
+  AssessmentKommentar, LernkontrolleKommentar, Lehrperson, Pruefung, PruefungErgebnis,
 } from '@/types/domain'
 import { SEED_COMPETENCIES } from '@/types/domain'
 import { fetchAllData } from '@/actions/db-read'
 import { useKlassenActions } from '@/hooks/data/useKlassenActions'
 import { useSchuelerActions } from '@/hooks/data/useSchuelerActions'
 import { useKommentareActions } from '@/hooks/data/useKommentareActions'
-import { useFaecherThemenLernzielActions } from '@/hooks/data/useFaecherThemenLernzielActions'
+import { useFaecherLernkontrollenLernzielActions } from '@/hooks/data/useFaecherLernkontrollenLernzielActions'
 import { usePruefungenActions } from '@/hooks/data/usePruefungenActions'
-import { useTagKategorienActions } from '@/hooks/data/useTagKategorienActions'
 
 // ── Public interface ─────────────────────────────────────────────────────────
 
@@ -39,21 +38,18 @@ type DataContextValue = {
   students: Schueler[]
   competencies: Kompetenz[]
   faecher: Fach[]
-  themen: Thema[]
+  lernkontrollen: Lernkontrolle[]
   lernziele: Lernziel[]
   lehrpersonen: Lehrperson[]
   kommentare: AssessmentKommentar[]
-  themaKommentare: ThemaKommentar[]
+  lernkontrolleKommentare: LernkontrolleKommentar[]
   pruefungen: Pruefung[]
   pruefungErgebnisse: PruefungErgebnis[]
-  tagKategorien: TagKategorie[]
 } & ReturnType<typeof useKlassenActions>
   & ReturnType<typeof useSchuelerActions>
   & ReturnType<typeof useKommentareActions>
-  & Omit<ReturnType<typeof useFaecherThemenLernzielActions>, 'getThemenForKlasse'>
+  & ReturnType<typeof useFaecherLernkontrollenLernzielActions>
   & ReturnType<typeof usePruefungenActions>
-  & ReturnType<typeof useTagKategorienActions>
-  & { getThemenForKlasse: (klassId: string) => Thema[] }
 
 const DataContext = createContext<DataContextValue | null>(null)
 
@@ -65,14 +61,13 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [classes, setClasses] = useState<Klasse[]>([])
   const [students, setStudents] = useState<Schueler[]>([])
   const [faecher, setFaecher] = useState<Fach[]>([])
-  const [themen, setThemen] = useState<Thema[]>([])
+  const [lernkontrollen, setLernkontrollen] = useState<Lernkontrolle[]>([])
   const [lernziele, setLernziele] = useState<Lernziel[]>([])
   const [lehrpersonen, setLehrpersonen] = useState<Lehrperson[]>([])
   const [kommentare, setKommentare] = useState<AssessmentKommentar[]>([])
-  const [themaKommentare, setThemaKommentare] = useState<ThemaKommentar[]>([])
+  const [lernkontrolleKommentare, setLernkontrolleKommentare] = useState<LernkontrolleKommentar[]>([])
   const [pruefungen, setPruefungen] = useState<Pruefung[]>([])
   const [pruefungErgebnisse, setPruefungErgebnisse] = useState<PruefungErgebnis[]>([])
-  const [tagKategorien, setTagKategorien] = useState<TagKategorie[]>([])
   const competencies = SEED_COMPETENCIES
 
   // Reload all data from SQLite into context state. Used on mount and to
@@ -81,16 +76,15 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     return fetchAllData()
       .then((data) => {
         setFaecher(data.faecher)
-        setThemen(data.themen)
+        setLernkontrollen(data.lernkontrollen)
         setLernziele(data.lernziele)
         setLehrpersonen(data.lehrpersonen)
         setClasses(data.classes)
         setStudents(data.students)
         setKommentare(data.kommentare)
-        setThemaKommentare(data.themaKommentare)
+        setLernkontrolleKommentare(data.lernkontrolleKommentare)
         setPruefungen(data.pruefungen)
         setPruefungErgebnisse(data.pruefungErgebnisse)
-        setTagKategorien(data.tagKategorien)
         setLoadError(false)
       })
       .catch((err) => {
@@ -106,17 +100,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
   const klassenActions = useKlassenActions(classes, setClasses, setStudents)
   const schuelerActions = useSchuelerActions(students, setStudents, setKommentare)
-  const kommentareActions = useKommentareActions(kommentare, setKommentare, themaKommentare, setThemaKommentare)
-  const { getThemenForKlasse: getThemenForKlasseRaw, ...faecherThemenLernzielActions } = useFaecherThemenLernzielActions(
-    faecher, setFaecher, themen, setThemen, lernziele, setLernziele, setClasses, reloadData
+  const kommentareActions = useKommentareActions(kommentare, setKommentare, lernkontrolleKommentare, setLernkontrolleKommentare)
+  const faecherLernkontrollenLernzielActions = useFaecherLernkontrollenLernzielActions(
+    faecher, setFaecher, lernkontrollen, setLernkontrollen, lernziele, setLernziele, reloadData
   )
   const pruefungenActions = usePruefungenActions(pruefungen, setPruefungen, pruefungErgebnisse, setPruefungErgebnisse, setStudents)
-  const tagKategorienActions = useTagKategorienActions(tagKategorien, setTagKategorien, themen)
-
-  const getThemenForKlasse = useCallback(
-    (klassId: string) => getThemenForKlasseRaw(classes, klassId),
-    [getThemenForKlasseRaw, classes]
-  )
 
   return (
     <DataContext.Provider
@@ -128,21 +116,18 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         students,
         competencies,
         faecher,
-        themen,
+        lernkontrollen,
         lernziele,
         lehrpersonen,
         kommentare,
-        themaKommentare,
+        lernkontrolleKommentare,
         pruefungen,
         pruefungErgebnisse,
-        tagKategorien,
         ...klassenActions,
         ...schuelerActions,
         ...kommentareActions,
-        ...faecherThemenLernzielActions,
-        getThemenForKlasse,
+        ...faecherLernkontrollenLernzielActions,
         ...pruefungenActions,
-        ...tagKategorienActions,
       }}
     >
       {children}

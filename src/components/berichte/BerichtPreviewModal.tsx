@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { generatePdfBlob } from '@/lib/berichtUtils'
 import type { SchuelerBerichtPDFProps } from '@/components/berichte/SchuelerBerichtPDF'
-import type { Fach, Klasse, Lernziel, Schueler, Thema } from '@/types/domain'
+import type { Fach, Klasse, Lernziel, Schueler, Lernkontrolle } from '@/types/domain'
 
 type Props = {
   open: boolean
@@ -15,7 +15,7 @@ type Props = {
   student: Schueler
   klasse: Klasse
   fach: Fach
-  thema: Thema
+  thema: Lernkontrolle
   activeLz: Lernziel[]
   kommentar: string
   onKommentarChange: (value: string) => void

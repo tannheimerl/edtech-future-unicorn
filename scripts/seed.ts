@@ -1,37 +1,58 @@
 // Seeds a local Lezio SQLite database with the sample data from seed-data.ts.
 //
 // Usage:
-//   npm run seed                          # seeds the default per-OS app-data location
+//   npm run seed                          # seeds the app's *currently configured* DB
 //   npm run seed -- --db=/path/to/lezio.db  # seeds a specific file (e.g. a fresh dev DB)
 //
-// The default path mirrors src-tauri/src/db_settings.rs::default_db_path() so
-// running this against a freshly-installed app "just works". Existing rows in
-// every seeded table are cleared first, so the script is safe to re-run.
+// Path resolution mirrors src-tauri/src/db_settings.rs::get_db_path(): if the
+// app has a custom path saved in db-settings.json (set via the in-app
+// Datenbank-Einstellungen), that file is seeded — NOT the per-OS default —
+// since that's the file the running app actually reads from. Only falls back
+// to the default app-data location if no custom path is configured. Existing
+// rows in every seeded table are cleared first, so the script is safe to re-run.
 import Database from 'better-sqlite3'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, existsSync, readFileSync } from 'node:fs'
 import { SCHEMA_STATEMENTS } from '../src/lib/schema'
 import {
-  SEED_FAECHER, SEED_THEMEN, SEED_LERNZIELE, SEED_LERNZIELE_RILZ,
+  SEED_FAECHER, SEED_LERNKONTROLLEN, SEED_LERNZIELE, SEED_LERNZIELE_RILZ,
   SEED_LEHRPERSONEN, SEED_CLASSES, SEED_STUDENTS, SEED_KOMMENTARE,
 } from './seed-data'
 
 const APP_IDENTIFIER = 'com.lezio.app'
 
-const defaultDbPath = (): string => {
+// Mirrors the per-OS app-data directory Tauri resolves for this app identifier.
+const appDataDir = (): string => {
   switch (process.platform) {
     case 'darwin':
-      return join(homedir(), 'Library', 'Application Support', APP_IDENTIFIER, 'lezio.db')
+      return join(homedir(), 'Library', 'Application Support', APP_IDENTIFIER)
     case 'win32':
-      return join(process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'), APP_IDENTIFIER, 'lezio.db')
+      return join(process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'), APP_IDENTIFIER)
     default:
-      return join(process.env.XDG_DATA_HOME ?? join(homedir(), '.local', 'share'), APP_IDENTIFIER, 'lezio.db')
+      return join(process.env.XDG_DATA_HOME ?? join(homedir(), '.local', 'share'), APP_IDENTIFIER)
+  }
+}
+
+const defaultDbPath = (): string => join(appDataDir(), 'lezio.db')
+
+// Reads db-settings.json the same way db_settings.rs::get_db_path() does:
+// a custom path set via the in-app "Datenbank" settings takes priority over
+// the default location.
+const configuredDbPath = (): string | null => {
+  const settingsPath = join(appDataDir(), 'db-settings.json')
+  if (!existsSync(settingsPath)) return null
+  try {
+    const raw = JSON.parse(readFileSync(settingsPath, 'utf-8')) as { db_path?: string }
+    return raw.db_path || null
+  } catch {
+    return null
   }
 }
 
 const dbArg = process.argv.find((a) => a.startsWith('--db='))
-const dbPath = dbArg ? dbArg.slice('--db='.length) : defaultDbPath()
+const dbPath = dbArg ? dbArg.slice('--db='.length) : (configuredDbPath() ?? defaultDbPath())
+console.log(`Seeding ${dbPath}${dbArg ? ' (--db flag)' : configuredDbPath() ? ' (custom path from db-settings.json)' : ' (default app-data path)'}`)
 
 mkdirSync(join(dbPath, '..'), { recursive: true })
 const db = new Database(dbPath)
@@ -45,10 +66,10 @@ const int = (b: boolean | undefined): number => (b ? 1 : 0)
 const seed = db.transaction(() => {
   // Clear seeded tables (children before parents) so re-running is safe.
   for (const table of [
-    'fact_kommentare', 'fact_thema_kommentare', 'fact_pruefung_ergebnisse', 'fact_pruefungen',
-    'fact_rilz_lernziele', 'fact_lernziel_status', 'dim_schueler',
-    'bridge_lp_zuweisungen', 'bridge_klasse_themen', 'dim_klassen',
-    'dim_lernziele', 'dim_themen', 'dim_lehrpersonen', 'dim_faecher',
+    'fact_kommentare', 'fact_lernkontrolle_kommentare', 'fact_pruefung_ergebnisse', 'fact_pruefungen',
+    'fact_lernziel_status', 'dim_schueler',
+    'bridge_lp_zuweisungen', 'dim_klassen',
+    'dim_lernziele', 'dim_lernkontrollen', 'dim_lehrpersonen', 'dim_faecher',
   ]) db.exec(`DELETE FROM ${table}`)
 
   const insertFach = db.prepare(`
@@ -62,28 +83,27 @@ const seed = db.transaction(() => {
   `)
   for (const lp of SEED_LEHRPERSONEN) insertLp.run(lp)
 
-  const insertThema = db.prepare(`
-    INSERT INTO dim_themen (id, fach_id, name, typ, standard_thema_id, faellig_am, stufe, zyklus, autor, autor_lp_id, tags)
-    VALUES (@id, @fachId, @name, @typ, @standardThemaId, @faelligAm, @stufe, @zyklus, @autor, @autorLpId, @tags)
+  const insertLernkontrolle = db.prepare(`
+    INSERT INTO dim_lernkontrollen (id, fach_id, name, typ, standard_lernkontrolle_id, faellig_am, stufe, zyklus, autor, autor_lp_id)
+    VALUES (@id, @fachId, @name, @typ, @standardLernkontrolleId, @faelligAm, @stufe, @zyklus, @autor, @autorLpId)
   `)
-  for (const t of SEED_THEMEN) insertThema.run({
+  for (const t of SEED_LERNKONTROLLEN) insertLernkontrolle.run({
     id: t.id, fachId: t.fachId, name: t.name,
     typ: t.typ ?? 'standard',
-    standardThemaId: t.standardThemaId ?? null,
+    standardLernkontrolleId: t.standardLernkontrolleId ?? null,
     faelligAm: t.faelligAm ?? null,
     stufe: t.stufe ? arr(t.stufe) : null,
     zyklus: t.zyklus ? arr(t.zyklus) : null,
     autor: t.autor ?? null,
     autorLpId: t.autorLpId ?? null,
-    tags: t.tags ? JSON.stringify(t.tags) : '{}',
   })
 
   const insertLernziel = db.prepare(`
-    INSERT INTO dim_lernziele (id, thema_id, kategorie, label, kriterien, stufe, beschreibung)
-    VALUES (@id, @themaId, @kategorie, @label, @kriterien, @stufe, @beschreibung)
+    INSERT INTO dim_lernziele (id, lernkontrolle_id, kategorie, label, kriterien, stufe, beschreibung)
+    VALUES (@id, @lernkontrolleId, @kategorie, @label, @kriterien, @stufe, @beschreibung)
   `)
   for (const l of [...SEED_LERNZIELE, ...SEED_LERNZIELE_RILZ]) insertLernziel.run({
-    id: l.id, themaId: l.themaId, kategorie: l.kategorie, label: l.label,
+    id: l.id, lernkontrolleId: l.lernkontrolleId, kategorie: l.kategorie, label: l.label,
     kriterien: l.kriterien ? arr(l.kriterien) : null,
     stufe: l.stufe ? arr(l.stufe) : null,
     beschreibung: l.beschreibung ?? null,
@@ -92,9 +112,6 @@ const seed = db.transaction(() => {
   const insertKlasse = db.prepare(`
     INSERT INTO dim_klassen (id, name, schuljahr, vorgaenger_klasse_id, settings)
     VALUES (@id, @name, @schuljahr, @vorgaengerKlasseId, @settings)
-  `)
-  const insertKlasseThema = db.prepare(`
-    INSERT INTO bridge_klasse_themen (klasse_id, thema_id) VALUES (@klasseId, @themaId)
   `)
   const insertLpZuweisung = db.prepare(`
     INSERT INTO bridge_lp_zuweisungen (id, klasse_id, lp_id, fach_ids, rolle)
@@ -107,7 +124,6 @@ const seed = db.transaction(() => {
       vorgaengerKlasseId: k.vorgaengerKlasseId ?? null,
       settings: k.beurteilungSettings ? JSON.stringify(k.beurteilungSettings) : null,
     })
-    for (const themaId of k.assignedThemaIds) insertKlasseThema.run({ klasseId: k.id, themaId })
     for (const z of k.lpZuweisungen ?? []) insertLpZuweisung.run({
       id: crypto.randomUUID(), klasseId: k.id, lpId: z.lpId,
       fachIds: arr(z.fachIds), rolle: z.rolle ?? null,
@@ -115,30 +131,23 @@ const seed = db.transaction(() => {
   }
 
   const insertSchueler = db.prepare(`
-    INSERT INTO dim_schueler (id, klasse_id, vorname, nachname, note, bvsa, rilz_fach_ids, rilz_thema_ids, competency_status, lernziel_versuche, progress_history)
-    VALUES (@id, @klasseId, @vorname, @nachname, @note, @bvsa, @rilzFachIds, @rilzThemaIds, @competencyStatus, @lernzielVersuche, @progressHistory)
+    INSERT INTO dim_schueler (id, klasse_id, vorname, nachname, note, bvsa, rilz_fach_ids, competency_status, lernziel_versuche, progress_history)
+    VALUES (@id, @klasseId, @vorname, @nachname, @note, @bvsa, @rilzFachIds, @competencyStatus, @lernzielVersuche, @progressHistory)
   `)
   const insertLernzielStatus = db.prepare(`
     INSERT INTO fact_lernziel_status (schueler_id, lernziel_id, status) VALUES (@schuelerId, @lernzielId, @status)
-  `)
-  const insertRilzLernziel = db.prepare(`
-    INSERT INTO fact_rilz_lernziele (id, schueler_id, thema_id, label, status)
-    VALUES (@id, @schuelerId, @themaId, @label, @status)
   `)
   for (const s of SEED_STUDENTS) {
     insertSchueler.run({
       id: s.id, klasseId: s.klassId, vorname: s.vorname, nachname: s.nachname,
       note: s.note ?? '', bvsa: int(s.bvsa),
-      rilzFachIds: arr(s.rilzFachIds), rilzThemaIds: arr(s.rilzThemaIds),
+      rilzFachIds: arr(s.rilzFachIds),
       competencyStatus: JSON.stringify(s.competencyStatus),
       lernzielVersuche: JSON.stringify(s.lernzielVersuche ?? {}),
       progressHistory: arr(s.progressHistory),
     })
     for (const [lernzielId, status] of Object.entries(s.lernzielStatus)) {
       insertLernzielStatus.run({ schuelerId: s.id, lernzielId, status })
-    }
-    for (const rl of s.rilzLernziele ?? []) {
-      insertRilzLernziel.run({ id: rl.id, schuelerId: s.id, themaId: rl.themaId, label: rl.label, status: rl.status })
     }
   }
 

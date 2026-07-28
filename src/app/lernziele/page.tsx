@@ -1,90 +1,98 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { CreateThemaModal } from "@/components/shared/CreateThemaModal";
+import { CreateLernkontrolleModal } from "@/components/shared/CreateLernkontrolleModal";
 import { FilterDropdown } from "@/components/shared/FilterDropdown";
 import { InputModal } from "@/components/shared/InputModal";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { ThemaAddPickerModal } from "@/components/shared/ThemaAddPickerModal";
+import { LernkontrolleAddPickerModal } from "@/components/shared/LernkontrolleAddPickerModal";
 import { SearchBar } from "@/components/shared/SearchBar";
-import {
-  AddSpalteButton,
-  BUILTIN_KOLONNEN,
-  MAX_SPALTEN,
-} from "@/components/lernziele/AddSpalteButton";
-import { ThemaLZSection } from "@/components/lernziele/ThemaLZSection";
-import { ThemaEditModal } from "@/components/lernziele/ThemaEditModal";
+import { SortMenu } from "@/components/shared/SortMenu";
+import { LernkontrolleLZSection } from "@/components/lernziele/LernkontrolleLZSection";
+import { LernkontrolleEditModal } from "@/components/lernziele/LernkontrolleEditModal";
 import { cn, getFachColor } from "@/lib/utils";
 import { useLezioImport } from "@/hooks/useLezioImport";
 import { LezioImportModal } from "@/components/shared/LezioImportModal";
-import type { Thema } from "@/types/domain";
+import type { Lernkontrolle } from "@/types/domain";
 
-const LS_KEY = "lezio_lz_sichtbare_spalten";
+const KOLONNEN = ["fach", "typ", "stufe"] as const;
+const KOLONNEN_LABELS: Record<(typeof KOLONNEN)[number], string> = {
+  fach: "Fach",
+  typ: "Typ",
+  stufe: "Schulstufe",
+};
+
+type SortOption = "name-asc" | "name-desc" | "stufe-asc" | "stufe-desc";
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "name-asc", label: "Name (A–Z)" },
+  { value: "name-desc", label: "Name (Z–A)" },
+  { value: "stufe-asc", label: "Schulstufe (aufsteigend)" },
+  { value: "stufe-desc", label: "Schulstufe (absteigend)" },
+];
+
+const compareLernkontrollen = (
+  a: Lernkontrolle,
+  b: Lernkontrolle,
+  sort: SortOption,
+) => {
+  if (sort === "name-asc") return a.name.localeCompare(b.name, "de-CH");
+  if (sort === "name-desc") return b.name.localeCompare(a.name, "de-CH");
+  const stufeA = a.stufe?.[0] ?? Infinity;
+  const stufeB = b.stufe?.[0] ?? Infinity;
+  if (stufeA !== stufeB)
+    return sort === "stufe-asc" ? stufeA - stufeB : stufeB - stufeA;
+  return a.name.localeCompare(b.name, "de-CH");
+};
 
 // ── Page ──────────────────────────────────────────────────────────────────
 
 const LernzielePage = () => {
   const {
     faecher,
-    themen,
+    lernkontrollen,
     lernziele,
     createFach,
-    exportThema,
+    exportLernkontrolle,
     exportFach,
-    deleteThema,
+    deleteLernkontrolle,
     deleteFach,
-    tagKategorien,
-    createTagKategorie,
-    getTagWerte,
     loadError,
     reloadData,
   } = useData();
 
-  const [aktiveKolonnen, setAktiveKolonnen] = useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(LS_KEY) ?? '["fach","typ"]');
-    } catch {
-      return ["fach", "typ"];
-    }
-  });
   const [kolonnenFilter, setKolonnenFilter] = useState<Record<string, string>>(
     {},
   );
-  const [katCreateOpen, setKatCreateOpen] = useState(false);
-  const [expandedThemen, setExpandedThemen] = useState<Set<string>>(new Set());
-  const [collapsedFaecher, setCollapsedFaecher] = useState<Set<string>>(
-    new Set(),
-  );
+  const [expandedLernkontrollen, setExpandedLernkontrollen] = useState<
+    Set<string>
+  >(new Set());
   const [fachCreateOpen, setFachCreateOpen] = useState(false);
-  const [fachCreateMode, setFachCreateMode] = useState<"withThema" | "only">(
-    "withThema",
-  );
-  const [themaCreateFachId, setThemaCreateFachId] = useState<string | null>(
-    null,
-  );
-  const [themaPickerFachId, setThemaPickerFachId] = useState<string | null>(
-    null,
-  );
+  const [fachCreateMode, setFachCreateMode] = useState<
+    "withLernkontrolle" | "only"
+  >("withLernkontrolle");
+  const [lernkontrolleCreateFachId, setLernkontrolleCreateFachId] = useState<
+    string | null
+  >(null);
+  const [lernkontrollePickerFachId, setLernkontrollePickerFachId] = useState<
+    string | null
+  >(null);
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortOption>("name-asc");
   const lezio = useLezioImport();
-  const [editThemaId, setEditThemaId] = useState<string | null>(null);
-  const [deleteThemaId, setDeleteThemaId] = useState<string | null>(null);
+  const [editLernkontrolleId, setEditLernkontrolleId] = useState<string | null>(
+    null,
+  );
+  const [deleteLernkontrolleId, setDeleteLernkontrolleId] = useState<
+    string | null
+  >(null);
   const [deleteFachId, setDeleteFachId] = useState<string | null>(null);
 
-  const toggleThema = (id: string) => {
-    setExpandedThemen((prev) => {
-      const n = new Set(prev);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
-  };
-
-  const toggleFach = (id: string) => {
-    setCollapsedFaecher((prev) => {
+  const toggleLernkontrolle = (id: string) => {
+    setExpandedLernkontrollen((prev) => {
       const n = new Set(prev);
       n.has(id) ? n.delete(id) : n.add(id);
       return n;
@@ -94,7 +102,7 @@ const LernzielePage = () => {
   const handleFachCreated = (name: string) => {
     const newFachId = createFach(name);
     setFachCreateOpen(false);
-    setThemaCreateFachId(newFachId);
+    setLernkontrolleCreateFachId(newFachId);
   };
 
   const handleFachOnlyCreated = (name: string) => {
@@ -103,33 +111,14 @@ const LernzielePage = () => {
   };
 
   const handlePickerNeuErstellen = () => {
-    setThemaCreateFachId(themaPickerFachId);
-    setThemaPickerFachId(null);
+    setLernkontrolleCreateFachId(lernkontrollePickerFachId);
+    setLernkontrollePickerFachId(null);
   };
 
   const handlePickerImportieren = () => {
-    setThemaPickerFachId(null);
+    setLernkontrollePickerFachId(null);
     // 50ms defer: Radix Dialog must unmount before native file dialog opens
     setTimeout(() => lezio.openFileDialog(), 50);
-  };
-
-  const addKolonne = (id: string) => {
-    if (aktiveKolonnen.length >= MAX_SPALTEN || aktiveKolonnen.includes(id))
-      return;
-    const next = [...aktiveKolonnen, id];
-    setAktiveKolonnen(next);
-    localStorage.setItem(LS_KEY, JSON.stringify(next));
-  };
-
-  const removeKolonne = (id: string) => {
-    const next = aktiveKolonnen.filter((k) => k !== id);
-    setAktiveKolonnen(next);
-    localStorage.setItem(LS_KEY, JSON.stringify(next));
-    setKolonnenFilter((prev) => {
-      const n = { ...prev };
-      delete n[id];
-      return n;
-    });
   };
 
   const q = search.trim().toLowerCase();
@@ -140,93 +129,86 @@ const LernzielePage = () => {
 
   const tableData = visibleFaecher.map((fach) => ({
     fach,
-    themen: themen.filter((t) => {
-      if (t.fachId !== fach.id) return false;
-      if (q && !t.name.toLowerCase().includes(q)) return false;
-      for (const colId of aktiveKolonnen) {
-        const val = kolonnenFilter[colId] ?? "";
-        if (!val) continue;
-        if (colId === "typ") {
-          if ((t.typ ?? "standard") !== val) return false;
-        } else if (colId === "stufe") {
-          if (!(t.stufe ?? []).includes(parseInt(val))) return false;
-        } else if (colId !== "fach") {
-          if (!(t.tags?.[colId] ?? []).includes(val)) return false;
-        }
-      }
-      return true;
-    }),
+    lernkontrollen: lernkontrollen
+      .filter((t) => {
+        if (t.fachId !== fach.id) return false;
+        if (q && !t.name.toLowerCase().includes(q)) return false;
+        const typFilter = kolonnenFilter["typ"];
+        if (typFilter && (t.typ ?? "standard") !== typFilter) return false;
+        const stufeFilter = kolonnenFilter["stufe"];
+        if (stufeFilter && !(t.stufe ?? []).includes(parseInt(stufeFilter)))
+          return false;
+        return true;
+      })
+      .sort((a, b) => compareLernkontrollen(a, b, sort)),
   }));
-  const hasAnyThemen = tableData.some((d) => d.themen.length > 0);
-  const newThemaFachId = faecher[0]?.id ?? null;
+  const hasAnyLernkontrollen = tableData.some(
+    (d) => d.lernkontrollen.length > 0,
+  );
+  const newLernkontrolleFachId = faecher[0]?.id ?? null;
 
   const hasActiveFilters =
     q || Object.values(kolonnenFilter).some((v) => v !== "");
 
-  const renderChips = (thema: Thema) => {
+  const renderChips = (lernkontrolle: Lernkontrolle) => {
     const fachIdList = faecher.map((f) => f.id);
-    return aktiveKolonnen.flatMap((spalteId, idx) => {
-      if (spalteId === "fach") {
-        const fach = faecher.find((f) => f.id === thema.fachId);
-        if (!fach) return [];
-        const color = getFachColor(thema.fachId, fachIdList, fach?.colorIndex);
-        return [
-          <span
-            key="fach"
-            className={cn(
-              "shrink-0 rounded-full px-1.5 py-0.5 text-3xs font-medium",
-              color.bg,
-            )}
-          >
-            {fach.name}
-          </span>,
-        ];
-      }
-      if (spalteId === "typ") {
-        return thema.typ === "rilz"
-          ? [
-              <span
-                key="typ"
-                className="shrink-0 rounded px-1.5 py-0.5 text-3xs font-medium bg-rilz-soft text-rilz-foreground"
-              >
-                RILZ
-              </span>,
-            ]
-          : [
-              <span
-                key="typ"
-                className="shrink-0 rounded px-1.5 py-0.5 text-3xs font-medium bg-muted text-muted-foreground"
-              >
-                Standard
-              </span>,
-            ];
-      }
-      if (spalteId === "stufe") {
-        if (!thema.stufe?.length) return [];
-        return [
-          <span
-            key="stufe"
-            className="shrink-0 text-3xs rounded px-1.5 py-0.5 bg-muted text-muted-foreground"
-          >
-            Kl. {thema.stufe[0]}
-          </span>,
-        ];
-      }
-      const vals = thema.tags?.[spalteId];
-      if (!vals?.length) return [];
-      return vals.map((v) => (
+    const chips: ReactElement[] = [];
+
+    const fach = faecher.find((f) => f.id === lernkontrolle.fachId);
+    if (fach) {
+      const color = getFachColor(
+        lernkontrolle.fachId,
+        fachIdList,
+        fach.colorIndex,
+      );
+      chips.push(
         <span
-          key={`${idx}-${v}`}
-          className="shrink-0 rounded-full px-1.5 py-0.5 text-3xs font-medium bg-accent text-accent-foreground"
+          key="fach"
+          className={cn(
+            "shrink-0 rounded-full px-1.5 py-0.5 text-3xs font-medium",
+            color.bg,
+          )}
         >
-          {v}
+          {fach.name}
+        </span>,
+      );
+    }
+
+    chips.push(
+      lernkontrolle.typ === "rilz" ? (
+        <span
+          key="typ"
+          className="shrink-0 rounded px-1.5 py-0.5 text-3xs font-medium bg-rilz-soft text-rilz-foreground"
+        >
+          RILZ
         </span>
-      ));
-    });
+      ) : (
+        <span
+          key="typ"
+          className="shrink-0 rounded px-1.5 py-0.5 text-3xs font-medium bg-muted text-muted-foreground"
+        >
+          Standard
+        </span>
+      ),
+    );
+
+    if (lernkontrolle.stufe?.length) {
+      chips.push(
+        <span
+          key="stufe"
+          className="shrink-0 text-3xs rounded px-1.5 py-0.5 bg-muted text-muted-foreground"
+        >
+          Kl. {lernkontrolle.stufe[0]}
+        </span>,
+      );
+    }
+
+    return chips;
   };
 
   return (
     <div className="page-container py-8">
+      <h1 className="mb-6">Vorlagen für Lernkontrollen</h1>
       {/* Empty / load-error state */}
       {faecher.length === 0 &&
         (loadError ? (
@@ -262,7 +244,7 @@ const LernzielePage = () => {
             action={
               <Button
                 onClick={() => {
-                  setFachCreateMode("withThema");
+                  setFachCreateMode("withLernkontrolle");
                   setFachCreateOpen(true);
                 }}
               >
@@ -274,239 +256,213 @@ const LernzielePage = () => {
 
       {faecher.length > 0 && (
         <>
-          <h1 className="mb-6">Vorlagen für Lernkontrollen</h1>
-          {/* Filter row */}
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            {aktiveKolonnen.map((colId) => {
-              const builtin = BUILTIN_KOLONNEN.find((k) => k.id === colId);
-              const custom = tagKategorien.find((k) => k.id === colId);
-              const label = builtin?.label ?? custom?.name ?? colId;
-
-              let options: { value: string; label: string; dot?: string }[];
-              let showSearch = false;
-
-              if (colId === "fach") {
-                const faecherMitThemen = faecher.filter((f) =>
-                  themen.some((t) => t.fachId === f.id),
-                );
-                options = [
-                  { value: "", label: "Alle Fächer" },
-                  ...faecherMitThemen.map((f) => ({
-                    value: f.id,
-                    label: f.name,
-                    dot: getFachColor(
-                      f.id,
-                      faecher.map((x) => x.id),
-                      f.colorIndex,
-                    ).dot,
-                  })),
-                ];
-                showSearch = faecherMitThemen.length > 4;
-              } else if (colId === "typ") {
-                const typenImData = [
-                  ...new Set(themen.map((t) => t.typ).filter(Boolean)),
-                ] as string[];
-                options = [
-                  { value: "", label: "Alle Typen" },
-                  ...(typenImData.includes("standard")
-                    ? [{ value: "standard", label: "Standard" }]
-                    : []),
-                  ...(typenImData.includes("rilz")
-                    ? [{ value: "rilz", label: "RILZ" }]
-                    : []),
-                ];
-              } else if (colId === "stufe") {
-                const availableStufen = [
-                  ...new Set(themen.flatMap((t) => t.stufe ?? [])),
-                ].sort((a, b) => a - b);
-                options = [
-                  { value: "", label: "Alle Stufen" },
-                  ...availableStufen.map((n) => ({
-                    value: String(n),
-                    label: `Klasse ${n}`,
-                  })),
-                ];
-              } else {
-                const vals = getTagWerte(colId);
-                options = [
-                  { value: "", label: `Alle ${label}` },
-                  ...vals.map((v) => ({ value: v, label: v })),
-                ];
-                showSearch = vals.length > 4;
+          <div className="mb-5">
+            {/* Search + Import row */}
+            <SearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder="Lernkontrolle suchen…"
+              className="mb-3"
+              right={
+                <>
+                  {lezio.feedback && (
+                    <span
+                      className={cn(
+                        "self-center text-xs",
+                        lezio.feedback.ok
+                          ? "text-status-reached"
+                          : "text-status-not-reached",
+                      )}
+                    >
+                      {lezio.feedback.msg}
+                    </span>
+                  )}
+                  <Button
+                    className="h-auto"
+                    variant="secondary"
+                    onClick={lezio.openFileDialog}
+                  >
+                    <Icon name="upload" size={14} /> Importieren
+                  </Button>
+                </>
               }
-
-              return (
-                <FilterDropdown
-                  key={colId}
-                  label={label}
-                  value={kolonnenFilter[colId] ?? ""}
-                  options={options}
-                  onChange={(v) =>
-                    setKolonnenFilter((prev) => ({ ...prev, [colId]: v }))
-                  }
-                  onRemove={() => removeKolonne(colId)}
-                  showSearch={showSearch}
-                />
-              );
-            })}
-
-            <AddSpalteButton
-              aktiveKolonnen={aktiveKolonnen}
-              tagKategorien={tagKategorien}
-              onAdd={addKolonne}
-              onNewKategorie={() => setKatCreateOpen(true)}
             />
+            {/* Filter row */}
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              {KOLONNEN.map((colId) => {
+                const label = KOLONNEN_LABELS[colId];
 
-            {hasActiveFilters && (
-              <button
-                onClick={() => {
-                  setSearch("");
-                  setKolonnenFilter({});
-                }}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Icon name="close" size={12} /> Filter zurücksetzen
-              </button>
-            )}
+                let options: { value: string; label: string; dot?: string }[];
+                let showSearch = false;
+
+                if (colId === "fach") {
+                  const faecherMitLernkontrollen = faecher.filter((f) =>
+                    lernkontrollen.some((t) => t.fachId === f.id),
+                  );
+                  options = [
+                    { value: "", label: "Alle Fächer" },
+                    ...faecherMitLernkontrollen.map((f) => ({
+                      value: f.id,
+                      label: f.name,
+                      dot: getFachColor(
+                        f.id,
+                        faecher.map((x) => x.id),
+                        f.colorIndex,
+                      ).dot,
+                    })),
+                  ];
+                  showSearch = faecherMitLernkontrollen.length > 4;
+                } else if (colId === "typ") {
+                  const typenImData = [
+                    ...new Set(
+                      lernkontrollen.map((t) => t.typ).filter(Boolean),
+                    ),
+                  ] as string[];
+                  options = [
+                    { value: "", label: "Alle Typen" },
+                    ...(typenImData.includes("standard")
+                      ? [{ value: "standard", label: "Standard" }]
+                      : []),
+                    ...(typenImData.includes("rilz")
+                      ? [{ value: "rilz", label: "RILZ" }]
+                      : []),
+                  ];
+                } else {
+                  const availableStufen = [
+                    ...new Set(lernkontrollen.flatMap((t) => t.stufe ?? [])),
+                  ].sort((a, b) => a - b);
+                  options = [
+                    { value: "", label: "Alle Stufen" },
+                    ...availableStufen.map((n) => ({
+                      value: String(n),
+                      label: `Klasse ${n}`,
+                    })),
+                  ];
+                }
+
+                return (
+                  <FilterDropdown
+                    key={colId}
+                    label={label}
+                    value={kolonnenFilter[colId] ?? ""}
+                    options={options}
+                    onChange={(v) =>
+                      setKolonnenFilter((prev) => ({ ...prev, [colId]: v }))
+                    }
+                    showSearch={showSearch}
+                  />
+                );
+              })}
+
+              {hasActiveFilters && (
+                <button
+                  onClick={() => {
+                    setSearch("");
+                    setKolonnenFilter({});
+                  }}
+                  className="flex items-center gap-1 text-xs text-primary hover:text-foreground transition-colors"
+                >
+                  <Icon name="close" size={12} /> Filter zurücksetzen
+                </button>
+              )}
+
+              <div className="ml-auto">
+                <SortMenu
+                  label="Sortieren"
+                  value={sort}
+                  options={SORT_OPTIONS}
+                  onChange={setSort}
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Search + Import row */}
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Thema suchen…"
-            className="mb-6"
-            right={
-              <>
-                {lezio.feedback && (
-                  <span
-                    className={cn(
-                      "self-center text-xs",
-                      lezio.feedback.ok
-                        ? "text-status-reached"
-                        : "text-status-not-reached",
-                    )}
-                  >
-                    {lezio.feedback.msg}
-                  </span>
-                )}
-                <Button className="h-auto" onClick={lezio.openFileDialog}>
-                  <Icon name="upload" size={14} /> Importieren
-                </Button>
-              </>
-            }
-          />
-
           {/* Table */}
-          {!hasAnyThemen && hasActiveFilters ? (
+          {!hasAnyLernkontrollen && hasActiveFilters ? (
             <p className="text-sm text-muted-foreground text-center py-10">
-              Keine Themen entsprechen den gewählten Filtern.
+              Keine Lernkontrollen entsprechen den gewählten Filtern.
             </p>
-          ) : !hasAnyThemen ? (
+          ) : !hasAnyLernkontrollen ? (
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card py-14 text-center">
               <p className="text-sm font-medium text-muted-foreground">
-                Noch keine Themen angelegt
+                Noch keine Lernkontrollen angelegt
               </p>
-              {newThemaFachId && (
+              {newLernkontrolleFachId && (
                 <Button
                   variant="secondary"
-                  onClick={() => setThemaPickerFachId(newThemaFachId)}
+                  onClick={() =>
+                    setLernkontrollePickerFachId(newLernkontrolleFachId)
+                  }
                 >
-                  <Icon name="add" size={12} /> Erstes Thema erstellen
+                  <Icon name="add" size={12} /> Erste Lernkontrolle erstellen
                 </Button>
               )}
             </div>
           ) : (
-            <div className="space-y-3">
-              {tableData.map(({ fach, themen: fachThemen }) => {
+            <div className="space-y-8">
+              {tableData.map(({ fach, lernkontrollen: fachLernkontrollen }) => {
                 const fachColor = getFachColor(
                   fach.id,
                   faecher.map((f) => f.id),
                   fach.colorIndex,
                 );
-                const fachCollapsed = collapsedFaecher.has(fach.id);
-                const fachLZCount = fachThemen.reduce(
-                  (s, t) =>
-                    s + lernziele.filter((lz) => lz.themaId === t.id).length,
-                  0,
-                );
+
                 return (
-                  <div
-                    key={fach.id}
-                    className={cn(
-                      "rounded-2xl border bg-card overflow-hidden shadow-sm border-l-4",
-                      fachColor.border,
-                    )}
-                  >
-                    {/* Fach header */}
+                  <div key={fach.id}>
+                    {/* Fach title — outside the card */}
                     <div
                       className={cn(
-                        "group flex items-center gap-2 px-3 py-1.5 select-none",
-                        fachColor.bg,
+                        "flex justify-between items-center px-1 mb-3 select-none",
+                        fachColor.text,
                       )}
                     >
-                      <button
-                        onClick={() => toggleFach(fach.id)}
-                        className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
-                      >
-                        {fachCollapsed ? (
-                          <Icon
-                            name="chevron_right"
-                            size={14}
-                            className="text-muted-foreground shrink-0"
-                          />
-                        ) : (
-                          <Icon
-                            name="expand_more"
-                            size={14}
-                            className="text-muted-foreground shrink-0"
-                          />
-                        )}
-                        <span className="text-xs font-semibold uppercase tracking-wider text-foreground flex-1 text-left">
-                          {fach.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {fachLZCount} LZ
-                        </span>
-                      </button>
-                      <Button
-                        size="icon-sm"
-                        variant="secondary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void exportFach(fach.id);
-                        }}
-                        aria-label={`${fach.name} exportieren`}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground"
-                      >
-                        <Icon name="download" size={14} />
-                      </Button>
-                      <Button
-                        size="icon-sm"
-                        variant="secondary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteFachId(fach.id);
-                        }}
-                        aria-label={`${fach.name} löschen`}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-destructive"
-                      >
-                        <Icon name="delete" size={14} />
-                      </Button>
+                      <h2>{fach.name}</h2>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="icon-sm"
+                          variant="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void exportFach(fach.id);
+                          }}
+                          aria-label={`${fach.name} exportieren`}
+                        >
+                          <Icon name="download" size={14} />
+                        </Button>
+                        <Button
+                          size="icon-sm"
+                          variant="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteFachId(fach.id);
+                          }}
+                          aria-label={`${fach.name} löschen`}
+                        >
+                          <Icon name="delete" size={14} />
+                        </Button>
+                      </div>
                     </div>
 
-                    {!fachCollapsed && (
+                    <div
+                      className={cn(
+                        "rounded-2xl border bg-card overflow-hidden shadow-sm",
+                      )}
+                    >
                       <div className="divide-y divide-border/40">
-                        {fachThemen.map((thema) => {
-                          const isExpanded = expandedThemen.has(thema.id);
+                        {fachLernkontrollen.map((lernkontrolle) => {
+                          const isExpanded = expandedLernkontrollen.has(
+                            lernkontrolle.id,
+                          );
 
                           return (
-                            <div key={thema.id}>
+                            <div key={lernkontrolle.id}>
                               <div className="group flex items-center gap-2 px-3 py-2 hover:bg-accent/20 transition-colors">
                                 {/* Name inline with Stufe-Chip und RILZ-Badge */}
                                 <button
                                   className="flex items-center gap-2 flex-1 min-w-0 text-left"
-                                  onClick={() => toggleThema(thema.id)}
+                                  onClick={() =>
+                                    toggleLernkontrolle(lernkontrolle.id)
+                                  }
                                 >
                                   {isExpanded ? (
                                     <Icon
@@ -522,9 +478,9 @@ const LernzielePage = () => {
                                     />
                                   )}
                                   <span className="text-sm font-medium truncate">
-                                    {thema.name}
+                                    {lernkontrolle.name}
                                   </span>
-                                  {renderChips(thema)}
+                                  {renderChips(lernkontrolle)}
                                 </button>
 
                                 {/* Actions — hover reveal */}
@@ -534,9 +490,9 @@ const LernzielePage = () => {
                                     variant="secondary"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setEditThemaId(thema.id);
+                                      setEditLernkontrolleId(lernkontrolle.id);
                                     }}
-                                    aria-label="Thema bearbeiten"
+                                    aria-label="Lernkontrolle bearbeiten"
                                   >
                                     <Icon name="edit" size={14} />
                                   </Button>
@@ -546,9 +502,9 @@ const LernzielePage = () => {
                                     className="text-muted-foreground"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      exportThema(thema.id);
+                                      exportLernkontrolle(lernkontrolle.id);
                                     }}
-                                    aria-label="Thema exportieren"
+                                    aria-label="Lernkontrolle exportieren"
                                   >
                                     <Icon name="download" size={12} />
                                   </Button>
@@ -556,28 +512,30 @@ const LernzielePage = () => {
                               </div>
 
                               {isExpanded && (
-                                <ThemaLZSection themaId={thema.id} />
+                                <LernkontrolleLZSection
+                                  lernkontrolleId={lernkontrolle.id}
+                                />
                               )}
                             </div>
                           );
                         })}
 
-                        {fachThemen.length === 0 && (
+                        {fachLernkontrollen.length === 0 && (
                           <div className="flex items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground">
                             {hasActiveFilters
-                              ? "Keine Themen entsprechen den Filtern."
-                              : "Noch keine Themen angelegt."}
+                              ? "Keine Lernkontrollen entsprechen den Filtern."
+                              : "Noch keine Lernkontrollen angelegt."}
                           </div>
                         )}
 
                         <button
-                          onClick={() => setThemaPickerFachId(fach.id)}
+                          onClick={() => setLernkontrollePickerFachId(fach.id)}
                           className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-accent/20 transition-colors"
                         >
-                          <Icon name="add" size={12} /> Thema hinzufügen
+                          <Icon name="add" size={12} /> Lernkontrolle hinzufügen
                         </button>
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}
@@ -608,61 +566,51 @@ const LernzielePage = () => {
         }
       />
 
-      <InputModal
-        open={katCreateOpen}
-        onOpenChange={setKatCreateOpen}
-        title="Neue Tag-Kategorie"
-        label="Bezeichnung"
-        placeholder="z. B. Semester, Lerngruppe …"
-        onSubmit={(name) => {
-          createTagKategorie(name);
-          setKatCreateOpen(false);
-        }}
-      />
-
-      {themaCreateFachId && (
-        <CreateThemaModal
-          open={!!themaCreateFachId}
+      {lernkontrolleCreateFachId && (
+        <CreateLernkontrolleModal
+          open={!!lernkontrolleCreateFachId}
           onOpenChange={(o) => {
-            if (!o) setThemaCreateFachId(null);
+            if (!o) setLernkontrolleCreateFachId(null);
           }}
-          fachId={themaCreateFachId}
+          fachId={lernkontrolleCreateFachId}
         />
       )}
 
-      {themaPickerFachId && (
-        <ThemaAddPickerModal
-          open={!!themaPickerFachId}
+      {lernkontrollePickerFachId && (
+        <LernkontrolleAddPickerModal
+          open={!!lernkontrollePickerFachId}
           onOpenChange={(o) => {
-            if (!o) setThemaPickerFachId(null);
+            if (!o) setLernkontrollePickerFachId(null);
           }}
-          fachName={faecher.find((f) => f.id === themaPickerFachId)?.name ?? ""}
+          fachName={
+            faecher.find((f) => f.id === lernkontrollePickerFachId)?.name ?? ""
+          }
           onImportieren={handlePickerImportieren}
           onNeuErstellen={handlePickerNeuErstellen}
         />
       )}
 
-      {editThemaId && (
-        <ThemaEditModal
-          themaId={editThemaId}
-          onClose={() => setEditThemaId(null)}
+      {editLernkontrolleId && (
+        <LernkontrolleEditModal
+          lernkontrolleId={editLernkontrolleId}
+          onClose={() => setEditLernkontrolleId(null)}
           onRequestDelete={() => {
-            setDeleteThemaId(editThemaId);
-            setEditThemaId(null);
+            setDeleteLernkontrolleId(editLernkontrolleId);
+            setEditLernkontrolleId(null);
           }}
         />
       )}
 
       <ConfirmDialog
-        open={!!deleteThemaId}
+        open={!!deleteLernkontrolleId}
         onOpenChange={(o) => {
-          if (!o) setDeleteThemaId(null);
+          if (!o) setDeleteLernkontrolleId(null);
         }}
-        title="Thema löschen"
-        description="Soll dieses Thema und alle zugehörigen Lernziele wirklich dauerhaft gelöscht werden?"
+        title="Lernkontrolle löschen"
+        description="Soll diese Lernkontrolle und alle zugehörigen Lernziele wirklich dauerhaft gelöscht werden?"
         confirmLabel="Löschen"
         onConfirm={() => {
-          if (deleteThemaId) deleteThema(deleteThemaId);
+          if (deleteLernkontrolleId) deleteLernkontrolle(deleteLernkontrolleId);
         }}
       />
       <ConfirmDialog
@@ -671,7 +619,7 @@ const LernzielePage = () => {
           if (!o) setDeleteFachId(null);
         }}
         title="Fach löschen"
-        description="Soll dieses Fach mit allen zugehörigen Themen und Lernzielen wirklich dauerhaft gelöscht werden?"
+        description="Soll dieses Fach mit allen zugehörigen Lernkontrollen und Lernzielen wirklich dauerhaft gelöscht werden?"
         confirmLabel="Löschen"
         onConfirm={() => {
           if (deleteFachId) {

@@ -5,8 +5,6 @@ import { PillTabs } from "@/components/shared/PillTabs";
 
 export type KlasseTab =
   | "schueler"
-  | "klassenübersicht"
-  | "lernziele"
   | "beurteilung"
   | "berichte"
   | "einstellungen";
@@ -24,9 +22,7 @@ export const KlasseTabBar = ({
 }) => {
   const tabs: { key: KlasseTab; label: string }[] = [
     { key: "schueler", label: "Schüler" },
-    { key: "beurteilung", label: "Beurteilung" },
-    { key: "klassenübersicht", label: "Statistiken" },
-    { key: "lernziele", label: "Lernziele" },
+    { key: "beurteilung", label: "Lernkontrollen" },
     { key: "berichte", label: "Berichte" },
     { key: "einstellungen", label: "Einstellungen" }, // TODO: Keine doppelte Bezeichnung für Einstellungen
   ];

@@ -3,7 +3,7 @@
 import { Icon } from "@/components/ui/Icon";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { useData } from "@/contexts/DataContext";
-import { themaCountsInStats, computeKlasseStats } from "@/lib/student-kpis";
+import { lernkontrolleCountsInStats, computeKlasseStats } from "@/lib/student-kpis";
 import { todayISO } from "@/lib/dates";
 import { scoreColor } from "@/lib/utils";
 
@@ -33,7 +33,7 @@ export const MetricPill = ({
 );
 
 export const KlasseStats = ({ klassId }: { klassId: string }) => {
-  const { getStudentsForClass, getThemenForKlasse, lernziele } = useData();
+  const { getStudentsForClass, lernkontrollen, lernziele } = useData();
   const students = getStudentsForClass(klassId);
 
   if (students.length === 0) {
@@ -46,12 +46,12 @@ export const KlasseStats = ({ klassId }: { klassId: string }) => {
   }
 
   const today = todayISO();
-  const classThemen = getThemenForKlasse(klassId).filter((t) =>
-    themaCountsInStats(t, today),
+  const klasseLernkontrollen = lernkontrollen.filter((t) =>
+    lernkontrolleCountsInStats(t, today),
   );
   const { avgScore, atRisk, excellent, hasData } = computeKlasseStats(
     students,
-    classThemen,
+    klasseLernkontrollen,
     lernziele,
   );
 
@@ -79,16 +79,16 @@ export const KlasseStats = ({ klassId }: { klassId: string }) => {
 };
 
 export const LernzielProgress = ({ klassId }: { klassId: string }) => {
-  const { getStudentsForClass, getThemenForKlasse, lernziele } = useData();
+  const { getStudentsForClass, lernkontrollen, lernziele } = useData();
   const students = getStudentsForClass(klassId);
 
   const today = todayISO();
-  const classThemen = getThemenForKlasse(klassId).filter((t) =>
-    themaCountsInStats(t, today),
+  const klasseLernkontrollen = lernkontrollen.filter((t) =>
+    lernkontrolleCountsInStats(t, today),
   );
   const { reachedPct, partialPct } = computeKlasseStats(
     students,
-    classThemen,
+    klasseLernkontrollen,
     lernziele,
   );
 

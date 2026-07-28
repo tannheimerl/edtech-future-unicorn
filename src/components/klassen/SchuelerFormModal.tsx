@@ -2,27 +2,36 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Modal } from '@/components/shared/Modal'
+import { SchuelerFields } from '@/components/klassen/SchuelerFields'
+import type { Fach } from '@/types/domain'
 
 export const SchuelerFormModal = ({
-  open, onOpenChange, initialVorname = '', initialNachname = '', onSubmit,
+  open, onOpenChange, initialVorname = '', initialNachname = '', faecher, onSubmit,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void
   initialVorname?: string; initialNachname?: string
-  onSubmit: (vorname: string, nachname: string) => void
+  faecher: Fach[]
+  onSubmit: (vorname: string, nachname: string, patch: { bvsa: boolean; rilzFachIds: string[] }) => void
 }) => {
   const [vorname, setVorname] = useState(initialVorname)
   const [nachname, setNachname] = useState(initialNachname)
+  const [bvsa, setBvsa] = useState(false)
+  const [rilzFachIds, setRilzFachIds] = useState<string[]>([])
+
   useEffect(() => {
-    if (open) { setVorname(initialVorname); setNachname(initialNachname) }
+    if (open) {
+      setVorname(initialVorname)
+      setNachname(initialNachname)
+      setBvsa(false)
+      setRilzFachIds([])
+    }
   }, [open, initialVorname, initialNachname])
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault()
     if (!vorname.trim() && !nachname.trim()) return
-    onSubmit(vorname.trim(), nachname.trim())
+    onSubmit(vorname.trim(), nachname.trim(), { bvsa, rilzFachIds })
     onOpenChange(false)
   }
 
@@ -39,28 +48,23 @@ export const SchuelerFormModal = ({
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="grid gap-3">
-        <div className="grid gap-1.5">
-          <Label htmlFor="schueler-vorname">Vorname</Label>
-          <Input
-            id="schueler-vorname"
-            value={vorname}
-            onChange={(e) => setVorname(e.target.value)}
-            placeholder="Vorname"
-            autoFocus
-          />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="schueler-nachname">Nachname</Label>
-          <Input
-            id="schueler-nachname"
-            value={nachname}
-            onChange={(e) => setNachname(e.target.value)}
-            placeholder="Nachname"
-          />
-        </div>
+      <form onSubmit={handleSubmit}>
+        <SchuelerFields
+          vorname={vorname}
+          nachname={nachname}
+          onVornameChange={setVorname}
+          onNachnameChange={setNachname}
+          bvsa={bvsa}
+          onBvsaChange={setBvsa}
+          rilzFachIds={rilzFachIds}
+          onRilzFachToggle={(fachId, enabled) =>
+            setRilzFachIds((prev) =>
+              enabled ? [...prev, fachId] : prev.filter((id) => id !== fachId)
+            )
+          }
+          faecher={faecher}
+        />
       </form>
     </Modal>
   )
 }
-

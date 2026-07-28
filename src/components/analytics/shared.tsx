@@ -24,7 +24,7 @@ export const KAT_LABELS: Record<KatFilter, string> = {
 export const VIEW_OPTIONS: { key: StatView; label: string }[] = [
   { key: 'gesamt', label: 'Gesamt' },
   { key: 'fach', label: 'Fach' },
-  { key: 'thema', label: 'Thema' },
+  { key: 'thema', label: 'Lernkontrolle' },
   { key: 'pruefungen', label: 'Lernzielkontrollen' },
 ]
 

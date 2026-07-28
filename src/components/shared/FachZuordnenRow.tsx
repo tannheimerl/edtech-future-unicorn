@@ -26,7 +26,7 @@ export const FachZuordnenRow = ({ importName, count, faecher, value, onChange }:
     <div className="grid grid-cols-[minmax(0,1fr)_auto_13rem] items-center gap-3 py-2">
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold">{importName}</p>
-        <p className="text-2xs text-muted-foreground">{count} {count === 1 ? 'Thema' : 'Themen'}</p>
+        <p className="text-2xs text-muted-foreground">{count} {count === 1 ? 'Lernkontrolle' : 'Lernkontrollen'}</p>
       </div>
       <Icon name="arrow_forward" size={16} className="shrink-0 text-muted-foreground" />
       <Popover open={open} onOpenChange={setOpen}>
