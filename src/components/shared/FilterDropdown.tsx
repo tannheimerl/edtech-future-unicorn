@@ -2,11 +2,13 @@
 
 import { Fragment, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/icon-button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Highlight } from "@/components/shared/Highlight";
 import { cn } from "@/lib/utils";
 
 type FilterDropdownOption = {
@@ -99,7 +101,7 @@ export const FilterDropdown = ({
           </span>
           <Icon
             name="expand_more"
-            size={12}
+            size={16}
             className="text-muted-foreground shrink-0"
           />
         </PopoverTrigger>
@@ -142,11 +144,13 @@ export const FilterDropdown = ({
                   ) : (
                     <span className="size-2.5 shrink-0" />
                   )}
-                  <span className="flex-1">{opt.label}</span>
+                  <span className="flex-1">
+                    <Highlight text={opt.label} query={search} />
+                  </span>
                   {opt.value === value && (
                     <Icon
                       name="check"
-                      size={12}
+                      size={16}
                       className="shrink-0 text-primary"
                     />
                   )}
@@ -168,7 +172,7 @@ export const FilterDropdown = ({
                 }}
                 className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs text-primary hover:bg-muted/60 transition-colors text-left"
               >
-                <Icon name="add" size={12} className="shrink-0" />
+                <Icon name="add" size={16} className="shrink-0" />
                 <span className="flex-1">{footerAction.label}</span>
               </button>
             </>
@@ -176,13 +180,13 @@ export const FilterDropdown = ({
         </PopoverContent>
       </Popover>
       {onRemove && (
-        <button
+        <IconButton
           onClick={onRemove}
-          className="flex items-center justify-center px-1.5 py-1.5 hover:bg-accent/50 transition-colors text-muted-foreground hover:text-foreground border-l border-border/40"
+          className="h-auto w-auto rounded-none border-0 border-l border-border/40 bg-transparent px-1.5 py-1.5 text-muted-foreground hover:bg-accent/50 hover:text-foreground"
           aria-label={`${label}-Spalte entfernen`}
         >
-          <Icon name="close" size={12} />
-        </button>
+          <Icon name="close" size={16} />
+        </IconButton>
       )}
     </div>
   );

@@ -23,6 +23,13 @@ Lernziel, Prüfung/Lernzielkontrolle, RILZ, bVSA) are used verbatim in code.
   `src/components/ui/` the primitives. Keep it that way: new helpers go into
   `src/lib/`, new subcomponents get their own file — don't grow page files.
 - Domain types live in `src/types/domain.ts`.
+- **Typography scale** (defined in `src/app/globals.css`): `text-xs` (12px) is
+  the smallest text allowed anywhere in the app — never go below it (no
+  ad-hoc `text-[10px]` etc.). Regular scale: `text-xs` = 12px, `text-sm` =
+  14px, `text-base` = 16px. Headings use the dedicated `heading-xs` (16px)
+  through `heading-2xl` (40px) tokens instead of ad-hoc `text-Nxl` sizes. The
+  one exception is `SchuelerBerichtPDF.tsx`, whose react-pdf `fontSize`
+  values are print-layout styles, not on-screen text.
 
 ## Reuse before you write — these helpers already exist
 
@@ -45,6 +52,7 @@ mistake in this codebase's history:
 | Lernziel add/edit/delete step | `LernzielEditSection` (used by both Thema edit modals) |
 | Analytics tiles/bars/filters | `components/analytics/shared.tsx` (KpiTile, LZStatusBar, FilterBar, …) |
 | Segmented/stacked progress bar | `ProgressBar` from `components/shared/ProgressBar` (segments API) |
+| Icon | `Icon` from `components/ui/Icon` (Material Symbols glyph) — `size` is in px and must land on the **16px ladder in 8px steps** (16, 24, 32, …), never an arbitrary value like 10/12/14/20 |
 
 ## React rules (the ESLint config enforces these as errors)
 
@@ -73,6 +81,3 @@ mistake in this codebase's history:
 - A plain `next dev` browser preview shows the load-error state because data
   comes from the Tauri SQLite plugin; real smoke tests need
   `npm run tauri:dev`.
-- `src/app/klassen/schueler/` and `src/app/klassen/schueler/bericht/` are
-  unlinked legacy pages (see their TODO headers) — leave them alone unless
-  asked.

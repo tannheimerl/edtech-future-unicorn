@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { Icon } from "@/components/ui/Icon"
+import { IconButton } from "@/components/ui/icon-button"
 import { cn } from '@/lib/utils'
 import { toDisplaySrc } from '@/lib/attachments'
 
@@ -65,31 +66,31 @@ export const PruefungAnhangUpload = ({ urls, onUpload, onDelete, disabled }: Pro
                 />
               </a>
             )}
-            <button
+            <IconButton
               type="button"
               onClick={() => handleDelete(url)}
               disabled={isDeleting || !!disabled}
               className={cn(
-                'absolute -right-1 -top-1 hidden size-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground group-hover:flex',
+                'absolute -right-1 -top-1 hidden size-4 rounded-full border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90 group-hover:flex',
                 isDeleting && 'flex opacity-50'
               )}
             >
-              {isDeleting ? <Icon name="progress_activity" size={10} className="animate-spin" /> : <Icon name="close" size={10} />}
-            </button>
+              {isDeleting ? <Icon name="progress_activity" size={16} className="animate-spin" /> : <Icon name="close" size={16} />}
+            </IconButton>
           </div>
         )
       })}
 
       {!disabled && (
-        <button
+        <IconButton
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
           title="Datei anhängen (Bild oder PDF, max. 10 MB)"
-          className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+          className="rounded-lg border-dashed border-border text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           {uploading ? <Icon name="progress_activity" size={16} className="animate-spin" /> : <Icon name="add" size={16} />}
-        </button>
+        </IconButton>
       )}
 
       <input

@@ -35,7 +35,7 @@ export const GefahrenzoneSettings = ({ klassName, onDelete }: GefahrenzoneSettin
           </p>
         </div>
         <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-          <Icon name="delete" size={14} />
+          <Icon name="delete" size={16} />
           Klasse löschen
         </Button>
       </div>

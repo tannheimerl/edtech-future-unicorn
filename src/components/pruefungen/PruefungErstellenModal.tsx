@@ -6,7 +6,6 @@ import { Modal } from '@/components/shared/Modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
 import { useData } from '@/contexts/DataContext'
@@ -30,7 +29,6 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
   // Step 1: Inhalt & Struktur
   const [typ, setTyp] = useState<PruefungTyp>('pruefung_schriftlich')
   const [name, setName] = useState('')
-  const [beschreibung, setBeschreibung] = useState('')
   const [fachId, setFachId] = useState('')
   const [selectedThemaIds, setSelectedThemaIds] = useState<Set<string>>(new Set())
   const [selectedLzIds, setSelectedLzIds] = useState<Set<string>>(new Set())
@@ -68,7 +66,6 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
       setStep(1)
       setTyp('pruefung_schriftlich')
       setName('')
-      setBeschreibung('')
       setFachId(availableFaecher[0]?.id ?? '')
       setSelectedThemaIds(new Set())
       setSelectedLzIds(new Set())
@@ -128,7 +125,6 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
       fachId,
       name: name.trim(),
       typ,
-      beschreibung: beschreibung.trim() || undefined,
       status: 'laufend',
       punkteEnabled,
       noteEnabled,
@@ -197,18 +193,6 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
               onChange={(e) => setName(e.target.value)}
               placeholder="z.B. Lernkontrolle Zahlenraum"
               autoFocus
-            />
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="prf-beschreibung">Beschreibung (optional)</Label>
-            <Textarea
-              id="prf-beschreibung"
-              value={beschreibung}
-              onChange={(e) => setBeschreibung(e.target.value)}
-              placeholder="Kurze Beschreibung der Aufgabe oder des Leistungsnachweises..."
-              rows={2}
-              className="field-sizing-fixed resize-none"
             />
           </div>
 

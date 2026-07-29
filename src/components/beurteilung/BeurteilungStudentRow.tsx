@@ -173,7 +173,7 @@ export const StudentRow = ({
             value={versuchVal}
             onChange={e => handleVersuchChange(e.target.value as 'laufend' | 'zweiter_versuch' | 'dritter_versuch' | 'abgeschlossen')}
             className={cn(
-              'shrink-0 rounded px-1 py-0.5 text-3xs font-medium border-0 focus:outline-none cursor-pointer',
+              'shrink-0 rounded px-1 py-0.5 text-xs font-medium border-0 focus:outline-none cursor-pointer',
               versuchVal === 'abgeschlossen' && 'bg-status-reached-soft text-status-reached-fg',
               (versuchVal === 'zweiter_versuch' || versuchVal === 'dritter_versuch') && 'bg-status-partial-soft text-status-partial-fg',
               versuchVal === 'laufend' && 'bg-muted text-muted-foreground',

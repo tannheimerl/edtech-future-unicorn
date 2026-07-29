@@ -5,22 +5,15 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
 import { Icon } from "@/components/ui/Icon"
 
 const Dialog = ({ ...props }: DialogPrimitive.Root.Props) => {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
-const DialogTrigger = ({ ...props }: DialogPrimitive.Trigger.Props) => {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
-}
-
 const DialogPortal = ({ ...props }: DialogPrimitive.Portal.Props) => {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
-}
-
-const DialogClose = ({ ...props }: DialogPrimitive.Close.Props) => {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
 const DialogOverlay = ({
@@ -63,11 +56,7 @@ const DialogContent = ({
           <DialogPrimitive.Close
             data-slot="dialog-close"
             render={
-              <Button
-                variant="secondary"
-                className="absolute top-2 right-2"
-                size="icon-sm"
-              />
+              <IconButton className="absolute top-2 right-2" />
             }
           >
             <Icon name="close" size={16} />
@@ -147,7 +136,6 @@ const DialogDescription = ({
 
 export {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -155,5 +143,4 @@ export {
   DialogOverlay,
   DialogPortal,
   DialogTitle,
-  DialogTrigger,
 }

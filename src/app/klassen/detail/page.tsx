@@ -15,6 +15,7 @@ import {
 import { SchuelerFormModal } from "@/components/klassen/SchuelerFormModal";
 import { SchuelerBearbeitenModal } from "@/components/klassen/SchuelerBearbeitenModal";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -28,9 +29,10 @@ import {
 } from "@/components/ui/table";
 import { InputModal } from "@/components/shared/InputModal";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Highlight } from "@/components/shared/Highlight";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { GefahrenzoneSettings } from "@/components/einstellungen/GefahrenzoneSettings";
-import { cn, getFachColor, scoreColor, scoreBarColor } from "@/lib/utils";
+import { cn, getFachColor } from "@/lib/utils";
 import { competencyPct } from "@/lib/student-kpis";
 
 // ── Page ──────────────────────────────────────────────────────────────────
@@ -160,7 +162,7 @@ const KlasseDetailPage = () => {
                     className="h-auto"
                     onClick={() => setCreateOpen(true)}
                   >
-                    <Icon name="add" size={14} />
+                    <Icon name="add" size={16} />
                     Neuer Schüler
                   </Button>
                 }
@@ -200,15 +202,21 @@ const KlasseDetailPage = () => {
                       <TableRow key={student.id}>
                         {/* Vorname */}
                         <TableCell>
-                          <span className="text-sm font-medium truncate block">
-                            {student.vorname}
+                          <span className="font-medium truncate block">
+                            <Highlight
+                              text={student.vorname}
+                              query={adminSearch}
+                            />
                           </span>
                         </TableCell>
 
                         {/* Nachname */}
                         <TableCell>
-                          <span className="text-sm text-muted-foreground truncate block">
-                            {student.nachname}
+                          <span className="text-muted-foreground truncate block">
+                            <Highlight
+                              text={student.nachname}
+                              query={adminSearch}
+                            />
                           </span>
                         </TableCell>
 
@@ -247,7 +255,7 @@ const KlasseDetailPage = () => {
                                     node: (
                                       <span
                                         className={cn(
-                                          "rounded px-1.5 py-0.5 text-3xs font-semibold shrink-0",
+                                          "rounded px-1.5 py-0.5 text-xs font-semibold shrink-0",
                                           fc.bg,
                                           fc.text,
                                         )}
@@ -259,20 +267,13 @@ const KlasseDetailPage = () => {
                                 }
                               }
                               if (badges.length === 0) return null;
-                              const MAX = 4;
-                              const overflow = badges.length - MAX;
                               return (
                                 <>
-                                  {badges.slice(0, MAX).map((b) => (
+                                  {badges.map((b) => (
                                     <span key={b.key} className="contents">
                                       {b.node}
                                     </span>
                                   ))}
-                                  {overflow > 0 && (
-                                    <Badge className="font-semibold">
-                                      +{overflow}
-                                    </Badge>
-                                  )}
                                 </>
                               );
                             })()}
@@ -282,17 +283,15 @@ const KlasseDetailPage = () => {
                         {/* Actions */}
                         <TableCell align="right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="secondary"
-                              size="icon-sm"
+                            <IconButton
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setEditStudentId(student.id);
                               }}
                               aria-label="Schüler bearbeiten"
                             >
-                              <Icon name="edit" size={24} />
-                            </Button>
+                              <Icon name="edit" size={16} />
+                            </IconButton>
                           </div>
                         </TableCell>
                       </TableRow>

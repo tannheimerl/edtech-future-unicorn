@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
  * because the glyph scales with `font-size`. Colour is inherited from
  * `currentColor`, so `text-*` utilities work as expected.
  *
- * @example <Icon name="add" size={12} className="text-muted-foreground" />
+ * @example <Icon name="add" size={16} className="text-muted-foreground" />
  */
 type IconProps = {
   /** Material Symbols ligature name, e.g. "add", "delete", "chevron_right". */

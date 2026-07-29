@@ -26,7 +26,7 @@ export const FachZuordnenRow = ({ importName, count, faecher, value, onChange }:
     <div className="grid grid-cols-[minmax(0,1fr)_auto_13rem] items-center gap-3 py-2">
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold">{importName}</p>
-        <p className="text-2xs text-muted-foreground">{count} {count === 1 ? 'Lernkontrolle' : 'Lernkontrollen'}</p>
+        <p className="text-xs text-muted-foreground">{count} {count === 1 ? 'Lernkontrolle' : 'Lernkontrollen'}</p>
       </div>
       <Icon name="arrow_forward" size={16} className="shrink-0 text-muted-foreground" />
       <Popover open={open} onOpenChange={setOpen}>
@@ -39,7 +39,7 @@ export const FachZuordnenRow = ({ importName, count, faecher, value, onChange }:
           ) : (
             <span className="flex-1 truncate text-left text-muted-foreground">Neues Fach anlegen</span>
           )}
-          <Icon name="expand_more" size={14} className="shrink-0 text-muted-foreground" />
+          <Icon name="expand_more" size={16} className="shrink-0 text-muted-foreground" />
         </PopoverTrigger>
         <PopoverContent className="w-56 p-1.5" align="end">
           <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto">
@@ -57,9 +57,9 @@ export const FachZuordnenRow = ({ importName, count, faecher, value, onChange }:
                   <span className={cn('size-2 rounded-full shrink-0', getFachColor(f.id, faecher.map(fx => fx.id), f.colorIndex).dot)} />
                   <span className="flex-1 truncate">{f.name}</span>
                   {isSuggested && (
-                    <Badge variant="primary" className="rounded-full text-4xs">Vorschlag</Badge>
+                    <Badge variant="primary" className="rounded-full text-xs">Vorschlag</Badge>
                   )}
-                  {value === f.id && <Icon name="check" size={12} className="shrink-0 text-primary" />}
+                  {value === f.id && <Icon name="check" size={16} className="shrink-0 text-primary" />}
                 </button>
               )
             })}
@@ -71,9 +71,9 @@ export const FachZuordnenRow = ({ importName, count, faecher, value, onChange }:
                 value === NEW_FACH ? 'bg-primary/10 text-primary' : 'hover:bg-muted/60',
               )}
             >
-              <Icon name="add" size={14} className="shrink-0" />
+              <Icon name="add" size={16} className="shrink-0" />
               <span className="flex-1 truncate">Neues Fach „{importName}“ anlegen</span>
-              {value === NEW_FACH && <Icon name="check" size={12} className="shrink-0 text-primary" />}
+              {value === NEW_FACH && <Icon name="check" size={16} className="shrink-0 text-primary" />}
             </button>
           </div>
         </PopoverContent>

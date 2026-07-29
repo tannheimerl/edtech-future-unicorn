@@ -29,7 +29,7 @@ export const StepCard = ({
       >
         {step !== undefined && (
           <span className={cn(
-            'flex size-5 shrink-0 items-center justify-center rounded-full text-3xs font-bold',
+            'flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold',
             isOpen ? 'bg-primary text-primary-foreground' : summary ? 'bg-status-reached text-white' : 'bg-muted text-muted-foreground',
           )}>
             {summary && !isOpen ? '✓' : step}

@@ -33,7 +33,7 @@ export const SortMenu = <T extends string>({
         <span>
           {label}: <span className="font-medium text-foreground">{current?.label}</span>
         </span>
-        <Icon name="expand_more" size={12} className="shrink-0" />
+        <Icon name="expand_more" size={16} className="shrink-0" />
       </PopoverTrigger>
       <PopoverContent className="p-1.5 w-52" align="start" side="bottom">
         <ModalOptionList

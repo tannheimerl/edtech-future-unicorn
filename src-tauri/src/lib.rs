@@ -16,7 +16,6 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
       db_settings::get_db_path,
       db_settings::set_db_path,
-      db_settings::reset_db_path,
       db_settings::import_db,
       db_settings::export_db,
     ])

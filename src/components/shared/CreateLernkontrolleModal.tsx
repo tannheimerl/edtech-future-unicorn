@@ -1,121 +1,156 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { Icon } from "@/components/ui/Icon"
-import { useData } from '@/contexts/DataContext'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Modal } from '@/components/shared/Modal'
-import { ModalRow } from '@/components/shared/ModalRow'
-import { cn } from '@/lib/utils'
-import type { LernzielKategorie } from '@/types/domain'
+import { useEffect, useState } from "react";
+import { Icon } from "@/components/ui/Icon";
+import { useData } from "@/contexts/DataContext";
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Modal } from "@/components/shared/Modal";
+import { ModalRow } from "@/components/shared/ModalRow";
+import { cn } from "@/lib/utils";
+import type { LernzielKategorie } from "@/types/domain";
 
-export const CreateLernkontrolleModal = ({ open, onOpenChange, fachId, onCreated }: {
-  open: boolean
-  onOpenChange: (v: boolean) => void
-  fachId: string
-  onCreated?: (lernkontrolleId: string) => void
+export const CreateLernkontrolleModal = ({
+  open,
+  onOpenChange,
+  fachId,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  fachId: string;
+  onCreated?: (lernkontrolleId: string) => void;
 }) => {
-  const {
-    faecher, createLernkontrolle, updateLernkontrolle, createLernziel,
-  } = useData()
+  const { faecher, createLernkontrolle, updateLernkontrolle, createLernziel } =
+    useData();
 
-  const [step, setStep] = useState<'meta' | 'lernziele'>('meta')
+  const [step, setStep] = useState<"meta" | "lernziele">("meta");
 
   // Meta state
-  const [name, setName] = useState('')
-  const [localFachId, setLocalFachId] = useState(fachId)
-  const [typ, setTyp] = useState<'standard' | 'rilz'>('standard')
-  const [stufe, setStufe] = useState<number | undefined>()
-  const [openRowId, setOpenRowId] = useState<string | null>(null)
+  const [name, setName] = useState("");
+  const [localFachId, setLocalFachId] = useState(fachId);
+  const [typ, setTyp] = useState<"standard" | "rilz">("standard");
+  const [stufe, setStufe] = useState<number | undefined>();
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
 
   // Lernziele state
-  const [lernziele, setLernziele] = useState<{ id: string; label: string; kategorie: LernzielKategorie }[]>([])
-  const [newLzG, setNewLzG] = useState('')
-  const [newLzA, setNewLzA] = useState('')
+  const [lernziele, setLernziele] = useState<
+    { id: string; label: string; kategorie: LernzielKategorie }[]
+  >([]);
+  const [newLzG, setNewLzG] = useState("");
+  const [newLzA, setNewLzA] = useState("");
 
   useEffect(() => {
     if (open) {
-      setStep('meta')
-      setName('')
-      setLocalFachId(fachId)
-      setTyp('standard')
-      setStufe(undefined)
-      setOpenRowId(null)
-      setLernziele([])
-      setNewLzG('')
-      setNewLzA('')
+      setStep("meta");
+      setName("");
+      setLocalFachId(fachId);
+      setTyp("standard");
+      setStufe(undefined);
+      setOpenRowId(null);
+      setLernziele([]);
+      setNewLzG("");
+      setNewLzA("");
     }
-  }, [open, fachId])
+  }, [open, fachId]);
 
   const openRow = (id: string, isOpen: boolean) => {
-    setOpenRowId(isOpen ? id : null)
-  }
+    setOpenRowId(isOpen ? id : null);
+  };
 
   const renderSimpleOptions = (
     opts: { value: string; label: string }[],
     current: string,
     onSelect: (v: string) => void,
-    clearLabel?: string
+    clearLabel?: string,
   ) => {
     return (
       <div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto">
         {clearLabel && current && (
           <button
-            onClick={() => { onSelect(''); setOpenRowId(null) }}
+            onClick={() => {
+              onSelect("");
+              setOpenRowId(null);
+            }}
             className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 text-left"
           >
-            <Icon name="close" size={12} className="shrink-0" />{clearLabel}
+            <Icon name="close" size={16} className="shrink-0" />
+            {clearLabel}
           </button>
         )}
-        {opts.map(opt => (
+        {opts.map((opt) => (
           <button
             key={opt.value}
-            onClick={() => { onSelect(opt.value); setOpenRowId(null) }}
+            onClick={() => {
+              onSelect(opt.value);
+              setOpenRowId(null);
+            }}
             className={cn(
-              'flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors text-left',
-              opt.value === current ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted/60 text-foreground'
+              "flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors text-left",
+              opt.value === current
+                ? "bg-primary/10 text-primary font-medium"
+                : "hover:bg-muted/60 text-foreground",
             )}
           >
-            {opt.value === current
-              ? <Icon name="check" size={12} className="shrink-0" />
-              : <span className="size-3 shrink-0" />
-            }
+            {opt.value === current ? (
+              <Icon name="check" size={16} className="shrink-0" />
+            ) : (
+              <span className="size-3 shrink-0" />
+            )}
             {opt.label}
           </button>
         ))}
       </div>
-    )
-  }
+    );
+  };
 
   const addLzG = () => {
-    if (!newLzG.trim()) return
-    setLernziele(prev => [...prev, { id: crypto.randomUUID(), label: newLzG.trim(), kategorie: 'grundlegend' }])
-    setNewLzG('')
-  }
+    if (!newLzG.trim()) return;
+    setLernziele((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        label: newLzG.trim(),
+        kategorie: "grundlegend",
+      },
+    ]);
+    setNewLzG("");
+  };
 
   const addLzA = () => {
-    if (!newLzA.trim()) return
-    setLernziele(prev => [...prev, { id: crypto.randomUUID(), label: newLzA.trim(), kategorie: 'anspruchsvoll' }])
-    setNewLzA('')
-  }
+    if (!newLzA.trim()) return;
+    setLernziele((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        label: newLzA.trim(),
+        kategorie: "anspruchsvoll",
+      },
+    ]);
+    setNewLzA("");
+  };
 
   const submit = () => {
-    if (!name.trim()) return
-    const id = createLernkontrolle(localFachId, name.trim(), typ)
+    if (!name.trim()) return;
+    const id = createLernkontrolle(localFachId, name.trim(), typ);
     updateLernkontrolle(id, {
       stufe: stufe ? [stufe] : undefined,
-    })
+    });
     for (const lz of lernziele) {
-      createLernziel(id, lz.label, lz.kategorie)
+      createLernziel(id, lz.label, lz.kategorie);
     }
-    onCreated?.(id)
-    onOpenChange(false)
-  }
+    onCreated?.(id);
+    onOpenChange(false);
+  };
 
-  const grundlegendLZ = lernziele.filter(lz => lz.kategorie === 'grundlegend')
-  const anspruchsvollLZ = lernziele.filter(lz => lz.kategorie === 'anspruchsvoll')
+  const grundlegendLZ = lernziele.filter(
+    (lz) => lz.kategorie === "grundlegend",
+  );
+  const anspruchsvollLZ = lernziele.filter(
+    (lz) => lz.kategorie === "anspruchsvoll",
+  );
 
   return (
     <>
@@ -125,34 +160,50 @@ export const CreateLernkontrolleModal = ({ open, onOpenChange, fachId, onCreated
         title="Neue Lernkontrolle"
         size="md"
         footer={
-          step === 'meta' ? (
+          step === "meta" ? (
             <div className="flex items-center justify-end gap-2 w-full">
-              <Button variant="secondary" onClick={() => onOpenChange(false)}>Abbrechen</Button>
-              <Button onClick={() => setStep('lernziele')} disabled={!name.trim()}>
-                Weiter <Icon name="chevron_right" size={14} className="ml-0.5" />
+              <Button variant="secondary" onClick={() => onOpenChange(false)}>
+                Abbrechen
+              </Button>
+              <Button
+                onClick={() => setStep("lernziele")}
+                disabled={!name.trim()}
+              >
+                Weiter{" "}
+                <Icon name="chevron_right" size={16} className="ml-0.5" />
               </Button>
             </div>
           ) : (
             <div className="flex items-center justify-between w-full gap-2">
-              <Button variant="secondary" onClick={() => setStep('meta')} className="text-muted-foreground">
-                <Icon name="chevron_left" size={14} className="mr-0.5" /> Zurück
+              <Button
+                variant="secondary"
+                onClick={() => setStep("meta")}
+                className="text-muted-foreground"
+              >
+                <Icon name="chevron_left" size={16} className="mr-0.5" /> Zurück
               </Button>
               <div className="flex items-center gap-2">
-                <Button variant="secondary" onClick={() => onOpenChange(false)}>Abbrechen</Button>
-                <Button onClick={submit} disabled={!name.trim()}>Erstellen</Button>
+                <Button variant="secondary" onClick={() => onOpenChange(false)}>
+                  Abbrechen
+                </Button>
+                <Button onClick={submit} disabled={!name.trim()}>
+                  Erstellen
+                </Button>
               </div>
             </div>
           )
         }
       >
         {/* Step 1: Meta */}
-        {step === 'meta' && (
+        {step === "meta" && (
           <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden space-y-3">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Bezeichnung</Label>
+              <Label className="text-xs text-muted-foreground">
+                Bezeichnung
+              </Label>
               <Input
                 value={name}
-                onChange={e => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="z. B. Zahlen & Rechnen"
                 autoFocus
               />
@@ -163,14 +214,14 @@ export const CreateLernkontrolleModal = ({ open, onOpenChange, fachId, onCreated
               {faecher.length > 1 && (
                 <ModalRow
                   label="Fach"
-                  displayValue={faecher.find(f => f.id === localFachId)?.name}
-                  open={openRowId === 'fach'}
-                  onOpenChange={v => openRow('fach', v)}
+                  displayValue={faecher.find((f) => f.id === localFachId)?.name}
+                  open={openRowId === "fach"}
+                  onOpenChange={(v) => openRow("fach", v)}
                 >
                   {renderSimpleOptions(
-                    faecher.map(f => ({ value: f.id, label: f.name })),
+                    faecher.map((f) => ({ value: f.id, label: f.name })),
                     localFachId,
-                    setLocalFachId
+                    setLocalFachId,
                   )}
                 </ModalRow>
               )}
@@ -178,14 +229,17 @@ export const CreateLernkontrolleModal = ({ open, onOpenChange, fachId, onCreated
               {/* Typ */}
               <ModalRow
                 label="Typ"
-                displayValue={typ === 'rilz' ? 'RILZ' : 'Standard'}
-                open={openRowId === 'typ'}
-                onOpenChange={v => openRow('typ', v)}
+                displayValue={typ === "rilz" ? "RILZ" : "Standard"}
+                open={openRowId === "typ"}
+                onOpenChange={(v) => openRow("typ", v)}
               >
                 {renderSimpleOptions(
-                  [{ value: 'standard', label: 'Standard' }, { value: 'rilz', label: 'RILZ' }],
+                  [
+                    { value: "standard", label: "Standard" },
+                    { value: "rilz", label: "RILZ" },
+                  ],
                   typ,
-                  v => setTyp(v as 'standard' | 'rilz')
+                  (v) => setTyp(v as "standard" | "rilz"),
                 )}
               </ModalRow>
 
@@ -194,14 +248,17 @@ export const CreateLernkontrolleModal = ({ open, onOpenChange, fachId, onCreated
                 label="Schulstufe"
                 displayValue={stufe ? `Kl. ${stufe}` : undefined}
                 placeholder="keine"
-                open={openRowId === 'stufe'}
-                onOpenChange={v => openRow('stufe', v)}
+                open={openRowId === "stufe"}
+                onOpenChange={(v) => openRow("stufe", v)}
               >
                 {renderSimpleOptions(
-                  [1,2,3,4,5,6,7,8,9].map(n => ({ value: String(n), label: `Kl. ${n}` })),
-                  stufe ? String(stufe) : '',
-                  v => setStufe(v ? Number(v) : undefined),
-                  'Keine Auswahl'
+                  [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({
+                    value: String(n),
+                    label: `Kl. ${n}`,
+                  })),
+                  stufe ? String(stufe) : "",
+                  (v) => setStufe(v ? Number(v) : undefined),
+                  "Keine Auswahl",
                 )}
               </ModalRow>
             </div>
@@ -209,70 +266,110 @@ export const CreateLernkontrolleModal = ({ open, onOpenChange, fachId, onCreated
         )}
 
         {/* Step 2: Lernziele */}
-        {step === 'lernziele' && (
+        {step === "lernziele" && (
           <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
             {/* Grundlegend */}
             <div className="border-b border-border/40">
               <div className="px-1 py-1 bg-muted/20">
-                <span className="text-3xs font-semibold uppercase tracking-wide text-category-grundlegend-fg">Grundlegend</span>
+                <span className="text-xs font-semibold tracking-wide text-category-grundlegend-fg">
+                  Grundlegend
+                </span>
               </div>
               {grundlegendLZ.length === 0 && (
-                <p className="px-1 py-1.5 text-3xs text-muted-foreground/50">Noch keine grundlegenden Lernziele.</p>
+                <p className="px-1 py-1.5 text-xs text-muted-foreground/50">
+                  Noch keine grundlegenden Lernziele.
+                </p>
               )}
-              {grundlegendLZ.map(lz => (
-                <div key={lz.id} className="flex items-center gap-2 px-1 py-1.5 border-t border-border/30">
-                  <span className="flex-1 text-xs leading-snug">{lz.label}</span>
-                  <button
-                    onClick={() => setLernziele(prev => prev.filter(x => x.id !== lz.id))}
-                    className="shrink-0 text-muted-foreground/40 hover:text-destructive transition-colors"
+              {grundlegendLZ.map((lz) => (
+                <div
+                  key={lz.id}
+                  className="flex items-center gap-2 px-1 py-1.5 border-t border-border/30"
+                >
+                  <span className="flex-1 text-xs leading-snug">
+                    {lz.label}
+                  </span>
+                  <IconButton
+                    onClick={() =>
+                      setLernziele((prev) => prev.filter((x) => x.id !== lz.id))
+                    }
+                    className="text-muted-foreground/40 hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
                     aria-label="Entfernen"
                   >
-                    <Icon name="delete" size={12} />
-                  </button>
+                    <Icon name="delete" size={16} />
+                  </IconButton>
                 </div>
               ))}
               <div className="flex items-center gap-1.5 px-1 py-1.5 border-t border-border/30">
-                <Input value={newLzG} onChange={e => setNewLzG(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLzG() } }}
-                  placeholder="Grundlegendes Lernziel…" className="h-6 text-xs flex-1" />
-                <Button size="icon-sm" variant="secondary" onClick={addLzG} disabled={!newLzG.trim()}>
-                  <Icon name="add" size={12} />
-                </Button>
+                <Input
+                  value={newLzG}
+                  onChange={(e) => setNewLzG(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addLzG();
+                    }
+                  }}
+                  placeholder="Grundlegendes Lernziel…"
+                  className="h-6 text-xs flex-1"
+                />
+                <IconButton onClick={addLzG} disabled={!newLzG.trim()}>
+                  <Icon name="add" size={16} />
+                </IconButton>
               </div>
             </div>
 
             {/* Anspruchsvoll */}
             <div>
               <div className="px-1 py-1 bg-muted/20">
-                <span className="text-3xs font-semibold uppercase tracking-wide text-category-anspruchsvoll-fg">Anspruchsvoll</span>
+                <span className="text-xs font-semibold tracking-wide text-category-anspruchsvoll-fg">
+                  Anspruchsvoll
+                </span>
               </div>
               {anspruchsvollLZ.length === 0 && (
-                <p className="px-1 py-1.5 text-3xs text-muted-foreground/50">Noch keine anspruchsvollen Lernziele.</p>
+                <p className="px-1 py-1.5 text-xs text-muted-foreground/50">
+                  Noch keine anspruchsvollen Lernziele.
+                </p>
               )}
-              {anspruchsvollLZ.map(lz => (
-                <div key={lz.id} className="flex items-center gap-2 px-1 py-1.5 border-t border-border/30">
-                  <span className="flex-1 text-xs leading-snug">{lz.label}</span>
-                  <button
-                    onClick={() => setLernziele(prev => prev.filter(x => x.id !== lz.id))}
-                    className="shrink-0 text-muted-foreground/40 hover:text-destructive transition-colors"
+              {anspruchsvollLZ.map((lz) => (
+                <div
+                  key={lz.id}
+                  className="flex items-center gap-2 px-1 py-1.5 border-t border-border/30"
+                >
+                  <span className="flex-1 text-xs leading-snug">
+                    {lz.label}
+                  </span>
+                  <IconButton
+                    onClick={() =>
+                      setLernziele((prev) => prev.filter((x) => x.id !== lz.id))
+                    }
+                    className="text-muted-foreground/40 hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
                     aria-label="Entfernen"
                   >
-                    <Icon name="delete" size={12} />
-                  </button>
+                    <Icon name="delete" size={16} />
+                  </IconButton>
                 </div>
               ))}
               <div className="flex items-center gap-1.5 px-1 py-1.5 border-t border-border/30">
-                <Input value={newLzA} onChange={e => setNewLzA(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLzA() } }}
-                  placeholder="Anspruchsvolles Lernziel…" className="h-6 text-xs flex-1" />
-                <Button size="icon-sm" variant="secondary" onClick={addLzA} disabled={!newLzA.trim()}>
-                  <Icon name="add" size={12} />
-                </Button>
+                <Input
+                  value={newLzA}
+                  onChange={(e) => setNewLzA(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addLzA();
+                    }
+                  }}
+                  placeholder="Anspruchsvolles Lernziel…"
+                  className="h-6 text-xs flex-1"
+                />
+                <IconButton onClick={addLzA} disabled={!newLzA.trim()}>
+                  <Icon name="add" size={16} />
+                </IconButton>
               </div>
             </div>
           </div>
         )}
       </Modal>
     </>
-  )
-}
+  );
+};

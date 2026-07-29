@@ -120,7 +120,6 @@ export const factPruefungen = sqliteTable('fact_pruefungen', {
   noteEnabled: integer('note_enabled').notNull().default(0),
   anhangEnabled: integer('anhang_enabled').notNull().default(0),
   typ: text('typ').notNull().default('pruefung_schriftlich'),
-  beschreibung: text('beschreibung'),
   nurRilz: integer('nur_rilz').notNull().default(0),
   rilzSchuelerIds: text('rilz_schueler_ids').notNull().default('[]'),
   createdAt: createdAt(),

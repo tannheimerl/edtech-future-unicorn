@@ -106,7 +106,7 @@ export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
           ['bg-status-not-reached-soft border border-status-not-reached', 'Nicht erreicht'],
           ['bg-status-none-soft', 'Nicht bewertet'],
         ] as const).map(([cls, label]) => (
-          <span key={label} className="flex items-center gap-1 text-3xs text-muted-foreground/70">
+          <span key={label} className="flex items-center gap-1 text-xs text-muted-foreground/70">
             <span className={cn('inline-block size-2.5 rounded-sm shrink-0', cls)} />
             {label}
           </span>
@@ -179,7 +179,7 @@ export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
                         >
                           <div className="flex flex-col gap-0.5">
                             <Badge variant="grundlegend" size="sm" className="w-fit">G</Badge>
-                            <span className="text-2xs font-medium text-foreground leading-snug">{lz.label}</span>
+                            <span className="text-xs font-medium text-foreground leading-snug">{lz.label}</span>
                           </div>
                         </th>
                       ))}
@@ -194,7 +194,7 @@ export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
                         >
                           <div className="flex flex-col gap-0.5">
                             <Badge variant="anspruchsvoll" size="sm" className="w-fit">A</Badge>
-                            <span className="text-2xs font-medium text-foreground leading-snug">{lz.label}</span>
+                            <span className="text-xs font-medium text-foreground leading-snug">{lz.label}</span>
                           </div>
                         </th>
                       ))}
@@ -291,7 +291,7 @@ export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
                             isAEnd && 'border-r-2 border-border/50',
                             isGEnd && 'border-r border-dashed border-border/60',
                           )}>
-                            <span className={cn('inline-block text-3xs font-bold tabular-nums rounded-md px-1 py-0.5', color)}>
+                            <span className={cn('inline-block text-xs font-bold tabular-nums rounded-md px-1 py-0.5', color)}>
                               {pct}%
                             </span>
                           </td>

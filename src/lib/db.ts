@@ -5,7 +5,8 @@ import { SCHEMA_STATEMENTS } from '@/lib/schema'
 let dbPromise: Promise<Database> | null = null
 
 const openDb = async (): Promise<Database> => {
-  const path = await invoke<string>('get_db_path')
+  const path = await invoke<string | null>('get_db_path')
+  if (!path) throw new Error('Kein Datenbankpfad konfiguriert.')
   const db = await Database.load(`sqlite:${path}`)
   for (const statement of SCHEMA_STATEMENTS) await db.execute(statement)
   return db

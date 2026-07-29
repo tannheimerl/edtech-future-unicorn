@@ -55,7 +55,7 @@ export const Header = ({ siteName = "Lezio", className }: HeaderProps) => {
                         : "text-muted-foreground hover:text-foreground hover:bg-accent/60",
                     )}
                   >
-                    {item.icon && <Icon name={item.icon} size={14} />}
+                    {item.icon && <Icon name={item.icon} size={16} />}
                     {item.label}
                   </Link>
                 </li>

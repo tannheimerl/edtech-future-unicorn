@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { CreateLernkontrolleModal } from "@/components/shared/CreateLernkontrolleModal";
 import { FilterDropdown } from "@/components/shared/FilterDropdown";
 import { InputModal } from "@/components/shared/InputModal";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Highlight } from "@/components/shared/Highlight";
 import { LernkontrolleAddPickerModal } from "@/components/shared/LernkontrolleAddPickerModal";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { SortMenu } from "@/components/shared/SortMenu";
@@ -54,7 +56,6 @@ const LernzielePage = () => {
   const {
     faecher,
     lernkontrollen,
-    lernziele,
     createFach,
     exportLernkontrolle,
     exportFach,
@@ -90,6 +91,7 @@ const LernzielePage = () => {
     string | null
   >(null);
   const [deleteFachId, setDeleteFachId] = useState<string | null>(null);
+  const newLernkontrolleFachId = faecher[0]?.id ?? null;
 
   const toggleLernkontrolle = (id: string) => {
     setExpandedLernkontrollen((prev) => {
@@ -145,70 +147,46 @@ const LernzielePage = () => {
   const hasAnyLernkontrollen = tableData.some(
     (d) => d.lernkontrollen.length > 0,
   );
-  const newLernkontrolleFachId = faecher[0]?.id ?? null;
 
   const hasActiveFilters =
     q || Object.values(kolonnenFilter).some((v) => v !== "");
 
-  const renderChips = (lernkontrolle: Lernkontrolle) => {
-    const fachIdList = faecher.map((f) => f.id);
-    const chips: ReactElement[] = [];
-
-    const fach = faecher.find((f) => f.id === lernkontrolle.fachId);
-    if (fach) {
-      const color = getFachColor(
-        lernkontrolle.fachId,
-        fachIdList,
-        fach.colorIndex,
-      );
-      chips.push(
-        <span
-          key="fach"
-          className={cn(
-            "shrink-0 rounded-full px-1.5 py-0.5 text-3xs font-medium",
-            color.bg,
-          )}
-        >
-          {fach.name}
-        </span>,
-      );
-    }
-
-    chips.push(
-      lernkontrolle.typ === "rilz" ? (
-        <span
-          key="typ"
-          className="shrink-0 rounded px-1.5 py-0.5 text-3xs font-medium bg-rilz-soft text-rilz-foreground"
-        >
-          RILZ
-        </span>
-      ) : (
-        <span
-          key="typ"
-          className="shrink-0 rounded px-1.5 py-0.5 text-3xs font-medium bg-muted text-muted-foreground"
-        >
-          Standard
-        </span>
-      ),
+  const renderTypChip = (lernkontrolle: Lernkontrolle) =>
+    lernkontrolle.typ === "rilz" ? (
+      <span className="shrink-0 rounded px-1.5 py-0.5 text-xs bg-rilz-soft text-rilz-foreground">
+        RILZ
+      </span>
+    ) : (
+      <span className="shrink-0 rounded px-1.5 py-0.5 text-xs bg-muted text-muted-foreground">
+        Standard
+      </span>
     );
-
-    if (lernkontrolle.stufe?.length) {
-      chips.push(
-        <span
-          key="stufe"
-          className="shrink-0 text-3xs rounded px-1.5 py-0.5 bg-muted text-muted-foreground"
-        >
-          Kl. {lernkontrolle.stufe[0]}
-        </span>,
-      );
-    }
-
-    return chips;
-  };
 
   return (
     <div className="page-container py-8">
-      <h1 className="mb-6">Vorlagen für Lernkontrollen</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1>Vorlagen für Lernkontrollen</h1>
+        <div className="flex items-center gap-3">
+          {lezio.feedback && (
+            <span
+              className={cn(
+                "text-xs",
+                lezio.feedback.ok
+                  ? "text-status-reached"
+                  : "text-status-not-reached",
+              )}
+            >
+              {lezio.feedback.msg}
+            </span>
+          )}
+          <button
+            onClick={lezio.openFileDialog}
+            className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-foreground transition-colors"
+          >
+            <Icon name="upload" size={16} /> Importieren
+          </button>
+        </div>
+      </div>
       {/* Empty / load-error state */}
       {faecher.length === 0 &&
         (loadError ? (
@@ -257,36 +235,33 @@ const LernzielePage = () => {
       {faecher.length > 0 && (
         <>
           <div className="mb-5">
-            {/* Search + Import row */}
-            <SearchBar
-              value={search}
-              onChange={setSearch}
-              placeholder="Lernkontrolle suchen…"
-              className="mb-3"
-              right={
-                <>
-                  {lezio.feedback && (
-                    <span
-                      className={cn(
-                        "self-center text-xs",
-                        lezio.feedback.ok
-                          ? "text-status-reached"
-                          : "text-status-not-reached",
-                      )}
-                    >
-                      {lezio.feedback.msg}
-                    </span>
-                  )}
-                  <Button
-                    className="h-auto"
-                    variant="secondary"
-                    onClick={lezio.openFileDialog}
-                  >
-                    <Icon name="upload" size={14} /> Importieren
-                  </Button>
-                </>
-              }
-            />
+            {/* Search row */}
+            <div className="flex items-center gap-2 mb-3">
+              <SearchBar
+                value={search}
+                onChange={setSearch}
+                placeholder="Lernkontrolle suchen…"
+                className="flex-1"
+              />
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setFachCreateMode("only");
+                  setFachCreateOpen(true);
+                }}
+              >
+                <Icon name="add" size={16} /> Neues Fach
+              </Button>
+              {newLernkontrolleFachId && (
+                <Button
+                  onClick={() =>
+                    setLernkontrolleCreateFachId(newLernkontrolleFachId)
+                  }
+                >
+                  <Icon name="add" size={16} /> Lernkontrolle
+                </Button>
+              )}
+            </div>
             {/* Filter row */}
             <div className="flex flex-wrap items-center gap-2 mb-2">
               {KOLONNEN.map((colId) => {
@@ -362,7 +337,7 @@ const LernzielePage = () => {
                   }}
                   className="flex items-center gap-1 text-xs text-primary hover:text-foreground transition-colors"
                 >
-                  <Icon name="close" size={12} /> Filter zurücksetzen
+                  <Icon name="close" size={16} /> Filter zurücksetzen
                 </button>
               )}
 
@@ -394,7 +369,7 @@ const LernzielePage = () => {
                     setLernkontrollePickerFachId(newLernkontrolleFachId)
                   }
                 >
-                  <Icon name="add" size={12} /> Erste Lernkontrolle erstellen
+                  <Icon name="add" size={16} /> Erste Lernkontrolle erstellen
                 </Button>
               )}
             </div>
@@ -410,36 +385,35 @@ const LernzielePage = () => {
                 return (
                   <div key={fach.id}>
                     {/* Fach title — outside the card */}
-                    <div
-                      className={cn(
-                        "flex justify-between items-center px-1 mb-3 select-none",
-                        fachColor.text,
-                      )}
-                    >
-                      <h2>{fach.name}</h2>
+                    <div className="flex justify-between items-center px-1 mb-3 select-none">
+                      <h2 className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "size-2 rounded-full shrink-0",
+                            fachColor.dot,
+                          )}
+                        />
+                        {fach.name}
+                      </h2>
                       <div className="flex items-center gap-2">
-                        <Button
-                          size="icon-sm"
-                          variant="secondary"
+                        <IconButton
                           onClick={(e) => {
                             e.stopPropagation();
                             void exportFach(fach.id);
                           }}
                           aria-label={`${fach.name} exportieren`}
                         >
-                          <Icon name="download" size={14} />
-                        </Button>
-                        <Button
-                          size="icon-sm"
-                          variant="secondary"
+                          <Icon name="download" size={16} />
+                        </IconButton>
+                        <IconButton
                           onClick={(e) => {
                             e.stopPropagation();
                             setDeleteFachId(fach.id);
                           }}
                           aria-label={`${fach.name} löschen`}
                         >
-                          <Icon name="delete" size={14} />
-                        </Button>
+                          <Icon name="delete" size={16} />
+                        </IconButton>
                       </div>
                     </div>
 
@@ -457,9 +431,8 @@ const LernzielePage = () => {
                           return (
                             <div key={lernkontrolle.id}>
                               <div className="group flex items-center gap-2 px-3 py-2 hover:bg-accent/20 transition-colors">
-                                {/* Name inline with Stufe-Chip und RILZ-Badge */}
                                 <button
-                                  className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                                  className="flex items-center gap-3 flex-1 min-w-0 text-left"
                                   onClick={() =>
                                     toggleLernkontrolle(lernkontrolle.id)
                                   }
@@ -467,38 +440,44 @@ const LernzielePage = () => {
                                   {isExpanded ? (
                                     <Icon
                                       name="expand_more"
-                                      size={12}
-                                      className="text-muted-foreground shrink-0"
+                                      size={16}
+                                      className="text-primary shrink-0"
                                     />
                                   ) : (
                                     <Icon
                                       name="chevron_right"
-                                      size={12}
-                                      className="text-muted-foreground shrink-0"
+                                      size={16}
+                                      className="text-primary shrink-0"
                                     />
                                   )}
-                                  <span className="text-sm font-medium truncate">
-                                    {lernkontrolle.name}
+                                  <h6 className="font-normal! truncate flex-1 max-w-[420px]">
+                                    <Highlight
+                                      text={lernkontrolle.name}
+                                      query={search}
+                                    />
+                                  </h6>
+                                  <span className="w-14 shrink-0 text-muted-foreground">
+                                    {lernkontrolle.stufe?.length
+                                      ? `Kl. ${lernkontrolle.stufe[0]}`
+                                      : ""}
                                   </span>
-                                  {renderChips(lernkontrolle)}
+                                  <span className="w-16 shrink-0">
+                                    {renderTypChip(lernkontrolle)}
+                                  </span>
                                 </button>
 
                                 {/* Actions — hover reveal */}
                                 <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    size="icon-sm"
-                                    variant="secondary"
+                                  <IconButton
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setEditLernkontrolleId(lernkontrolle.id);
                                     }}
                                     aria-label="Lernkontrolle bearbeiten"
                                   >
-                                    <Icon name="edit" size={14} />
-                                  </Button>
-                                  <Button
-                                    size="icon-sm"
-                                    variant="secondary"
+                                    <Icon name="edit" size={16} />
+                                  </IconButton>
+                                  <IconButton
                                     className="text-muted-foreground"
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -506,8 +485,8 @@ const LernzielePage = () => {
                                     }}
                                     aria-label="Lernkontrolle exportieren"
                                   >
-                                    <Icon name="download" size={12} />
-                                  </Button>
+                                    <Icon name="download" size={16} />
+                                  </IconButton>
                                 </div>
                               </div>
 
@@ -528,12 +507,12 @@ const LernzielePage = () => {
                           </div>
                         )}
 
-                        <button
+                        {/* <button
                           onClick={() => setLernkontrollePickerFachId(fach.id)}
                           className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-accent/20 transition-colors"
                         >
-                          <Icon name="add" size={12} /> Lernkontrolle hinzufügen
-                        </button>
+                          <Icon name="add" size={16} /> Lernkontrolle hinzufügen
+                        </button> */}
                       </div>
                     </div>
                   </div>
@@ -541,17 +520,6 @@ const LernzielePage = () => {
               })}
             </div>
           )}
-
-          {/* Neues Fach — ganz unten in der Lernzielsammlung */}
-          <button
-            onClick={() => {
-              setFachCreateMode("only");
-              setFachCreateOpen(true);
-            }}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-border py-2 text-xs text-muted-foreground hover:text-primary hover:bg-accent/20 transition-colors"
-          >
-            <Icon name="add" size={12} /> Neues Fach
-          </button>
         </>
       )}
 

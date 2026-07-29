@@ -26,7 +26,7 @@ export const ModalOptionList = ({
           onClick={() => onSelect('')}
           className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 text-left"
         >
-          <Icon name="close" size={12} className="shrink-0" />{clearLabel}
+          <Icon name="close" size={16} className="shrink-0" />{clearLabel}
         </button>
       )}
       {options.map(opt => (
@@ -39,7 +39,7 @@ export const ModalOptionList = ({
           )}
         >
           {opt.value === current
-            ? <Icon name="check" size={12} className="shrink-0" />
+            ? <Icon name="check" size={16} className="shrink-0" />
             : <span className="size-3 shrink-0" />
           }
           {opt.label}

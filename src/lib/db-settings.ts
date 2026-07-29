@@ -4,17 +4,31 @@ import { getDb, resetDbConnection } from '@/lib/db'
 
 const DB_FILTERS = [{ name: 'SQLite-Datenbank', extensions: ['db', 'sqlite', 'sqlite3'] }]
 
-export const getDbPath = (): Promise<string> => invoke<string>('get_db_path')
+// Null until the user has picked a database location (first launch).
+export const getDbPath = (): Promise<string | null> => invoke<string | null>('get_db_path')
 
-// Points the app at a new (possibly not-yet-existing) file location and
-// switches the live connection over to it.
-export const changeDbPath = async (): Promise<string | null> => {
+export const isDbConfigured = async (): Promise<boolean> => (await getDbPath()) !== null
+
+// Points the app at a new (not-yet-existing) file location and switches the
+// live connection over to it. "Neue Datenbank anlegen".
+export const createNewDb = async (): Promise<string | null> => {
   const target = await save({ filters: DB_FILTERS, defaultPath: 'lezio.db' })
   if (!target) return null
   await resetDbConnection()
   await invoke('set_db_path', { path: target })
   await getDb()
   return target
+}
+
+// Points the app directly at an existing database file (no copy) and
+// switches the live connection over to it. "Bestehende Datenbank laden".
+export const loadExistingDb = async (): Promise<string | null> => {
+  const source = await open({ filters: DB_FILTERS, multiple: false, directory: false })
+  if (!source || Array.isArray(source)) return null
+  await resetDbConnection()
+  await invoke('set_db_path', { path: source })
+  await getDb()
+  return source
 }
 
 // Copies an existing database file over the current one and switches to it.
@@ -33,12 +47,4 @@ export const exportDb = async (): Promise<string | null> => {
   if (!dest) return null
   await invoke('export_db', { dest })
   return dest
-}
-
-// Reverts to the default database location inside the app data directory.
-export const resetDbPath = async (): Promise<string> => {
-  await resetDbConnection()
-  const path = await invoke<string>('reset_db_path')
-  await getDb()
-  return path
 }

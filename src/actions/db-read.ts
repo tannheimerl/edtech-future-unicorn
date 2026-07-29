@@ -114,7 +114,6 @@ export const fetchAllData = async () => {
     name: p.name, datum: p.datum,
     lernzielIds: parseArr<string>(p.lernzielIds),
     typ: (p.typ ?? 'pruefung_schriftlich') as Pruefung['typ'],
-    ...(p.beschreibung ? { beschreibung: p.beschreibung } : {}),
     status: (p.status ?? 'laufend') as Pruefung['status'],
     punkteEnabled: bool(p.punkteEnabled),
     noteEnabled: bool(p.noteEnabled),

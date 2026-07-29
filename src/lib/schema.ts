@@ -117,7 +117,6 @@ CREATE TABLE IF NOT EXISTS fact_pruefungen (
   note_enabled      INTEGER NOT NULL DEFAULT 0,
   anhang_enabled    INTEGER NOT NULL DEFAULT 0,
   typ               TEXT NOT NULL DEFAULT 'pruefung_schriftlich',
-  beschreibung      TEXT,
   nur_rilz          INTEGER NOT NULL DEFAULT 0,
   rilz_schueler_ids TEXT NOT NULL DEFAULT '[]',
   created_at        TEXT DEFAULT (datetime('now'))

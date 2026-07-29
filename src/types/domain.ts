@@ -13,8 +13,6 @@ export const STATUS_LABELS: Record<Status, string> = {
   reached: 'erreicht',
 }
 
-export const STATUS_CYCLE: Status[] = ['not_reached', 'partially_reached', 'reached']
-
 export type Fach = {
   id: string
   name: string
@@ -196,7 +194,6 @@ export type Pruefung = {
   datum: string           // ISO YYYY-MM-DD
   lernzielIds: string[]
   typ: PruefungTyp
-  beschreibung?: string
   status: 'laufend' | 'abgeschlossen'
   punkteEnabled: boolean
   noteEnabled: boolean

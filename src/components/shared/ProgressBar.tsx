@@ -68,7 +68,7 @@ export const ProgressBar = ({
         })}
       </div>
       {legend && (
-        <div className="flex gap-4 text-3xs text-muted-foreground">
+        <div className="flex gap-4 text-xs text-muted-foreground">
           {legend.map((item, i) => (
             <span key={i} className="flex items-center gap-1">
               <span className={cn('inline-block size-1.5 shrink-0', item.className)} />

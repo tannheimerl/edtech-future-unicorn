@@ -216,7 +216,6 @@ Freitext-Kommentar pro Schüler + Thema (Beobachtungsnotiz).
 | note_enabled | INTEGER (0/1) | Default FALSE |
 | anhang_enabled | INTEGER (0/1) | Default FALSE |
 | typ | TEXT | Prüfungstyp (z.B. `'pruefung_schriftlich'`), default `'pruefung_schriftlich'` |
-| beschreibung | TEXT | |
 | nur_rilz | INTEGER (0/1) | Nur für RILZ-Schüler, default FALSE |
 | rilz_schueler_ids | TEXT (JSON-Array) | Explizite RILZ-Schüler-IDs |
 | created_at | TEXT (ISO-Timestamp) | |

@@ -227,7 +227,7 @@ export const LernzielBerichtFlow = ({ klassId }: { klassId: string }) => {
                       'flex size-4 shrink-0 items-center justify-center rounded-sm border-2 transition-all',
                       isIncluded ? 'border-primary bg-primary' : 'border-muted-foreground/30 bg-background',
                     )}>
-                      {isIncluded && <Icon name="check" size={10} weight={700} className="text-primary-foreground" />}
+                      {isIncluded && <Icon name="check" size={16} weight={700} className="text-primary-foreground" />}
                     </div>
                     <span className="flex-1 text-sm">{lz.label}</span>
                     <span className={cn(
@@ -260,7 +260,7 @@ export const LernzielBerichtFlow = ({ klassId }: { klassId: string }) => {
                 onClick={() => selectStudentMode('all')}
                 className="px-4 py-1.5"
               >
-                <Icon name="group" size={14} />
+                <Icon name="group" size={16} />
                 Alle ({students.length})
               </Button>
               <Button
@@ -268,7 +268,7 @@ export const LernzielBerichtFlow = ({ klassId }: { klassId: string }) => {
                 onClick={() => selectStudentMode('individual')}
                 className="px-4 py-1.5"
               >
-                <Icon name="person" size={14} />
+                <Icon name="person" size={16} />
                 Einzelne
               </Button>
             </div>

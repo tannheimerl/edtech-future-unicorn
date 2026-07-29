@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/shared/Modal";
@@ -29,7 +30,6 @@ export const LernkontrolleEditModal = ({
 
   // Meta state
   const [localName, setLocalName] = useState(lernkontrolle?.name ?? "");
-  const [faelligAm, setFaelligAm] = useState(lernkontrolle?.faelligAm ?? "");
   const [localFachId, setLocalFachId] = useState(lernkontrolle?.fachId ?? "");
   const [localTyp, setLocalTyp] = useState<"standard" | "rilz">(
     lernkontrolle?.typ ?? "standard",
@@ -40,7 +40,6 @@ export const LernkontrolleEditModal = ({
   useEffect(() => {
     if (!lernkontrolle) return;
     setLocalName(lernkontrolle.name);
-    setFaelligAm(lernkontrolle.faelligAm ?? "");
     setLocalFachId(lernkontrolle.fachId);
     setLocalTyp(lernkontrolle.typ ?? "standard");
     setStufe(lernkontrolle.stufe?.[0]);
@@ -57,7 +56,6 @@ export const LernkontrolleEditModal = ({
       fachId: localFachId,
       typ: localTyp,
       stufe: stufe ? [stufe] : undefined,
-      faelligAm: faelligAm || undefined,
     });
     onClose();
   };
@@ -81,18 +79,17 @@ export const LernkontrolleEditModal = ({
                 onClick={onRequestDelete}
                 className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded-lg hover:bg-destructive/8"
               >
-                <Icon name="delete" size={14} />
+                <Icon name="delete" size={16} />
                 Löschen
               </button>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
+                <IconButton
                   onClick={() => exportLernkontrolle(lernkontrolleId)}
                   aria-label="Exportieren"
                   className="text-muted-foreground"
                 >
-                  <Icon name="download" size={14} />
-                </Button>
+                  <Icon name="download" size={16} />
+                </IconButton>
                 <Button variant="secondary" onClick={onClose}>
                   Abbrechen
                 </Button>
@@ -101,7 +98,7 @@ export const LernkontrolleEditModal = ({
                   disabled={!localName.trim()}
                 >
                   Weiter{" "}
-                  <Icon name="chevron_right" size={14} className="ml-0.5" />
+                  <Icon name="chevron_right" size={16} className="ml-0.5" />
                 </Button>
               </div>
             </div>
@@ -112,7 +109,7 @@ export const LernkontrolleEditModal = ({
                 onClick={() => setEditStep("meta")}
                 className="text-muted-foreground"
               >
-                <Icon name="chevron_left" size={14} className="mr-0.5" /> Zurück
+                <Icon name="chevron_left" size={16} className="mr-0.5" /> Zurück
               </Button>
               <div className="flex items-center gap-2">
                 <Button variant="secondary" onClick={onClose}>
@@ -139,26 +136,6 @@ export const LernkontrolleEditModal = ({
                 onChange={(e) => setLocalName(e.target.value)}
                 placeholder="Bezeichnung der Lernkontrolle"
               />
-            </div>
-
-            {/* Fällig am */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">
-                Fällig am <span className="font-normal">(opt.)</span>
-              </Label>
-              <div className="relative">
-                <Input
-                  type="date"
-                  value={faelligAm}
-                  onChange={(e) => setFaelligAm(e.target.value)}
-                  className="pr-8 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                />
-                <Icon
-                  name="calendar_today"
-                  size={14}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-                />
-              </div>
             </div>
 
             {/* Dropdown rows */}

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 
     • card container   → rounded-2xl border bg-card
     • header row       → bg-muted, border-b, bold labels
-    • body rows        → divided, hover:bg-accent/30
+    • body rows        → divided
     • cells            → px-4 py-3, text-sm
 
   Compose as:
@@ -102,7 +102,7 @@ const TableRow = ({
       data-slot="table-row"
       onClick={onClick}
       className={cn(
-        "transition-colors hover:bg-accent/30",
+        "transition-colors",
         onClick && "cursor-pointer",
         className,
       )}
@@ -174,7 +174,7 @@ const TableSortHeader = ({
         {children}
         <Icon
           name="expand_more"
-          size={12}
+          size={16}
           className={cn(
             "shrink-0 transition-transform",
             active ? "text-primary" : "opacity-30",

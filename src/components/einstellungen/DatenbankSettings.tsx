@@ -5,7 +5,13 @@ import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/button";
 import { SectionBlock } from "@/components/shared/SectionBlock";
 import { toast } from "@/lib/toast";
-import { getDbPath, changeDbPath, importDb, exportDb } from "@/lib/db-settings";
+import {
+  getDbPath,
+  createNewDb,
+  loadExistingDb,
+  importDb,
+  exportDb,
+} from "@/lib/db-settings";
 
 type DatenbankSettingsProps = {
   /** Refetches app data after the active database connection changes. */
@@ -43,8 +49,10 @@ export const DatenbankSettings = ({
     }
   };
 
-  const handleChangePath = () =>
-    runSwitch(changeDbPath, "Datenbankpfad geändert.");
+  const handleCreateNew = () =>
+    runSwitch(createNewDb, "Neue Datenbank angelegt.");
+  const handleLoadExisting = () =>
+    runSwitch(loadExistingDb, "Datenbank geladen.");
   const handleImport = () => runSwitch(importDb, "Datenbank importiert.");
 
   const handleExport = async () => {
@@ -65,18 +73,15 @@ export const DatenbankSettings = ({
       description="Speicherort deiner lokalen Lezio-Datenbank."
       className="mb-6"
     >
-      <div className="grid gap-3">
-        {
-          // TODO: Make this look less like an input field that can be clicked.
-        }
-        <div className="flex items-center gap-2 rounded-lg border px-3 h-[48px]">
+      <div className="grid gap-4">
+        <div className="flex items-center gap-2 rounded-lg bg-muted px-3 h-[48px]">
           <Icon
             name="database"
             size={16}
             className="shrink-0 text-muted-foreground"
           />
           <span
-            className="truncate font-mono text-xs text-foreground"
+            className="truncate text-foreground/80"
             title={path ?? undefined}
           >
             {path ?? "Wird geladen…"}
@@ -84,21 +89,21 @@ export const DatenbankSettings = ({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {
-            // TODO: Add option to select other (existing) database
-          }
+          <Button variant="secondary" disabled={busy} onClick={handleCreateNew}>
+            Neue Datenbank anlegen
+          </Button>
           <Button
             variant="secondary"
             disabled={busy}
-            onClick={handleChangePath}
+            onClick={handleLoadExisting}
           >
-            Pfad ändern…
+            Bestehende Datenbank laden
           </Button>
           <Button variant="secondary" disabled={busy} onClick={handleImport}>
-            Importieren…
+            Importieren
           </Button>
           <Button variant="secondary" disabled={busy} onClick={handleExport}>
-            Exportieren…
+            Exportieren
           </Button>
         </div>
       </div>

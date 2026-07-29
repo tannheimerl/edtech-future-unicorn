@@ -52,7 +52,7 @@ const EinstellungenPage = () => {
             icon={
               <Icon
                 name="palette"
-                size={20}
+                size={24}
                 className="text-accent-foreground"
               />
             }
@@ -73,7 +73,7 @@ const EinstellungenPage = () => {
               fach.colorIndex,
             );
             return (
-              <li key={fach.id} className="flex items-center gap-4 py-3">
+              <li key={fach.id} className="flex items-center gap-4 py-3 px-2">
                 <div className="flex items-center gap-2 shrink-0">
                   <span
                     className={cn(
@@ -81,9 +81,7 @@ const EinstellungenPage = () => {
                       currentColor.dot,
                     )}
                   />
-                  <span className="text-sm font-medium whitespace-nowrap">
-                    {fach.name}
-                  </span>
+                  <span className="font-medium">{fach.name}</span>
                 </div>
                 <div className="flex flex-1 items-center justify-end gap-1.5">
                   {FACH_COLORS.map((c, idx) => {
@@ -97,19 +95,19 @@ const EinstellungenPage = () => {
                         title={COLOR_LABELS[idx]}
                         onClick={() => updateFachColor(fach.id, idx)}
                         className={cn(
-                          "relative size-5 rounded-full transition-all",
+                          "relative size-5 rounded-2xl transition-all",
                           c.dot,
                           isActive
-                            ? "ring-2 ring-foreground/30"
-                            : "opacity-60 hover:opacity-100",
+                            ? "ring-2 ring-primary"
+                            : "opacity-60 hover:opacity-100 hover:cursor-pointer",
                         )}
                       >
                         {isActive && (
                           <Icon
                             name="check"
-                            size={12}
+                            size={16}
                             weight={700}
-                            className="absolute inset-0 m-auto text-white drop-shadow"
+                            className="absolute inset-0 m-auto text-primary drop-shadow"
                           />
                         )}
                       </button>

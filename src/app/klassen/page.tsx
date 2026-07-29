@@ -15,8 +15,6 @@ const KlassenPage = () => {
   const {
     classes,
     getStudentsForClass,
-    getPruefungenForKlasse,
-    getPruefungErgebnisse,
     createClass,
     loadError,
     reloadData,

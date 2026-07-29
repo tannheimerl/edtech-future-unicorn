@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from "@/components/ui/Icon"
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/ui/icon-button'
 import { Textarea } from '@/components/ui/textarea'
 import { generatePdfBlob } from '@/lib/berichtUtils'
 import type { SchuelerBerichtPDFProps } from '@/components/berichte/SchuelerBerichtPDF'
@@ -145,14 +145,12 @@ export const BerichtPreviewModal = ({
                 </p>
                 <p className="text-xs text-muted-foreground">{thema.name}</p>
               </div>
-              <Button
-                variant="secondary"
-                size="icon-sm"
+              <IconButton
                 onClick={onClose}
                 className="text-muted-foreground shrink-0"
               >
                 <Icon name="close" size={16} />
-              </Button>
+              </IconButton>
             </div>
 
             <div className="space-y-1">

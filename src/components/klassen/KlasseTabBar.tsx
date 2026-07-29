@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/icon-button";
 import { PillTabs } from "@/components/shared/PillTabs";
 
 export type KlasseTab =
@@ -36,16 +37,9 @@ export const KlasseTabBar = ({
             {title}
           </span>
         </h1>
-        {
-          // TODO: Mit IconButton erserten
-        }
-        <button
-          onClick={onEditTitle}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Klassenname bearbeiten"
-        >
-          <Icon name="edit_square" size={24} />
-        </button>
+        <IconButton onClick={onEditTitle} aria-label="Klassenname bearbeiten">
+          <Icon name="edit_square" size={16} />
+        </IconButton>
       </div>
 
       {/* Tab strip */}

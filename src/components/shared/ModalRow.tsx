@@ -24,7 +24,7 @@ export const ModalRow = ({ label, displayValue, placeholder, open, onOpenChange,
           )}>
             {displayValue ?? placeholder ?? '—'}
           </span>
-          <Icon name="expand_more" size={12} className="text-muted-foreground shrink-0" />
+          <Icon name="expand_more" size={16} className="text-muted-foreground shrink-0" />
         </PopoverTrigger>
         <PopoverContent className="p-1.5 w-52 max-h-[var(--available-height)] overflow-y-auto" align="start" side="bottom" collisionAvoidance={{ side: 'none', align: 'none' }}>
           {children}

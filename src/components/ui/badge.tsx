@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils"
 /*
   Small soft-filled label/pill. Colors map to the semantic design tokens
   (see globals.css). Sizes follow the two scales used across the app:
-    sm      → text-4xs  px-1   py-px   (single-letter tags: G, A, bVSA, RILZ)
-    default → text-3xs px-1.5 py-0.5  (counts, status chips)
+    sm      → text-xs  px-1   py-px   (single-letter tags: G, A, bVSA, RILZ)
+    default → text-xs px-1.5 py-0.5  (counts, status chips)
   Use `className="rounded-full …"` for a pill shape.
 */
 const badgeVariants = cva(
@@ -25,8 +25,8 @@ const badgeVariants = cva(
           "bg-category-anspruchsvoll-soft text-category-anspruchsvoll-fg",
       },
       size: {
-        default: "px-1.5 py-0.5 text-3xs font-medium",
-        sm: "px-1 py-px text-4xs font-semibold",
+        default: "px-1.5 py-0.5 text-xs font-medium",
+        sm: "px-1 py-px text-xs font-semibold",
       },
     },
     defaultVariants: {
@@ -51,4 +51,4 @@ const Badge = ({
   )
 }
 
-export { Badge, badgeVariants }
+export { Badge }

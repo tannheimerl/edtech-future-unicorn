@@ -38,7 +38,7 @@ export function usePruefungenActions(
   )
 
   const updatePruefung = useCallback(
-    (id: string, patch: Partial<Pick<Pruefung, 'name' | 'datum' | 'lernzielIds' | 'maxPunkte' | 'typ' | 'beschreibung' | 'status' | 'punkteEnabled' | 'noteEnabled' | 'anhangEnabled'>>) => {
+    (id: string, patch: Partial<Pick<Pruefung, 'name' | 'datum' | 'lernzielIds' | 'maxPunkte' | 'typ' | 'status' | 'punkteEnabled' | 'noteEnabled' | 'anhangEnabled'>>) => {
       setPruefungen((prev) =>
         prev.map((p) => {
           if (p.id !== id) return p

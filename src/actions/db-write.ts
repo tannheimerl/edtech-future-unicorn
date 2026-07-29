@@ -176,7 +176,6 @@ export const dbSavePruefung = async (p: Pruefung) => {
     name: p.name, datum: p.datum,
     lernzielIds: JSON.stringify(p.lernzielIds),
     typ: p.typ,
-    beschreibung: p.beschreibung ?? null,
     status: p.status,
     punkteEnabled: toInt(p.punkteEnabled),
     noteEnabled: toInt(p.noteEnabled),

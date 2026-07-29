@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { SegmentedControl } from "@/components/shared/SegmentedControl";
@@ -185,32 +186,14 @@ export const BeurteilungTab = ({ klassId }: Props) => {
               relevantStudents.length > 0
                 ? Math.round((bewertet / relevantStudents.length) * 100)
                 : 0;
-            const pending2nd = ergebnisse.filter(
-              (e) =>
-                relevantStudents.some((s) => s.id === e.schuelerId) &&
-                e.zweiterVersuchAusstehend &&
-                (e.anzahlVersuche ?? 1) < 2,
-            ).length;
-            const pending3rd = ergebnisse.filter(
-              (e) =>
-                relevantStudents.some((s) => s.id === e.schuelerId) &&
-                e.zweiterVersuchAusstehend &&
-                (e.anzahlVersuche ?? 1) >= 2,
-            ).length;
-            const open1st = relevantStudents.filter((s) => {
-              const e = ergebnisse.find((er) => er.schuelerId === s.id);
-              return !e?.abgeschlossen && !e?.zweiterVersuchAusstehend;
-            }).length;
             return (
               <div
                 key={p.id}
                 className="group relative flex flex-col gap-2 rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-md cursor-pointer"
                 onClick={() => setActivePruefungId(p.id)}
               >
-                <Button
+                <IconButton
                   type="button"
-                  variant="secondary"
-                  size="icon-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     setConfirmDeleteId(p.id);
@@ -218,8 +201,8 @@ export const BeurteilungTab = ({ klassId }: Props) => {
                   className="absolute right-3 top-3 hidden text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover:flex"
                   title="Lernzielkontrolle löschen"
                 >
-                  <Icon name="delete" size={14} />
-                </Button>
+                  <Icon name="delete" size={16} />
+                </IconButton>
 
                 <div className="flex items-start justify-between gap-2 pr-6">
                   <p className="font-semibold leading-tight">{p.name}</p>
@@ -245,12 +228,12 @@ export const BeurteilungTab = ({ klassId }: Props) => {
 
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <Icon name="calendar_month" size={14} />
+                    <Icon name="calendar_month" size={16} />
                     {formatDateCH(p.datum)}
                   </span>
                   {fach && (
                     <span className="flex items-center gap-1">
-                      <Icon name="menu_book" size={14} />
+                      <Icon name="menu_book" size={16} />
                       {fach.name}
                     </span>
                   )}

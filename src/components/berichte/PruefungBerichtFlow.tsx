@@ -151,14 +151,14 @@ export const PruefungBerichtFlow = ({ klassId }: { klassId: string }) => {
                 onClick={() => { setPStudentMode('all'); setPOpenStep(3) }}
                 className="px-4 py-1.5"
               >
-                <Icon name="group" size={14} /> Alle ({students.length})
+                <Icon name="group" size={16} /> Alle ({students.length})
               </Button>
               <Button
                 variant={pStudentMode === 'individual' ? 'default' : 'secondary'}
                 onClick={() => { setPStudentMode('individual'); setPSelectedStudentIds(new Set()) }}
                 className="px-4 py-1.5"
               >
-                <Icon name="person" size={14} /> Einzelne
+                <Icon name="person" size={16} /> Einzelne
               </Button>
             </div>
             {pStudentMode === 'individual' && (
@@ -204,7 +204,7 @@ export const PruefungBerichtFlow = ({ klassId }: { klassId: string }) => {
                     pIncludePunkte ? 'bg-primary border-primary' : 'border-border',
                   )}
                 >
-                  {pIncludePunkte && <Icon name="check" size={10} weight={700} className="text-primary-foreground" />}
+                  {pIncludePunkte && <Icon name="check" size={16} weight={700} className="text-primary-foreground" />}
                 </div>
                 Punkte
               </label>
@@ -216,7 +216,7 @@ export const PruefungBerichtFlow = ({ klassId }: { klassId: string }) => {
                     pIncludeNote ? 'bg-primary border-primary' : 'border-border',
                   )}
                 >
-                  {pIncludeNote && <Icon name="check" size={10} weight={700} className="text-primary-foreground" />}
+                  {pIncludeNote && <Icon name="check" size={16} weight={700} className="text-primary-foreground" />}
                 </div>
                 Note
               </label>

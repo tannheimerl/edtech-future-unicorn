@@ -24,7 +24,7 @@ export const SearchBar = ({
       <div className="relative flex-1">
         <Icon
           name="search"
-          size={14}
+          size={16}
           className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
         />
         <input
