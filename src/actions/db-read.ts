@@ -48,10 +48,10 @@ export const fetchAllData = async () => {
 
   const lernkontrollen: Lernkontrolle[] = dbLernkontrollen.map((t) => ({
     id: t.id, fachId: t.fachId, name: t.name,
-    ...(t.typ ? { typ: t.typ as 'standard' | 'rilz' } : {}),
+    typ: (t.typ ?? 'standard') as 'standard' | 'rilz',
+    stufe: t.stufe ? parseArr<number>(t.stufe) : [],
     ...(t.standardLernkontrolleId ? { standardLernkontrolleId: t.standardLernkontrolleId } : {}),
     ...(t.faelligAm ? { faelligAm: t.faelligAm } : {}),
-    ...(t.stufe ? { stufe: parseArr<number>(t.stufe) } : {}),
     ...(t.zyklus ? { zyklus: parseArr<number>(t.zyklus) } : {}),
     ...(t.autor ? { autor: t.autor } : {}),
     ...(t.autorLpId ? { autorLpId: t.autorLpId } : {}),

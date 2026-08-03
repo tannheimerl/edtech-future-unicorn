@@ -34,7 +34,9 @@ export const LernkontrolleEditModal = ({
   const [localTyp, setLocalTyp] = useState<"standard" | "rilz">(
     lernkontrolle?.typ ?? "standard",
   );
-  const [stufe, setStufe] = useState<number | undefined>(lernkontrolle?.stufe?.[0]);
+  const [stufe, setStufe] = useState<number | undefined>(
+    lernkontrolle?.stufe?.[0],
+  );
   const [openRowId, setOpenRowId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,13 +51,15 @@ export const LernkontrolleEditModal = ({
 
   if (!lernkontrolle) return null;
 
+  const canSave = localName.trim().length > 0 && stufe !== undefined;
+
   const save = () => {
-    if (!localName.trim()) return;
+    if (!canSave || stufe === undefined) return;
     updateLernkontrolle(lernkontrolleId, {
       name: localName.trim(),
       fachId: localFachId,
       typ: localTyp,
-      stufe: stufe ? [stufe] : undefined,
+      stufe: [stufe],
     });
     onClose();
   };
@@ -65,149 +69,132 @@ export const LernkontrolleEditModal = ({
   };
 
   return (
-      <Modal
-        open
-        onOpenChange={(v) => {
-          if (!v) onClose();
-        }}
-        title={lernkontrolle.name}
-        size="md"
-        footer={
-          editStep === "meta" ? (
-            <div className="flex items-center justify-between w-full gap-2">
-              <button
-                onClick={onRequestDelete}
-                className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded-lg hover:bg-destructive/8"
-              >
-                <Icon name="delete" size={16} />
-                Löschen
-              </button>
-              <div className="flex items-center gap-2">
-                <IconButton
-                  onClick={() => exportLernkontrolle(lernkontrolleId)}
-                  aria-label="Exportieren"
-                  className="text-muted-foreground"
-                >
-                  <Icon name="download" size={16} />
-                </IconButton>
-                <Button variant="secondary" onClick={onClose}>
-                  Abbrechen
-                </Button>
-                <Button
-                  onClick={() => setEditStep("lernziele")}
-                  disabled={!localName.trim()}
-                >
-                  Weiter{" "}
-                  <Icon name="chevron_right" size={16} className="ml-0.5" />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between w-full gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => setEditStep("meta")}
-                className="text-muted-foreground"
-              >
-                <Icon name="chevron_left" size={16} className="mr-0.5" /> Zurück
+    <Modal
+      open
+      onOpenChange={(v) => {
+        if (!v) onClose();
+      }}
+      title={lernkontrolle.name}
+      size="md"
+      footer={
+        editStep === "meta" ? (
+          <div className="flex items-center justify-between w-full gap-2">
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={onClose}>
+                Abbrechen
               </Button>
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" onClick={onClose}>
-                  Abbrechen
-                </Button>
-                <Button onClick={save} disabled={!localName.trim()}>
-                  Fertig
-                </Button>
-              </div>
-            </div>
-          )
-        }
-      >
-        {/* Step 1: Meta */}
-        {editStep === "meta" && (
-          <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden space-y-3">
-            {/* Name */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">
-                Bezeichnung
-              </Label>
-              <Input
-                value={localName}
-                onChange={(e) => setLocalName(e.target.value)}
-                placeholder="Bezeichnung der Lernkontrolle"
-              />
-            </div>
-
-            {/* Dropdown rows */}
-            <div className="space-y-1 border-t border-border/40 pt-2">
-              {/* Fach — only if multiple Fächer exist */}
-              {faecher.length > 1 && (
-                <ModalRow
-                  label="Fach"
-                  displayValue={faecher.find((f) => f.id === localFachId)?.name}
-                  open={openRowId === "fach"}
-                  onOpenChange={(v) => openRow("fach", v)}
-                >
-                  <ModalOptionList
-                    options={faecher.map((f) => ({ value: f.id, label: f.name }))}
-                    current={localFachId}
-                    onSelect={(v) => {
-                      setLocalFachId(v);
-                      setOpenRowId(null);
-                    }}
-                  />
-                </ModalRow>
-              )}
-
-              {/* Typ */}
-              <ModalRow
-                label="Typ"
-                displayValue={localTyp === "rilz" ? "RILZ" : "Standard"}
-                open={openRowId === "typ"}
-                onOpenChange={(v) => openRow("typ", v)}
+              <Button
+                onClick={() => setEditStep("lernziele")}
+                disabled={!canSave}
               >
-                <ModalOptionList
-                  options={[
-                    { value: "standard", label: "Standard" },
-                    { value: "rilz", label: "RILZ" },
-                  ]}
-                  current={localTyp}
-                  onSelect={(v) => {
-                    setLocalTyp(v as "standard" | "rilz");
-                    setOpenRowId(null);
-                  }}
-                />
-              </ModalRow>
-
-              {/* Schulstufe */}
-              <ModalRow
-                label="Schulstufe"
-                displayValue={stufe ? `Kl. ${stufe}` : undefined}
-                placeholder="keine"
-                open={openRowId === "stufe"}
-                onOpenChange={(v) => openRow("stufe", v)}
-              >
-                <ModalOptionList
-                  options={[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({
-                    value: String(n),
-                    label: `Kl. ${n}`,
-                  }))}
-                  current={stufe ? String(stufe) : ""}
-                  onSelect={(v) => {
-                    setStufe(v ? Number(v) : undefined);
-                    setOpenRowId(null);
-                  }}
-                  clearLabel="Keine Auswahl"
-                />
-              </ModalRow>
+                Weiter{" "}
+                <Icon name="chevron_right" size={16} className="ml-0.5" />
+              </Button>
             </div>
           </div>
-        )}
+        ) : (
+          <div className="flex items-center justify-between w-full gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => setEditStep("meta")}
+              className="text-muted-foreground"
+            >
+              <Icon name="chevron_left" size={16} className="mr-0.5" /> Zurück
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={onClose}>
+                Abbrechen
+              </Button>
+              <Button onClick={save} disabled={!canSave}>
+                Fertig
+              </Button>
+            </div>
+          </div>
+        )
+      }
+    >
+      {/* Step 1: Meta */}
+      {editStep === "meta" && (
+        <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden space-y-3">
+          {/* Name */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Bezeichnung</Label>
+            <Input
+              value={localName}
+              onChange={(e) => setLocalName(e.target.value)}
+              placeholder="Bezeichnung der Lernkontrolle"
+            />
+          </div>
 
-        {/* Step 2: Lernziele */}
-        {editStep === "lernziele" && (
-          <LernzielEditSection lernkontrolleId={lernkontrolleId} />
-        )}
-      </Modal>
+          {/* Dropdown rows */}
+          <div className="space-y-1 border-t border-border/40 pt-2">
+            {/* Fach — only if multiple Fächer exist */}
+            {faecher.length > 1 && (
+              <ModalRow
+                label="Fach"
+                displayValue={faecher.find((f) => f.id === localFachId)?.name}
+                open={openRowId === "fach"}
+                onOpenChange={(v) => openRow("fach", v)}
+              >
+                <ModalOptionList
+                  options={faecher.map((f) => ({ value: f.id, label: f.name }))}
+                  current={localFachId}
+                  onSelect={(v) => {
+                    setLocalFachId(v);
+                    setOpenRowId(null);
+                  }}
+                />
+              </ModalRow>
+            )}
+
+            {/* Typ */}
+            <ModalRow
+              label="Typ"
+              displayValue={localTyp === "rilz" ? "RILZ" : "Standard"}
+              open={openRowId === "typ"}
+              onOpenChange={(v) => openRow("typ", v)}
+            >
+              <ModalOptionList
+                options={[
+                  { value: "standard", label: "Standard" },
+                  { value: "rilz", label: "RILZ" },
+                ]}
+                current={localTyp}
+                onSelect={(v) => {
+                  setLocalTyp(v as "standard" | "rilz");
+                  setOpenRowId(null);
+                }}
+              />
+            </ModalRow>
+
+            {/* Schulstufe */}
+            <ModalRow
+              label="Schulstufe"
+              displayValue={stufe ? `Kl. ${stufe}` : undefined}
+              placeholder="auswählen (Pflichtfeld)"
+              open={openRowId === "stufe"}
+              onOpenChange={(v) => openRow("stufe", v)}
+            >
+              <ModalOptionList
+                options={[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({
+                  value: String(n),
+                  label: `Kl. ${n}`,
+                }))}
+                current={stufe ? String(stufe) : ""}
+                onSelect={(v) => {
+                  setStufe(v ? Number(v) : undefined);
+                  setOpenRowId(null);
+                }}
+              />
+            </ModalRow>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Lernziele */}
+      {editStep === "lernziele" && (
+        <LernzielEditSection lernkontrolleId={lernkontrolleId} />
+      )}
+    </Modal>
   );
 };

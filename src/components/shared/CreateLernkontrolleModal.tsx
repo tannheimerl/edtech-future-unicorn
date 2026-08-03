@@ -23,8 +23,7 @@ export const CreateLernkontrolleModal = ({
   fachId: string;
   onCreated?: (lernkontrolleId: string) => void;
 }) => {
-  const { faecher, createLernkontrolle, updateLernkontrolle, createLernziel } =
-    useData();
+  const { faecher, createLernkontrolle, createLernziel } = useData();
 
   const [step, setStep] = useState<"meta" | "lernziele">("meta");
 
@@ -132,12 +131,11 @@ export const CreateLernkontrolleModal = ({
     setNewLzA("");
   };
 
+  const canSubmitMeta = name.trim().length > 0 && stufe !== undefined;
+
   const submit = () => {
-    if (!name.trim()) return;
-    const id = createLernkontrolle(localFachId, name.trim(), typ);
-    updateLernkontrolle(id, {
-      stufe: stufe ? [stufe] : undefined,
-    });
+    if (!canSubmitMeta || stufe === undefined) return;
+    const id = createLernkontrolle(localFachId, name.trim(), typ, [stufe]);
     for (const lz of lernziele) {
       createLernziel(id, lz.label, lz.kategorie);
     }
@@ -167,7 +165,7 @@ export const CreateLernkontrolleModal = ({
               </Button>
               <Button
                 onClick={() => setStep("lernziele")}
-                disabled={!name.trim()}
+                disabled={!canSubmitMeta}
               >
                 Weiter{" "}
                 <Icon name="chevron_right" size={16} className="ml-0.5" />
@@ -186,7 +184,7 @@ export const CreateLernkontrolleModal = ({
                 <Button variant="secondary" onClick={() => onOpenChange(false)}>
                   Abbrechen
                 </Button>
-                <Button onClick={submit} disabled={!name.trim()}>
+                <Button onClick={submit} disabled={!canSubmitMeta}>
                   Erstellen
                 </Button>
               </div>
@@ -247,7 +245,7 @@ export const CreateLernkontrolleModal = ({
               <ModalRow
                 label="Schulstufe"
                 displayValue={stufe ? `Kl. ${stufe}` : undefined}
-                placeholder="keine"
+                placeholder="auswählen (Pflichtfeld)"
                 open={openRowId === "stufe"}
                 onOpenChange={(v) => openRow("stufe", v)}
               >
@@ -258,7 +256,6 @@ export const CreateLernkontrolleModal = ({
                   })),
                   stufe ? String(stufe) : "",
                   (v) => setStufe(v ? Number(v) : undefined),
-                  "Keine Auswahl",
                 )}
               </ModalRow>
             </div>

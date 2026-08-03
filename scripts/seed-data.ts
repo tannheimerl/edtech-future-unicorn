@@ -7,7 +7,8 @@ export const SEED_FAECHER: Fach[] = [
   { id: 'f4', name: 'Französisch' },
 ]
 
-export const SEED_LERNKONTROLLEN: Lernkontrolle[] = [
+// typ ist auf Lernkontrolle Pflichtfeld — die meisten Einträge unten sind 'standard' und lassen es implizit; Default hier zentral gesetzt.
+const SEED_LERNKONTROLLEN_RAW: (Omit<Lernkontrolle, 'typ'> & { typ?: Lernkontrolle['typ'] })[] = [
   // Deutsch
   { id: 'tde1', fachId: 'f1', name: 'Lesen – Sach- und Gebrauchstexte', faelligAm: '2026-04-11', stufe: [5, 6], zyklus: [2] },
   { id: 'tde2', fachId: 'f1', name: 'Schreiben – Texte verfassen',        faelligAm: '2026-05-09', stufe: [5, 6, 7], zyklus: [2, 3] },
@@ -35,15 +36,20 @@ export const SEED_LERNKONTROLLEN: Lernkontrolle[] = [
   // faelligAm in der Zukunft → wird aus Analytik ausgeschlossen (Demo)
   { id: 'tfr3', fachId: 'f4', name: 'Schreiben',                          faelligAm: '2026-06-20', stufe: [7, 8], zyklus: [3] },
   // RILZ-Lernkontrollen (typ: 'rilz') – erstellt von der Heilpädagogin
-  { id: 'tma1_rilz', fachId: 'f2', name: 'Zahlen und Operationen (RILZ)',    typ: 'rilz', standardLernkontrolleId: 'tma1' },
-  { id: 'tma3_rilz', fachId: 'f2', name: 'Grössen, Daten und Zufall (RILZ)', typ: 'rilz', standardLernkontrolleId: 'tma3' },
+  { id: 'tma1_rilz', fachId: 'f2', name: 'Zahlen und Operationen (RILZ)',    typ: 'rilz', stufe: [5, 6], standardLernkontrolleId: 'tma1' },
+  { id: 'tma3_rilz', fachId: 'f2', name: 'Grössen, Daten und Zufall (RILZ)', typ: 'rilz', stufe: [6],    standardLernkontrolleId: 'tma3' },
   // Eigene Lernkontrollen (erstellt von Lukas Meier, lp1)
   { id: 'tde_e1', fachId: 'f1', name: 'Kreatives Schreiben',           stufe: [5, 6], zyklus: [2],    autorLpId: 'lp1' },
   { id: 'tde_e2', fachId: 'f1', name: 'Medien und Kommunikation',      stufe: [6, 7], zyklus: [2, 3], autorLpId: 'lp1' },
   { id: 'tma_e1', fachId: 'f2', name: 'Wahrscheinlichkeit und Zufall', stufe: [6],    zyklus: [2],    autorLpId: 'lp1' },
-  { id: 'tma_e2', fachId: 'f2', name: 'Textaufgaben und Modellieren',                                 autorLpId: 'lp1' },
+  { id: 'tma_e2', fachId: 'f2', name: 'Textaufgaben und Modellieren',  stufe: [6, 7],                 autorLpId: 'lp1' },
   { id: 'tnm_e1', fachId: 'f3', name: 'Wetter und Klima',              stufe: [5],    zyklus: [2],    autorLpId: 'lp1' },
 ]
+
+export const SEED_LERNKONTROLLEN: Lernkontrolle[] = SEED_LERNKONTROLLEN_RAW.map((t) => ({
+  ...t,
+  typ: t.typ ?? 'standard',
+}))
 
 export const SEED_LERNZIELE: Lernziel[] = [
   // tde1 – Lesen

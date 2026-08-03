@@ -24,9 +24,9 @@ export type Lernkontrolle = {
   fachId: string
   name: string
   faelligAm?: string      // ISO YYYY-MM-DD — Datum bis wann diese Lernkontrolle beherrscht sein soll
-  typ?: 'standard' | 'rilz'  // default = 'standard'
+  typ: 'standard' | 'rilz'
   standardLernkontrolleId?: string    // für RILZ-Lernkontrollen: welche Standard-Lernkontrolle wird ersetzt
-  stufe?: number[]            // e.g. [5, 6] — Schulstufen für die diese Lernkontrolle gedacht ist (1–9)
+  stufe: number[]              // e.g. [5, 6] — Schulstufen für die diese Lernkontrolle gedacht ist (1–9)
   zyklus?: number[]           // e.g. [2, 3] — Lehrplanzyklus (1–3)
   autor?: string              // Anzeigename der Lehrperson, die diese Lernkontrolle erstellt hat
   autorLpId?: string          // ID der Lehrperson, die diese Lernkontrolle erstellt hat

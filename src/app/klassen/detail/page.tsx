@@ -24,16 +24,27 @@ import {
   TableRow,
   TableHead,
   TableCell,
-  TableSortHeader,
   TableEmpty,
 } from "@/components/ui/table";
 import { InputModal } from "@/components/shared/InputModal";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Highlight } from "@/components/shared/Highlight";
 import { SearchBar } from "@/components/shared/SearchBar";
+import { SortMenu } from "@/components/shared/SortMenu";
 import { GefahrenzoneSettings } from "@/components/einstellungen/GefahrenzoneSettings";
 import { cn, getFachColor } from "@/lib/utils";
-import { competencyPct } from "@/lib/student-kpis";
+
+type SchuelerSortOption =
+  | "vorname-asc"
+  | "vorname-desc"
+  | "nachname-asc"
+  | "nachname-desc";
+const SCHUELER_SORT_OPTIONS: { value: SchuelerSortOption; label: string }[] = [
+  { value: "vorname-asc", label: "Vorname (A–Z)" },
+  { value: "vorname-desc", label: "Vorname (Z–A)" },
+  { value: "nachname-asc", label: "Nachname (A–Z)" },
+  { value: "nachname-desc", label: "Nachname (Z–A)" },
+];
 
 // ── Page ──────────────────────────────────────────────────────────────────
 
@@ -52,7 +63,6 @@ const KlasseDetailPage = () => {
     faecher,
     lernkontrollen,
     lernziele,
-    competencies,
     setRilzFach,
     setBvsa,
   } = useData();
@@ -63,20 +73,9 @@ const KlasseDetailPage = () => {
   const [tab, setTab] = useState<KlasseTab>("schueler");
   const [editingName, setEditingName] = useState(false);
   const [adminSearch, setAdminSearch] = useState("");
-  const [sortCol, setSortCol] = useState<"vorname" | "nachname" | "progress">(
-    "vorname",
-  );
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sort, setSort] = useState<SchuelerSortOption>("vorname-asc");
   const [editStudentId, setEditStudentId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-
-  const handleSortCol = (col: "vorname" | "nachname" | "progress") => {
-    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else {
-      setSortCol(col);
-      setSortDir("asc");
-    }
-  };
 
   const sortedStudents = [...students]
     .filter(
@@ -87,14 +86,13 @@ const KlasseDetailPage = () => {
           .includes(adminSearch.trim().toLowerCase()),
     )
     .sort((a, b) => {
-      const dir = sortDir === "asc" ? 1 : -1;
-      if (sortCol === "vorname")
-        return dir * a.vorname.localeCompare(b.vorname, "de");
-      if (sortCol === "nachname")
-        return dir * a.nachname.localeCompare(b.nachname, "de");
-      return (
-        dir * (competencyPct(a, competencies) - competencyPct(b, competencies))
-      );
+      if (sort === "vorname-asc")
+        return a.vorname.localeCompare(b.vorname, "de");
+      if (sort === "vorname-desc")
+        return b.vorname.localeCompare(a.vorname, "de");
+      if (sort === "nachname-asc")
+        return a.nachname.localeCompare(b.nachname, "de");
+      return b.nachname.localeCompare(a.nachname, "de");
     });
 
   if (!klasse) {
@@ -168,25 +166,20 @@ const KlasseDetailPage = () => {
                 }
               />
 
+              <div className="flex items-center justify-end mb-2">
+                <SortMenu
+                  label="Sortieren"
+                  value={sort}
+                  options={SCHUELER_SORT_OPTIONS}
+                  onChange={setSort}
+                />
+              </div>
+
               {/* Admin table */}
               <Table>
                 <TableHeader>
-                  <TableSortHeader
-                    active={sortCol === "vorname"}
-                    direction={sortDir}
-                    onClick={() => handleSortCol("vorname")}
-                    className="w-24"
-                  >
-                    Vorname
-                  </TableSortHeader>
-                  <TableSortHeader
-                    active={sortCol === "nachname"}
-                    direction={sortDir}
-                    onClick={() => handleSortCol("nachname")}
-                    className="w-24"
-                  >
-                    Nachname
-                  </TableSortHeader>
+                  <TableHead className="w-24">Vorname</TableHead>
+                  <TableHead className="w-24">Nachname</TableHead>
                   <TableHead className="w-full">Kategorie</TableHead>
                   <TableHead className="w-20" />
                 </TableHeader>

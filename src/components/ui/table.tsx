@@ -1,5 +1,4 @@
 import * as React from "react"
-import { Icon } from "@/components/ui/Icon"
 
 import { cn } from "@/lib/utils"
 
@@ -17,7 +16,6 @@ import { cn } from "@/lib/utils"
     <Table>
       <TableHeader>
         <TableHead>Vorname</TableHead>
-        <TableSortHeader active={…} direction={…} onClick={…}>Score</TableSortHeader>
       </TableHeader>
       <TableBody>
         <TableRow onClick={…}>
@@ -28,6 +26,8 @@ import { cn } from "@/lib/utils"
 
   `containerClassName` on <Table> tunes the outer card (e.g. add
   `max-h-[380px] overflow-y-auto` for a scroll area with a sticky header).
+  For sortable columns, pair a `SortMenu` above the table with plain
+  `TableHead` cells instead of a per-column sort control.
 */
 
 type Align = "left" | "right" | "center"
@@ -36,12 +36,6 @@ const alignText: Record<Align, string> = {
   left: "text-left",
   right: "text-right",
   center: "text-center",
-}
-
-const alignJustify: Record<Align, string> = {
-  left: "justify-start",
-  right: "justify-end",
-  center: "justify-center",
 }
 
 const Table = ({
@@ -144,49 +138,6 @@ const TableCell = ({
 }
 
 /*
-  Sortable column header — chevron indicator matches the reference table:
-  points down for ascending, flips up for descending, faint when inactive.
-*/
-const TableSortHeader = ({
-  active,
-  direction,
-  onClick,
-  align = "left",
-  className,
-  children,
-  ...props
-}: Omit<React.ComponentProps<"th">, "onClick"> & {
-  active: boolean
-  direction: "asc" | "desc"
-  onClick: () => void
-  align?: Align
-}) => {
-  return (
-    <TableHead align={align} className={cn("p-0", className)} {...props}>
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          "flex w-full items-center gap-0.5 px-4 py-3 transition-colors hover:text-foreground",
-          alignJustify[align],
-        )}
-      >
-        {children}
-        <Icon
-          name="expand_more"
-          size={16}
-          className={cn(
-            "shrink-0 transition-transform",
-            active ? "text-primary" : "opacity-30",
-            active && direction === "desc" && "rotate-180",
-          )}
-        />
-      </button>
-    </TableHead>
-  )
-}
-
-/*
   Full-width message row for empty / no-results states, styled to sit inside
   a <TableBody>. Pass `colSpan` matching the table's column count.
 */
@@ -219,6 +170,5 @@ export {
   TableRow,
   TableHead,
   TableCell,
-  TableSortHeader,
   TableEmpty,
 }

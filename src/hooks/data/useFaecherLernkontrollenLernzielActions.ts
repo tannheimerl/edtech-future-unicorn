@@ -80,9 +80,9 @@ export function useFaecherLernkontrollenLernzielActions(
     dbDeleteFach(id).catch(notifyDbError) // cascade in DB handles lernkontrollen + lernziele
   }, [setLernkontrollen, setLernziele, setFaecher])
 
-  const createLernkontrolle = useCallback((fachId: string, name: string, typ?: 'standard' | 'rilz', standardLernkontrolleId?: string): string => {
+  const createLernkontrolle = useCallback((fachId: string, name: string, typ: 'standard' | 'rilz', stufe: number[], standardLernkontrolleId?: string): string => {
     const id = crypto.randomUUID()
-    const newLernkontrolle: Lernkontrolle = { id, fachId, name, typ: typ ?? 'standard', standardLernkontrolleId }
+    const newLernkontrolle: Lernkontrolle = { id, fachId, name, typ, stufe, standardLernkontrolleId }
     setLernkontrollen((prev) => [...prev, newLernkontrolle])
     dbSaveLernkontrolle(newLernkontrolle).catch(notifyDbError)
     return id
@@ -140,7 +140,7 @@ export function useFaecherLernkontrollenLernzielActions(
       }))
     const payload: LezioExport = {
       version: '1', exportedAt: new Date().toISOString(), fachName: fach.name,
-      lernkontrolle: { name: lernkontrolle.name, ...(lernkontrolle.typ ? { typ: lernkontrolle.typ } : {}), ...(lernkontrolle.stufe ? { stufe: lernkontrolle.stufe } : {}) },
+      lernkontrolle: { name: lernkontrolle.name, typ: lernkontrolle.typ, stufe: lernkontrolle.stufe },
       lernziele: exportLZ,
     }
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
@@ -168,7 +168,7 @@ export function useFaecherLernkontrollenLernzielActions(
         }))
       const payload: LezioExport = {
         version: '1', exportedAt: new Date().toISOString(), fachName: fach.name,
-        lernkontrolle: { name: lernkontrolle.name, ...(lernkontrolle.typ ? { typ: lernkontrolle.typ } : {}), ...(lernkontrolle.stufe ? { stufe: lernkontrolle.stufe } : {}) },
+        lernkontrolle: { name: lernkontrolle.name, typ: lernkontrolle.typ, stufe: lernkontrolle.stufe },
         lernziele: exportLZ,
       }
       zip.file(`${lernkontrolle.name}.lezio`, JSON.stringify(payload, null, 2))
@@ -189,7 +189,7 @@ export function useFaecherLernkontrollenLernzielActions(
     const newLernkontrolle: Lernkontrolle = {
       id: lernkontrolleId, fachId, name: data.lernkontrolle.name,
       typ: data.lernkontrolle.typ ?? 'standard',
-      ...(data.lernkontrolle.stufe ? { stufe: data.lernkontrolle.stufe } : {}),
+      stufe: data.lernkontrolle.stufe ?? [],
     }
     setLernkontrollen((prev) => [...prev, newLernkontrolle])
     dbSaveLernkontrolle(newLernkontrolle).catch(notifyDbError)
