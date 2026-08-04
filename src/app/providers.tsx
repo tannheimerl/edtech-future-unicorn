@@ -11,7 +11,11 @@ export const Providers = ({ children }: WithChildren) => {
   const [configured, setConfigured] = useState<boolean | null>(null)
 
   useEffect(() => {
-    isDbConfigured().then(setConfigured)
+    // On failure fall back to the setup dialog — staying at `null` would
+    // render an empty window with no explanation and no way forward.
+    isDbConfigured()
+      .then(setConfigured)
+      .catch(() => setConfigured(false))
   }, [])
 
   if (configured === null) return null

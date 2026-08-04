@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
 const CONFIG_FILE: &str = "db-settings.json";
+const LEGACY_DB_FILE: &str = "lezio.db";
 
 #[derive(Serialize, Deserialize, Default)]
 struct DbSettings {
@@ -31,17 +32,54 @@ fn write_settings(app: &AppHandle, settings: &DbSettings) -> Result<(), String> 
   fs::write(&path, raw).map_err(|e| e.to_string())
 }
 
-/// Returns the user-configured database path, or `None` if the user hasn't
-/// picked one yet (first launch — no default location is assumed).
+/// A configured path is only usable if its parent directory still exists —
+/// SQLite recreates a missing database *file*, but not a missing directory.
+/// Without this check a stale path (moved/deleted folder) leaves the app
+/// "configured" but unable to ever open a connection.
+fn is_usable(path: &str) -> bool {
+  PathBuf::from(path)
+    .parent()
+    .map(|p| p.as_os_str().is_empty() || p.is_dir())
+    .unwrap_or(false)
+}
+
+/// Versions up to 0.2.x defaulted to `<app_data_dir>/lezio.db` when the user
+/// had never picked a location explicitly. That default is gone, so an
+/// upgrading user would be sent to the first-run setup with their existing
+/// data left orphaned on disk. Adopt it instead.
+fn legacy_db_path(app: &AppHandle) -> Option<PathBuf> {
+  let path = app.path().app_data_dir().ok()?.join(LEGACY_DB_FILE);
+  path.is_file().then_some(path)
+}
+
+/// Resolves the database path to use, adopting (and persisting) the legacy
+/// default location when there is nothing usable configured. Returns `None`
+/// only when the user genuinely has to pick a location.
+fn resolve_db_path(app: &AppHandle) -> Result<Option<String>, String> {
+  if let Some(path) = read_settings(app)?.db_path {
+    if is_usable(&path) {
+      return Ok(Some(path));
+    }
+  }
+  match legacy_db_path(app) {
+    Some(legacy) => {
+      let path = legacy.to_string_lossy().to_string();
+      write_settings(app, &DbSettings { db_path: Some(path.clone()) })?;
+      Ok(Some(path))
+    }
+    None => Ok(None),
+  }
+}
+
+/// Returns the database path to open, or `None` if the user hasn't picked one
+/// yet (first launch — no default location is assumed).
 #[tauri::command]
 pub fn get_db_path(app: AppHandle) -> Result<Option<String>, String> {
-  Ok(read_settings(&app)?.db_path)
+  resolve_db_path(&app)
 }
 
 fn require_db_path(app: &AppHandle) -> Result<String, String> {
-  read_settings(app)?
-    .db_path
-    .ok_or_else(|| "Kein Datenbankpfad konfiguriert.".to_string())
+  resolve_db_path(app)?.ok_or_else(|| "Kein Datenbankpfad konfiguriert.".to_string())
 }
 
 /// Points the app at an existing or new database file. Does not touch the

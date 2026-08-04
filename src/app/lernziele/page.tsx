@@ -200,7 +200,7 @@ const LernzielePage = () => {
               />
             }
             title="Daten konnten nicht geladen werden"
-            description="Prüfe deine Internetverbindung und versuche es erneut."
+            description="Die lokale Datenbank konnte nicht geöffnet werden. Prüfe den Speicherort unter Einstellungen › Datenbank."
             action={
               <Button variant="secondary" onClick={() => reloadData()}>
                 Erneut laden
