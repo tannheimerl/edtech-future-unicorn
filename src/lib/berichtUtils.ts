@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import type { DocumentProps } from '@react-pdf/renderer'
 import type { ReactElement } from 'react'
 import type { SchuelerBerichtPDFProps } from '@/components/berichte/SchuelerBerichtPDF'
+import { saveBlobToDisk } from '@/lib/tauriFile'
 
 export const generatePdfBlob = async (props: SchuelerBerichtPDFProps): Promise<Blob> => {
   const [{ pdf }, { SchuelerBerichtPDF }] = await Promise.all([
@@ -22,16 +23,12 @@ export const downloadZip = async (
     zip.file(filename, blob)
   }
   const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
-  triggerDownload(zipBlob, zipName)
+  await triggerDownload(zipBlob, zipName)
 }
 
-export const triggerDownload = (blob: Blob, filename: string): void => {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
+export const triggerDownload = async (blob: Blob, filename: string): Promise<void> => {
+  const extension = filename.includes('.') ? filename.split('.').pop() : undefined
+  await saveBlobToDisk(blob, filename, extension ? [{ name: extension.toUpperCase(), extensions: [extension] }] : undefined)
 }
 
 // Entfernt Pfad-/Sonderzeichen aus Namensbestandteilen (Schüler- und
@@ -52,7 +49,7 @@ export const downloadBerichte = async (
     berichte.map(async ({ filename, props }) => ({ filename, blob: await generatePdfBlob(props) }))
   )
   if (entries.length === 1) {
-    triggerDownload(entries[0].blob, entries[0].filename)
+    await triggerDownload(entries[0].blob, entries[0].filename)
   } else {
     await downloadZip(entries, zipName)
   }

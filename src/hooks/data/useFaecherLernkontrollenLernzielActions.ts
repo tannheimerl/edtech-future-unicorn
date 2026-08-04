@@ -11,6 +11,10 @@ import {
 import { notifyDbError } from '@/lib/toast'
 import { findExactFachMatch } from '@/lib/fachMatch'
 import { parseLezio } from '@/lib/lezioImport'
+import { saveBlobToDisk } from '@/lib/tauriFile'
+
+const LEZIO_FILTERS = [{ name: 'Lezio-Vorlage', extensions: ['lezio'] }]
+const ZIP_FILTERS = [{ name: 'ZIP-Archiv', extensions: ['zip'] }]
 
 export function useFaecherLernkontrollenLernzielActions(
   faecher: Fach[],
@@ -77,7 +81,7 @@ export function useFaecherLernkontrollenLernzielActions(
     })
     setLernziele((prev) => prev.filter((l) => !lernkontrollenToDelete.has(l.lernkontrolleId)))
     setFaecher((prev) => prev.filter((f) => f.id !== id))
-    dbDeleteFach(id).catch(notifyDbError) // cascade in DB handles lernkontrollen + lernziele
+    dbDeleteFach(id).catch(notifyDbError) // dbDeleteFach cascades lernkontrollen + lernziele + pruefungen
   }, [setLernkontrollen, setLernziele, setFaecher])
 
   const createLernkontrolle = useCallback((fachId: string, name: string, typ: 'standard' | 'rilz', stufe: number[], standardLernkontrolleId?: string): string => {
@@ -126,7 +130,7 @@ export function useFaecherLernkontrollenLernzielActions(
     dbDeleteLernziel(id).catch(notifyDbError)
   }, [setLernziele])
 
-  const exportLernkontrolle = useCallback((lernkontrolleId: string): void => {
+  const exportLernkontrolle = useCallback(async (lernkontrolleId: string): Promise<void> => {
     const lernkontrolle = lernkontrollen.find((t) => t.id === lernkontrolleId)
     if (!lernkontrolle) return
     const fach = faecher.find((f) => f.id === lernkontrolle.fachId)
@@ -144,12 +148,7 @@ export function useFaecherLernkontrollenLernzielActions(
       lernziele: exportLZ,
     }
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${lernkontrolle.name}.lezio`
-    a.click()
-    URL.revokeObjectURL(url)
+    await saveBlobToDisk(blob, `${lernkontrolle.name}.lezio`, LEZIO_FILTERS)
   }, [lernkontrollen, faecher, lernziele])
 
   const exportFach = useCallback(async (fachId: string): Promise<void> => {
@@ -174,12 +173,7 @@ export function useFaecherLernkontrollenLernzielActions(
       zip.file(`${lernkontrolle.name}.lezio`, JSON.stringify(payload, null, 2))
     }
     const blob = await zip.generateAsync({ type: 'blob' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${fach.name}.zip`
-    a.click()
-    URL.revokeObjectURL(url)
+    await saveBlobToDisk(blob, `${fach.name}.zip`, ZIP_FILTERS)
   }, [lernkontrollen, faecher, lernziele])
 
   // Legt aus bereits geparsten Importdaten eine Lernkontrolle + Lernziele unter dem aufgelösten Fach an.

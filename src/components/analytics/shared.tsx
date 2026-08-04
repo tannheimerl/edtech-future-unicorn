@@ -25,7 +25,7 @@ export const VIEW_OPTIONS: { key: StatView; label: string }[] = [
   { key: "gesamt", label: "Gesamt" },
   { key: "fach", label: "Fach" },
   { key: "thema", label: "Lernkontrolle" },
-  { key: "pruefungen", label: "Lernzielkontrollen" },
+  { key: "pruefungen", label: "Lernkontrollen" },
 ];
 
 // ── Filter bar ─────────────────────────────────────────────────────────────
@@ -78,32 +78,32 @@ export const SectionLabel = ({ label }: { label: string }) => {
 export const KpiTile = ({
   label,
   value,
-  sub,
   valueClass,
+  surface = "card",
 }: {
   label: string;
   value: string | number;
   sub?: string;
   valueClass?: string;
+  /** "card" (default, white card) or "flat" (matches the page background). */
+  surface?: "card" | "flat";
 }) => {
   return (
-    <div className="bg-card border border-border rounded-md px-4 py-3">
-      <p className="text-xs font-semibold tracking-widest text-muted-foreground mb-1.5">
-        {label}
-      </p>
+    <div
+      className={cn(
+        "border border-border rounded-md px-4 py-3",
+        surface === "flat" ? "bg-background" : "bg-card",
+      )}
+    >
+      <p className="text-xs text-muted-foreground mb-2">{label}</p>
       <p
         className={cn(
-          "text-2xl font-bold tabular-nums tracking-tight leading-none",
+          "text-2xl font-bold leading-none",
           valueClass ?? "text-foreground",
         )}
       >
         {value}
       </p>
-      {sub && (
-        <p className="text-xs text-muted-foreground/70 mt-1.5 leading-tight">
-          {sub}
-        </p>
-      )}
     </div>
   );
 };

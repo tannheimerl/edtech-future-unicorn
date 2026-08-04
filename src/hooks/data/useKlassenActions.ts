@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
-import type { Klasse, KlasseBeurteilungSettings, Schueler } from '@/types/domain'
-import { dbSaveKlasse, dbDeleteKlasse, dbSaveSchueler, dbSaveBeurteilungSettings } from '@/actions/db-write'
+import type { Klasse, Schueler } from '@/types/domain'
+import { dbSaveKlasse, dbDeleteKlasse, dbSaveSchueler } from '@/actions/db-write'
 import { notifyDbError } from '@/lib/toast'
 
 export function useKlassenActions(
@@ -36,13 +36,6 @@ export function useKlassenActions(
     setStudents((prev) => prev.filter((s) => s.klassId !== id))
     dbDeleteKlasse(id).catch(notifyDbError)
   }, [setClasses, setStudents])
-
-  const updateBeurteilungSettings = useCallback((klassId: string, settings: KlasseBeurteilungSettings) => {
-    setClasses((prev) => prev.map((c) =>
-      c.id === klassId ? { ...c, beurteilungSettings: settings } : c
-    ))
-    dbSaveBeurteilungSettings(klassId, settings).catch(notifyDbError)
-  }, [setClasses])
 
   const createFolgeklasse = useCallback(
     (vorgaengerKlasseId: string, neuerName: string, neuesSchuljahr: string): string => {
@@ -79,7 +72,6 @@ export function useKlassenActions(
     createClass,
     updateClass,
     deleteClass,
-    updateBeurteilungSettings,
     createFolgeklasse,
   }
 }

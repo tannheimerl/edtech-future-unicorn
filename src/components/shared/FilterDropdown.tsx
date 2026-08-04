@@ -39,7 +39,7 @@ type FilterDropdownProps = {
 /**
  * Canonical labeled filter pill: `Label | Wert ⌄` with an optional ✕ to remove
  * the column. Used for every single-select list filter (Fach, Typ, Schulstufe,
- * Quartal, Thema, Lernzielkontrolle). Consolidates the former FilterSpalte and
+ * Quartal, Thema, Lernkontrolle). Consolidates the former FilterSpalte and
  * FilterCombobox into one component.
  */
 export const FilterDropdown = ({

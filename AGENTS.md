@@ -1,14 +1,16 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+
 <!-- END:nextjs-agent-rules -->
 
 # Best practices for agents working in this repo
 
 Lezio is a Tauri desktop app (Next.js frontend, local SQLite via the Tauri SQL
 plugin). UI language is German; the domain terms (Klasse, Fach, Thema,
-Lernziel, Prüfung/Lernzielkontrolle, RILZ, bVSA) are used verbatim in code.
+Lernziel, Prüfung/Lernkontrolle, RILZ, bVSA) are used verbatim in code.
 
 ## Architecture
 
@@ -36,23 +38,23 @@ Lernziel, Prüfung/Lernzielkontrolle, RILZ, bVSA) are used verbatim in code.
 Check these before re-implementing logic; duplicating them is the most common
 mistake in this codebase's history:
 
-| Need | Use |
-| --- | --- |
-| Today as `YYYY-MM-DD` | `todayISO()` from `lib/dates` — **never** `new Date().toISOString().slice(0, 10)`; that is UTC and yields yesterday before ~2:00 local time |
-| Format an ISO date | `formatDateCH(iso, opts?)` from `lib/dates` (parses timezone-safe, `de-CH`) |
-| Status → 1 / 0.5 / 0 | `sv()` from `lib/utils` |
-| Avg % over statuses / counts | `statusAvgPct(statuses)` / `weightedPct(reached, partial, total)` from `lib/utils` |
-| Color for a progress % | `scoreColor` (text), `scoreBarColor` (bg), `scoreChipClasses` (chip) — all use the canonical **75 / 25** thresholds; do not invent new ones |
-| "Vorname Nachname" | `fullName(s)` from `lib/utils` |
-| RILZ skip rule / adjusted score / KPIs | `isLZSkipped`, `adjustedLZScore`, `computeStudentKpis`, `computeKlasseStats`, `isSpecialStudent`, `competencyPct` from `lib/student-kpis` |
-| PDF/ZIP report download | `downloadBerichte`, `sanitizeFilename` from `lib/berichtUtils` |
-| Lezio file import flow | `useLezioImport()` hook + `<LezioImportModal imp={…}/>` — never re-implement the parse/Zuordnung/feedback pipeline |
-| Status cycle cell | `StatusCell` / `nextStatus` from `components/shared/StatusCell` |
-| Modal dropdown option list | `ModalOptionList` (inside `ModalRow`) |
-| Lernziel add/edit/delete step | `LernzielEditSection` (used by both Thema edit modals) |
-| Analytics tiles/bars/filters | `components/analytics/shared.tsx` (KpiTile, LZStatusBar, FilterBar, …) |
-| Segmented/stacked progress bar | `ProgressBar` from `components/shared/ProgressBar` (segments API) |
-| Icon | `Icon` from `components/ui/Icon` (Material Symbols glyph) — `size` is in px and must land on the **16px ladder in 8px steps** (16, 24, 32, …), never an arbitrary value like 10/12/14/20 |
+| Need                                   | Use                                                                                                                                                                                      |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Today as `YYYY-MM-DD`                  | `todayISO()` from `lib/dates` — **never** `new Date().toISOString().slice(0, 10)`; that is UTC and yields yesterday before ~2:00 local time                                              |
+| Format an ISO date                     | `formatDateCH(iso, opts?)` from `lib/dates` (parses timezone-safe, `de-CH`)                                                                                                              |
+| Status → 1 / 0.5 / 0                   | `sv()` from `lib/utils`                                                                                                                                                                  |
+| Avg % over statuses / counts           | `statusAvgPct(statuses)` / `weightedPct(reached, partial, total)` from `lib/utils`                                                                                                       |
+| Color for a progress %                 | `scoreColor` (text), `scoreBarColor` (bg), `scoreChipClasses` (chip) — all use the canonical **75 / 25** thresholds; do not invent new ones                                              |
+| "Vorname Nachname"                     | `fullName(s)` from `lib/utils`                                                                                                                                                           |
+| RILZ skip rule / adjusted score / KPIs | `isLZSkipped`, `adjustedLZScore`, `computeStudentKpis`, `computeKlasseStats`, `isSpecialStudent`, `competencyPct` from `lib/student-kpis`                                                |
+| PDF/ZIP report download                | `downloadBerichte`, `sanitizeFilename` from `lib/berichtUtils`                                                                                                                           |
+| Lezio file import flow                 | `useLezioImport()` hook + `<LezioImportModal imp={…}/>` — never re-implement the parse/Zuordnung/feedback pipeline                                                                       |
+| Status cycle cell                      | `StatusCell` / `nextStatus` from `components/shared/StatusCell`                                                                                                                          |
+| Modal dropdown option list             | `ModalOptionList` (inside `ModalRow`)                                                                                                                                                    |
+| Lernziel add/edit/delete step          | `LernzielEditSection` (used by both Thema edit modals)                                                                                                                                   |
+| Analytics tiles/bars/filters           | `components/analytics/shared.tsx` (KpiTile, LZStatusBar, FilterBar, …)                                                                                                                   |
+| Segmented/stacked progress bar         | `ProgressBar` from `components/shared/ProgressBar` (segments API)                                                                                                                        |
+| Icon                                   | `Icon` from `components/ui/Icon` (Material Symbols glyph) — `size` is in px and must land on the **16px ladder in 8px steps** (16, 24, 32, …), never an arbitrary value like 10/12/14/20 |
 
 ## React rules (the ESLint config enforces these as errors)
 

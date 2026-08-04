@@ -2,7 +2,7 @@ import { getDrizzle } from '@/lib/drizzle/client'
 import * as schema from '@/lib/drizzle/schema'
 import type {
   Fach, Lernkontrolle, Lernziel, LernzielKategorie, Lehrperson,
-  Klasse, KlasseBeurteilungSettings, Schueler, AssessmentKommentar, LernkontrolleKommentar,
+  Klasse, Schueler, AssessmentKommentar, LernkontrolleKommentar,
   Pruefung, PruefungErgebnis, VersuchSnapshot, Status,
 } from '@/types/domain'
 
@@ -80,7 +80,6 @@ export const fetchAllData = async () => {
         fachIds: parseArr<string>(z.fachIds),
         ...(z.rolle ? { rolle: z.rolle } : {}),
       })),
-    ...(k.settings ? { beurteilungSettings: parseObj<KlasseBeurteilungSettings>(k.settings, {} as KlasseBeurteilungSettings) } : {}),
   }))
 
   const students: Schueler[] = dbSchueler.map((sc) => ({
@@ -115,26 +114,19 @@ export const fetchAllData = async () => {
     lernzielIds: parseArr<string>(p.lernzielIds),
     typ: (p.typ ?? 'pruefung_schriftlich') as Pruefung['typ'],
     status: (p.status ?? 'laufend') as Pruefung['status'],
-    punkteEnabled: bool(p.punkteEnabled),
-    noteEnabled: bool(p.noteEnabled),
-    anhangEnabled: bool(p.anhangEnabled),
-    ...(p.maxPunkte != null ? { maxPunkte: p.maxPunkte } : {}),
     ...(p.erstelltVonId ? { erstelltVonId: p.erstelltVonId } : {}),
     nurRilz: bool(p.nurRilz),
-    rilzSchuelerIds: parseArr<string>(p.rilzSchuelerIds),
+    schuelerIds: parseArr<string>(p.schuelerIds),
     createdAt: p.createdAt as string,
   }))
 
   const pruefungErgebnisse: PruefungErgebnis[] = dbPruefungErg.map((e) => ({
     id: e.id, pruefungId: e.pruefungId, schuelerId: e.schuelerId,
-    ...(e.punkte != null ? { punkte: e.punkte } : {}),
-    ...(e.note ? { note: e.note } : {}),
     anzahlVersuche: e.anzahlVersuche ?? 1,
     zweiterVersuchAusstehend: bool(e.zweiterVersuchAusstehend),
     abgeschlossen: bool(e.abgeschlossen),
     versuchSnapshots: parseArr<VersuchSnapshot>(e.versuchSnapshots),
     ...(e.kommentar ? { kommentar: e.kommentar } : {}),
-    anhangUrls: parseArr<string>(e.anhangUrls),
     ...(e.status ? { status: e.status } : {}),
     createdAt: e.createdAt as string,
   }))

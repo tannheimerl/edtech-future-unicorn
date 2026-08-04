@@ -1,6 +1,6 @@
-import * as React from "react"
+import * as React from "react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 /*
   Reusable table primitives. Styling mirrors the Schüler admin table
@@ -30,13 +30,13 @@ import { cn } from "@/lib/utils"
   `TableHead` cells instead of a per-column sort control.
 */
 
-type Align = "left" | "right" | "center"
+type Align = "left" | "right" | "center";
 
 const alignText: Record<Align, string> = {
   left: "text-left",
   right: "text-right",
   center: "text-center",
-}
+};
 
 const Table = ({
   className,
@@ -57,8 +57,8 @@ const Table = ({
         {...props}
       />
     </div>
-  )
-}
+  );
+};
 
 const TableHeader = ({
   className,
@@ -73,8 +73,8 @@ const TableHeader = ({
     >
       <tr className="border-b border-border">{children}</tr>
     </thead>
-  )
-}
+  );
+};
 
 const TableBody = ({ className, ...props }: React.ComponentProps<"tbody">) => {
   return (
@@ -83,8 +83,8 @@ const TableBody = ({ className, ...props }: React.ComponentProps<"tbody">) => {
       className={cn("divide-y divide-border", className)}
       {...props}
     />
-  )
-}
+  );
+};
 
 const TableRow = ({
   className,
@@ -102,8 +102,8 @@ const TableRow = ({
       )}
       {...props}
     />
-  )
-}
+  );
+};
 
 const TableHead = ({
   className,
@@ -114,14 +114,14 @@ const TableHead = ({
     <th
       data-slot="table-head"
       className={cn(
-        "px-4 py-3 align-middle text-sm font-semibold text-foreground whitespace-nowrap",
+        "px-3 py-2 align-middle text-sm font-semibold text-foreground whitespace-nowrap",
         alignText[align],
         className,
       )}
       {...props}
     />
-  )
-}
+  );
+};
 
 const TableCell = ({
   className,
@@ -131,11 +131,11 @@ const TableCell = ({
   return (
     <td
       data-slot="table-cell"
-      className={cn("px-4 py-3 align-middle", alignText[align], className)}
+      className={cn("px-3 py-2 align-middle", alignText[align], className)}
       {...props}
     />
-  )
-}
+  );
+};
 
 /*
   Full-width message row for empty / no-results states, styled to sit inside
@@ -160,8 +160,8 @@ const TableEmpty = ({
         {children}
       </td>
     </tr>
-  )
-}
+  );
+};
 
 export {
   Table,
@@ -171,4 +171,4 @@ export {
   TableHead,
   TableCell,
   TableEmpty,
-}
+};

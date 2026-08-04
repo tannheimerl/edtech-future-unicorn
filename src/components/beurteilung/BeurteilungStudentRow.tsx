@@ -2,12 +2,11 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { StatusCell } from '@/components/shared/StatusCell'
-import { PruefungAnhangUpload } from '@/components/pruefungen/PruefungAnhangUpload'
 import { cn, statusAvgPct, scoreColor } from '@/lib/utils'
 import { todayISO } from '@/lib/dates'
 import type { PruefungErgebnis, Schueler, Status, Lernkontrolle, VersuchSnapshot } from '@/types/domain'
 
-// Eine Schüler-Zeile des Prüfungs-Grids: Status-Zellen, Punkte/Note/Kommentar
+// Eine Schüler-Zeile des Prüfungs-Grids: Status-Zellen, Kommentar
 // (debounced Autosave) und Versuchs-Verwaltung.
 const useDebounce = <T,>(value: T, delay: number): T => {
   const [debounced, setDebounced] = useState(value)
@@ -19,48 +18,34 @@ const useDebounce = <T,>(value: T, delay: number): T => {
 }
 
 type RowState = {
-  punkte: string
-  note: string
   kommentar: string
 }
 
 const useRowState = (ergebnis: PruefungErgebnis | undefined) => {
   const [state, setState] = useState<RowState>({
-    punkte: ergebnis?.punkte != null ? String(ergebnis.punkte) : '',
-    note: ergebnis?.note ?? '',
     kommentar: ergebnis?.kommentar ?? '',
   })
   const prevId = useRef(ergebnis?.id)
   useEffect(() => {
     if (ergebnis?.id !== prevId.current) {
       prevId.current = ergebnis?.id
-      setState({
-        punkte: ergebnis?.punkte != null ? String(ergebnis.punkte) : '',
-        note: ergebnis?.note ?? '',
-        kommentar: ergebnis?.kommentar ?? '',
-      })
+      setState({ kommentar: ergebnis?.kommentar ?? '' })
     }
   }, [ergebnis])
   return [state, setState] as const
 }
 
-export type AssessmentSettings = { punkteEnabled: boolean; noteEnabled: boolean; anhangEnabled: boolean }
-
 type StudentRowProps = {
   student: Schueler
   pruefungId: string
-  maxPunkte?: number
   lzGroups: { thema: Lernkontrolle; grundlegend: { id: string; label: string }[]; anspruchsvoll: { id: string; label: string }[] }[]
   allLzIds: string[]
   ergebnis: PruefungErgebnis | undefined
-  settings: AssessmentSettings
   rowIdx: number
   rilzFachIds: string[]
   pruefungFachId: string
   onUpsert: (data: Omit<PruefungErgebnis, 'createdAt'>) => void
   onUpdateLz: (studentId: string, lzId: string, status: Status | undefined) => void
-  onUpload: (pruefungId: string, schuelerId: string, file: File) => Promise<string | null>
-  onDeleteAnhang: (ergebnisId: string, url: string) => Promise<void>
 }
 
 const buildUpsertBase = (
@@ -70,22 +55,19 @@ const buildUpsertBase = (
     id,
     pruefungId,
     schuelerId,
-    punkte: ergebnis?.punkte,
-    note: ergebnis?.note,
     anzahlVersuche: ergebnis?.anzahlVersuche ?? 1,
     zweiterVersuchAusstehend: ergebnis?.zweiterVersuchAusstehend ?? false,
     abgeschlossen: ergebnis?.abgeschlossen ?? false,
     versuchSnapshots: ergebnis?.versuchSnapshots ?? [],
     status: ergebnis?.status,
     kommentar: ergebnis?.kommentar,
-    anhangUrls: ergebnis?.anhangUrls ?? [],
   }
 }
 
 export const StudentRow = ({
-  student, pruefungId, maxPunkte, lzGroups, allLzIds, ergebnis,
-  settings, rowIdx, rilzFachIds, pruefungFachId,
-  onUpsert, onUpdateLz, onUpload, onDeleteAnhang,
+  student, pruefungId, lzGroups, allLzIds, ergebnis,
+  rowIdx, rilzFachIds, pruefungFachId,
+  onUpsert, onUpdateLz,
 }: StudentRowProps) => {
   const [row, setRow] = useRowState(ergebnis)
   const debouncedRow = useDebounce(row, 500)
@@ -102,8 +84,6 @@ export const StudentRow = ({
     if (firstRender.current) { firstRender.current = false; return }
     onUpsert({
       ...buildUpsertBase(ergebnisId.current, pruefungId, student.id, ergebnis),
-      punkte: debouncedRow.punkte !== '' ? Number(debouncedRow.punkte) : undefined,
-      note: debouncedRow.note || undefined,
       kommentar: debouncedRow.kommentar || undefined,
     })
   }, [debouncedRow]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -117,8 +97,6 @@ export const StudentRow = ({
             versuchSnapshots: [...(ergebnis.versuchSnapshots ?? []), {
               nr: ergebnis.anzahlVersuche ?? 1,
               date: todayISO(),
-              ...(ergebnis.punkte != null ? { punkte: ergebnis.punkte } : {}),
-              ...(ergebnis.note ? { note: ergebnis.note } : {}),
               ...(ergebnis.kommentar ? { kommentar: ergebnis.kommentar } : {}),
               ...(ergebnis.status ? { status: ergebnis.status } : {}),
             } satisfies VersuchSnapshot],
@@ -131,15 +109,6 @@ export const StudentRow = ({
       onUpsert({ ...base, zweiterVersuchAusstehend: false, abgeschlossen: false })
     }
   }, [ergebnis, pruefungId, student.id, onUpsert])
-
-  const handleUpload = useCallback(
-    (file: File) => onUpload(pruefungId, student.id, file),
-    [pruefungId, student.id, onUpload]
-  )
-  const handleDeleteAnhang = useCallback(
-    (url: string) => onDeleteAnhang(ergebnisId.current, url),
-    [onDeleteAnhang]
-  )
 
   const isRilzInFach = rilzFachIds.includes(pruefungFachId)
   const isPending = ergebnis?.zweiterVersuchAusstehend ?? false
@@ -235,46 +204,9 @@ export const StudentRow = ({
       })}
 
       {/* % */}
-      <td className={cn('sticky z-10 px-2 py-1 text-center border-l border-border', stickyBg, settings.punkteEnabled || settings.noteEnabled || settings.anhangEnabled ? '' : 'right-0')}>
+      <td className={cn('sticky z-10 px-2 py-1 text-center border-l border-border', stickyBg)}>
         <span className={cn('text-xs font-bold tabular-nums', pctColor)}>{pct}%</span>
       </td>
-
-      {settings.punkteEnabled && (
-        <td className="py-1 px-2 border-l border-border/40">
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              min={0}
-              max={maxPunkte}
-              step={0.5}
-              value={row.punkte}
-              onChange={e => setRow(r => ({ ...r, punkte: e.target.value }))}
-              disabled={isAbgeschlossen}
-              placeholder="—"
-              className={cn('w-14 rounded-md border border-border bg-background px-2 py-0.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary', isAbgeschlossen && 'opacity-50 cursor-default')}
-            />
-            {maxPunkte != null && (
-              <span className="text-xs text-muted-foreground shrink-0">/{maxPunkte}</span>
-            )}
-          </div>
-        </td>
-      )}
-
-      {settings.noteEnabled && (
-        <td className="py-1 px-2 border-l border-border/40">
-          <input
-            type="number"
-            min={1}
-            max={6}
-            step={0.5}
-            value={row.note}
-            onChange={e => setRow(r => ({ ...r, note: e.target.value }))}
-            disabled={isAbgeschlossen}
-            placeholder="—"
-            className={cn('w-14 rounded-md border border-border bg-background px-2 py-0.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary', isAbgeschlossen && 'opacity-50 cursor-default')}
-          />
-        </td>
-      )}
 
       <td className="py-1 px-2 border-l border-border/40">
         <input
@@ -286,16 +218,6 @@ export const StudentRow = ({
           className={cn('w-36 rounded-md border border-border bg-background px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary', isAbgeschlossen && 'opacity-50 cursor-default')}
         />
       </td>
-
-      {settings.anhangEnabled && (
-        <td className="py-1 px-2 border-l border-border/40">
-          <PruefungAnhangUpload
-            urls={ergebnis?.anhangUrls ?? []}
-            onUpload={handleUpload}
-            onDelete={handleDeleteAnhang}
-          />
-        </td>
-      )}
     </tr>
   )
 }

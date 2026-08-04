@@ -50,7 +50,6 @@ CREATE TABLE IF NOT EXISTS dim_klassen (
   name                    TEXT NOT NULL,
   schuljahr               TEXT,
   vorgaenger_klasse_id    TEXT REFERENCES dim_klassen(id),
-  settings                TEXT,
   created_at              TEXT DEFAULT (datetime('now'))
 );
 
@@ -65,7 +64,7 @@ CREATE TABLE IF NOT EXISTS bridge_lp_zuweisungen (
 
 CREATE TABLE IF NOT EXISTS dim_schueler (
   id                  TEXT PRIMARY KEY,
-  klasse_id           TEXT NOT NULL REFERENCES dim_klassen(id),
+  klasse_id           TEXT NOT NULL REFERENCES dim_klassen(id) ON DELETE CASCADE,
   vorname             TEXT NOT NULL,
   nachname            TEXT NOT NULL,
   note                TEXT DEFAULT '',
@@ -109,16 +108,12 @@ CREATE TABLE IF NOT EXISTS fact_pruefungen (
   name              TEXT NOT NULL,
   datum             TEXT NOT NULL,
   lernziel_ids      TEXT NOT NULL DEFAULT '[]',
-  max_punkte        REAL,
   erstellt_von_id   TEXT REFERENCES dim_lehrpersonen(id),
   status            TEXT NOT NULL DEFAULT 'laufend'
                     CHECK (status IN ('laufend', 'abgeschlossen')),
-  punkte_enabled    INTEGER NOT NULL DEFAULT 0,
-  note_enabled      INTEGER NOT NULL DEFAULT 0,
-  anhang_enabled    INTEGER NOT NULL DEFAULT 0,
   typ               TEXT NOT NULL DEFAULT 'pruefung_schriftlich',
   nur_rilz          INTEGER NOT NULL DEFAULT 0,
-  rilz_schueler_ids TEXT NOT NULL DEFAULT '[]',
+  schueler_ids      TEXT NOT NULL DEFAULT '[]',
   created_at        TEXT DEFAULT (datetime('now'))
 );
 
@@ -126,11 +121,8 @@ CREATE TABLE IF NOT EXISTS fact_pruefung_ergebnisse (
   id                          TEXT PRIMARY KEY,
   pruefung_id                 TEXT NOT NULL REFERENCES fact_pruefungen(id) ON DELETE CASCADE,
   schueler_id                 TEXT NOT NULL REFERENCES dim_schueler(id) ON DELETE CASCADE,
-  punkte                      REAL,
-  note                        TEXT,
   anzahl_versuche             INTEGER NOT NULL DEFAULT 1,
   kommentar                   TEXT,
-  anhang_urls                 TEXT NOT NULL DEFAULT '[]',
   status                      TEXT CHECK (status IN ('not_reached', 'partially_reached', 'reached')),
   zweiter_versuch_ausstehend  INTEGER NOT NULL DEFAULT 0,
   versuch_snapshots           TEXT NOT NULL DEFAULT '[]',
@@ -166,3 +158,41 @@ export const SCHEMA_STATEMENTS = SCHEMA_SQL
   .split(';')
   .map((s) => s.trim())
   .filter(Boolean)
+
+// ── Best-effort migrations ───────────────────────────────────────────────────
+// `CREATE TABLE IF NOT EXISTS` above is a no-op on databases created by an
+// older version, so column-level changes need explicit ALTERs. SQLite has no
+// `ADD/DROP COLUMN IF (NOT) EXISTS`, so these are run in order and each one is
+// allowed to fail (see lib/db.ts): on an already-migrated database every
+// statement below errors out harmlessly.
+//
+// Ordering is what makes the backfills safe to re-run: they reference the
+// *old* `rilz_schueler_ids` column, so once it has been dropped they can no
+// longer fire and overwrite a teacher's own Teilnehmer-Auswahl.
+export const MIGRATION_STATEMENTS = [
+  // Punkte / Noten / Anhänge wurden entfernt — die Spalten mit.
+  `ALTER TABLE fact_pruefungen ADD COLUMN schueler_ids TEXT NOT NULL DEFAULT '[]'`,
+  // Bisher implizite Teilnehmer explizit machen: RILZ-Lernkontrollen hatten
+  // ihre Schüler in rilz_schueler_ids, alle anderen liefen über "alle Schüler
+  // der Klasse, die in diesem Fach kein RILZ haben".
+  `UPDATE fact_pruefungen SET schueler_ids = rilz_schueler_ids WHERE nur_rilz = 1`,
+  `UPDATE fact_pruefungen SET schueler_ids = (
+     SELECT COALESCE(json_group_array(s.id), '[]')
+     FROM dim_schueler s
+     WHERE s.klasse_id = fact_pruefungen.klasse_id
+       AND NOT EXISTS (
+         SELECT 1 FROM json_each(COALESCE(s.rilz_fach_ids, '[]')) j
+         WHERE j.value = fact_pruefungen.fach_id
+       )
+   ) WHERE nur_rilz = 0 AND rilz_schueler_ids IS NOT NULL`,
+  `ALTER TABLE fact_pruefungen DROP COLUMN rilz_schueler_ids`,
+  `ALTER TABLE fact_pruefungen DROP COLUMN max_punkte`,
+  `ALTER TABLE fact_pruefungen DROP COLUMN punkte_enabled`,
+  `ALTER TABLE fact_pruefungen DROP COLUMN note_enabled`,
+  `ALTER TABLE fact_pruefungen DROP COLUMN anhang_enabled`,
+  `ALTER TABLE fact_pruefung_ergebnisse DROP COLUMN punkte`,
+  `ALTER TABLE fact_pruefung_ergebnisse DROP COLUMN note`,
+  `ALTER TABLE fact_pruefung_ergebnisse DROP COLUMN anhang_urls`,
+  // dim_klassen.settings hielt ausschliesslich die Punkte/Note/Anhang-Schalter.
+  `ALTER TABLE dim_klassen DROP COLUMN settings`,
+]

@@ -144,15 +144,6 @@ export type SchuelerBerichtPDFProps = {
     status: Status
   }>
   kommentar?: string
-  pruefungsErgebnis?: {
-    punkte?: number
-    maxPunkte?: number
-    note?: string
-  }
-  includeInBericht?: {
-    punkte: boolean
-    note: boolean
-  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -174,7 +165,6 @@ const anspruchsvollMark = (status: Status, col: 'nicht' | 'teilweise' | 'erreich
 
 export const SchuelerBerichtPDF = ({
   studentName, klassenName, fachName, themaName, date, lernziele, kommentar,
-  pruefungsErgebnis, includeInBericht,
 }: SchuelerBerichtPDFProps) => {
   const grundlegend   = lernziele.filter((lz) => lz.kategorie === 'grundlegend')
   const anspruchsvoll = lernziele.filter((lz) => lz.kategorie === 'anspruchsvoll')
@@ -207,27 +197,6 @@ export const SchuelerBerichtPDF = ({
           <Text style={s.titleMain}>Beurteilung: {fachName}</Text>
           <Text style={s.titleSub}>{themaName}</Text>
         </View>
-
-        {/* ── Prüfungsergebnis (optional) ── */}
-        {pruefungsErgebnis && (includeInBericht?.punkte || includeInBericht?.note) && (
-          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12, borderWidth: 0.75, borderColor: BORDER, borderRadius: 4, padding: 8, backgroundColor: BG_HEADER }}>
-            <Text style={{ fontSize: 8, color: TEXT_MUTED, textTransform: 'uppercase', letterSpacing: 0.4, marginRight: 8, alignSelf: 'center' }}>Ergebnis</Text>
-            {includeInBericht?.punkte && pruefungsErgebnis.punkte != null && (
-              <View style={{ marginRight: 16 }}>
-                <Text style={{ fontSize: 7.5, color: TEXT_MUTED, marginBottom: 2 }}>Punkte</Text>
-                <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', color: TEXT }}>
-                  {pruefungsErgebnis.punkte}{pruefungsErgebnis.maxPunkte != null ? ` / ${pruefungsErgebnis.maxPunkte}` : ''}
-                </Text>
-              </View>
-            )}
-            {includeInBericht?.note && pruefungsErgebnis.note && (
-              <View>
-                <Text style={{ fontSize: 7.5, color: TEXT_MUTED, marginBottom: 2 }}>Note</Text>
-                <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', color: TEXT }}>{pruefungsErgebnis.note}</Text>
-              </View>
-            )}
-          </View>
-        )}
 
         {/* ── Grundlegende Lernziele ── */}
         <View style={s.table}>

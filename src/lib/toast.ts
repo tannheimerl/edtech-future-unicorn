@@ -37,7 +37,9 @@ export const toast = {
 }
 
 // Generic write-failure notice used across the data hooks — the underlying
-// Postgres/network error is logged server-side (db-write.ts) but never shown
+// SQLite error is logged to the console for debugging but never shown
 // verbatim to the user, so a friendly, consistent message is used instead.
-export const notifyDbError = () =>
+export const notifyDbError = (err?: unknown) => {
+  if (err) console.error(err)
   toast.error('Änderung konnte nicht gespeichert werden. Bitte versuche es erneut.')
+}

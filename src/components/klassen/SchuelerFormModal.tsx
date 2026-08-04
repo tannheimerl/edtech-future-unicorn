@@ -40,7 +40,7 @@ export const SchuelerFormModal = ({
       open={open}
       onOpenChange={onOpenChange}
       title="Neuer Schüler"
-      size="sm"
+      size="md"
       footer={
         <>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>Abbrechen</Button>

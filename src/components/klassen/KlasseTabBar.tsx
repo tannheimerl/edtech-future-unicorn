@@ -8,6 +8,7 @@ export type KlasseTab =
   | "schueler"
   | "beurteilung"
   | "berichte"
+  | "statistik"
   | "einstellungen";
 
 export const KlasseTabBar = ({
@@ -25,6 +26,7 @@ export const KlasseTabBar = ({
     { key: "schueler", label: "Schüler" },
     { key: "beurteilung", label: "Lernkontrollen" },
     { key: "berichte", label: "Berichte" },
+    { key: "statistik", label: "Statistik" },
     { key: "einstellungen", label: "Einstellungen" }, // TODO: Keine doppelte Bezeichnung für Einstellungen
   ];
   return (

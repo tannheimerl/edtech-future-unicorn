@@ -1,4 +1,5 @@
 mod db_settings;
+mod file_export;
 
 // Schema creation now happens from the JS side (src/lib/db.ts runs the
 // idempotent migration SQL after every `Database.load`), since the database
@@ -9,7 +10,6 @@ mod db_settings;
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_sql::Builder::default().build())
-    .plugin(tauri_plugin_fs::init())
     .plugin(tauri_plugin_dialog::init())
     .plugin(tauri_plugin_updater::Builder::new().build())
     .plugin(tauri_plugin_process::init())
@@ -18,6 +18,7 @@ pub fn run() {
       db_settings::set_db_path,
       db_settings::import_db,
       db_settings::export_db,
+      file_export::write_binary_file,
     ])
     .setup(|app| {
       if cfg!(debug_assertions) {

@@ -110,8 +110,8 @@ const seed = db.transaction(() => {
   })
 
   const insertKlasse = db.prepare(`
-    INSERT INTO dim_klassen (id, name, schuljahr, vorgaenger_klasse_id, settings)
-    VALUES (@id, @name, @schuljahr, @vorgaengerKlasseId, @settings)
+    INSERT INTO dim_klassen (id, name, schuljahr, vorgaenger_klasse_id)
+    VALUES (@id, @name, @schuljahr, @vorgaengerKlasseId)
   `)
   const insertLpZuweisung = db.prepare(`
     INSERT INTO bridge_lp_zuweisungen (id, klasse_id, lp_id, fach_ids, rolle)
@@ -122,7 +122,6 @@ const seed = db.transaction(() => {
       id: k.id, name: k.name,
       schuljahr: k.schuljahr ?? null,
       vorgaengerKlasseId: k.vorgaengerKlasseId ?? null,
-      settings: k.beurteilungSettings ? JSON.stringify(k.beurteilungSettings) : null,
     })
     for (const z of k.lpZuweisungen ?? []) insertLpZuweisung.run({
       id: crypto.randomUUID(), klasseId: k.id, lpId: z.lpId,

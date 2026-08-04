@@ -29,8 +29,8 @@ export const CreateLernkontrolleModal = ({
 
   // Meta state
   const [name, setName] = useState("");
-  const [localFachId, setLocalFachId] = useState(fachId);
-  const [typ, setTyp] = useState<"standard" | "rilz">("standard");
+  const [localFachId, setLocalFachId] = useState("");
+  const [typ, setTyp] = useState<"standard" | "rilz" | undefined>();
   const [stufe, setStufe] = useState<number | undefined>();
   const [openRowId, setOpenRowId] = useState<string | null>(null);
 
@@ -45,8 +45,8 @@ export const CreateLernkontrolleModal = ({
     if (open) {
       setStep("meta");
       setName("");
-      setLocalFachId(fachId);
-      setTyp("standard");
+      setLocalFachId("");
+      setTyp(undefined);
       setStufe(undefined);
       setOpenRowId(null);
       setLernziele([]);
@@ -54,6 +54,11 @@ export const CreateLernkontrolleModal = ({
       setNewLzA("");
     }
   }, [open, fachId]);
+
+  // Wenn nur ein Fach existiert, wird die Fach-Zeile gar nicht angezeigt —
+  // dann greift automatisch das einzige Fach statt einer echten Auswahl.
+  const resolvedFachId =
+    faecher.length > 1 ? localFachId : fachId;
 
   const openRow = (id: string, isOpen: boolean) => {
     setOpenRowId(isOpen ? id : null);
@@ -131,11 +136,16 @@ export const CreateLernkontrolleModal = ({
     setNewLzA("");
   };
 
-  const canSubmitMeta = name.trim().length > 0 && stufe !== undefined;
+  const canSubmitMeta =
+    name.trim().length > 0 &&
+    stufe !== undefined &&
+    !!typ &&
+    !!resolvedFachId;
 
   const submit = () => {
-    if (!canSubmitMeta || stufe === undefined) return;
-    const id = createLernkontrolle(localFachId, name.trim(), typ, [stufe]);
+    if (!canSubmitMeta || stufe === undefined || !typ || !resolvedFachId)
+      return;
+    const id = createLernkontrolle(resolvedFachId, name.trim(), typ, [stufe]);
     for (const lz of lernziele) {
       createLernziel(id, lz.label, lz.kategorie);
     }
@@ -213,6 +223,7 @@ export const CreateLernkontrolleModal = ({
                 <ModalRow
                   label="Fach"
                   displayValue={faecher.find((f) => f.id === localFachId)?.name}
+                  placeholder="auswählen (Pflichtfeld)"
                   open={openRowId === "fach"}
                   onOpenChange={(v) => openRow("fach", v)}
                 >
@@ -227,7 +238,10 @@ export const CreateLernkontrolleModal = ({
               {/* Typ */}
               <ModalRow
                 label="Typ"
-                displayValue={typ === "rilz" ? "RILZ" : "Standard"}
+                displayValue={
+                  typ ? (typ === "rilz" ? "RILZ" : "Standard") : undefined
+                }
+                placeholder="auswählen (Pflichtfeld)"
                 open={openRowId === "typ"}
                 onOpenChange={(v) => openRow("typ", v)}
               >
@@ -236,7 +250,7 @@ export const CreateLernkontrolleModal = ({
                     { value: "standard", label: "Standard" },
                     { value: "rilz", label: "RILZ" },
                   ],
-                  typ,
+                  typ ?? "",
                   (v) => setTyp(v as "standard" | "rilz"),
                 )}
               </ModalRow>

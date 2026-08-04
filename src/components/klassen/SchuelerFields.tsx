@@ -48,8 +48,7 @@ export const SchuelerFields = ({
 }) => {
   return (
     <div className="space-y-2">
-      {/* Name fields side by side */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2">
         <div className="space-y-1">
           <Label
             htmlFor="schueler-vorname"
