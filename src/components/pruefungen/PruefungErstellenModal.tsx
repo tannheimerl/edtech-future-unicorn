@@ -143,7 +143,7 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title={step === 1 ? 'Neue Lernzielkontrolle — Inhalt' : 'Neue Lernzielkontrolle — Bewertung & Termin'}
+      title={step === 1 ? 'Neue Lernkontrolle — Inhalt' : 'Neue Lernkontrolle — Bewertung & Termin'}
       size="lg"
       footer={
         step === 1 ? (
@@ -159,7 +159,7 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
               <Icon name="chevron_left" size={16} className="mr-1" /> Zurück
             </Button>
             <Button onClick={handleCreate}>
-              Lernzielkontrolle erstellen
+              Lernkontrolle erstellen
             </Button>
           </>
         )
@@ -227,7 +227,7 @@ export const PruefungErstellenModal = ({ open, onOpenChange, klassId, onCreated 
                   className="shrink-0 accent-rilz"
                 />
                 <div>
-                  <p className="text-sm font-medium leading-none">RILZ-Lernzielkontrolle</p>
+                  <p className="text-sm font-medium leading-none">RILZ-Lernkontrolle</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Nur für RILZ-Schüler — individuelle Beurteilung durch Heilpädagogen</p>
                 </div>
               </label>

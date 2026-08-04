@@ -25,7 +25,7 @@ export const VIEW_OPTIONS: { key: StatView; label: string }[] = [
   { key: "gesamt", label: "Gesamt" },
   { key: "fach", label: "Fach" },
   { key: "thema", label: "Lernkontrolle" },
-  { key: "pruefungen", label: "Lernzielkontrollen" },
+  { key: "pruefungen", label: "Lernkontrollen" },
 ];
 
 // ── Filter bar ─────────────────────────────────────────────────────────────

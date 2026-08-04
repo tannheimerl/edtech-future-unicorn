@@ -50,7 +50,7 @@ export const KlasseKpis = ({ klassId, students, themen, lernziele }: KlasseKpisP
       <KpiTile
         label="Ø Versuche bis Erreichen"
         value={avgVersuche !== null ? avgVersuche.toFixed(1) : '—'}
-        sub={`${abgeschlosseneErgebnisse.length} abgeschlossene Lernzielkontrollen`}
+        sub={`${abgeschlosseneErgebnisse.length} abgeschlossene Lernkontrollen`}
       />
       <KpiTile
         label="Erfolgsquote"

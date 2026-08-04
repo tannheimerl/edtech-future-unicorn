@@ -129,10 +129,10 @@ export type PruefungTyp =
 
 export const PRUEFUNG_TYP_GRUPPEN: { gruppe: string; optionen: { value: PruefungTyp; label: string }[] }[] = [
   {
-    gruppe: 'Lernzielkontrolle',
+    gruppe: 'Lernkontrolle',
     optionen: [
-      { value: 'pruefung_schriftlich', label: 'Lernzielkontrolle schriftlich' },
-      { value: 'pruefung_muendlich', label: 'Lernzielkontrolle mündlich' },
+      { value: 'pruefung_schriftlich', label: 'Lernkontrolle schriftlich' },
+      { value: 'pruefung_muendlich', label: 'Lernkontrolle mündlich' },
     ],
   },
   {

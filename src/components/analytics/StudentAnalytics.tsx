@@ -206,13 +206,13 @@ export const StudentAnalytics = ({
         )}
         {view === "pruefungen" && (
           <FilterDropdown
-            label="Lernzielkontrolle"
+            label="Lernkontrolle"
             allLabel="wählen…"
             showSearch
             value={selectedPruefungId}
             onChange={setSelectedPruefungId}
             options={[
-              { value: "", label: "Keine Lernzielkontrolle" },
+              { value: "", label: "Keine Lernkontrolle" },
               ...klassePruefungen.map((p) => {
                 const modeTag = p.punkteEnabled
                   ? " [Punkte]"
@@ -625,19 +625,19 @@ export const StudentAnalytics = ({
         <div className="space-y-4">
           {klassePruefungen.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Noch keine Lernzielkontrollen für diese Klasse erfasst.
+              Noch keine Lernkontrollen für diese Klasse erfasst.
             </p>
           ) : !selectedPruefung ? (
             <p className="text-sm text-muted-foreground">
-              Wähle eine Lernzielkontrolle um die Statistiken zu sehen.
+              Wähle eine Lernkontrolle um die Statistiken zu sehen.
             </p>
           ) : !isStudentEligibleForPruefung ? (
             <p className="text-sm text-muted-foreground">
-              Diese Lernzielkontrolle ist nur für bestimmte Schüler.
+              Diese Lernkontrolle ist nur für bestimmte Schüler.
             </p>
           ) : !hasErgebnis ? (
             <p className="text-sm text-muted-foreground">
-              Noch keine Beurteilung für diese Lernzielkontrolle erfasst.
+              Noch keine Beurteilung für diese Lernkontrolle erfasst.
             </p>
           ) : (
             <div className="border border-border rounded-2xl overflow-hidden">

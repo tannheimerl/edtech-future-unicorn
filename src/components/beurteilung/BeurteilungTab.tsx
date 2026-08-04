@@ -74,13 +74,13 @@ export const BeurteilungTab = ({ klassId }: Props) => {
             </span>
           </nav>
         ) : (
-          <h2 className="text-lg font-semibold">Lernzielkontrollen</h2>
+          <h2 className="text-lg font-semibold">Lernkontrollen</h2>
         )}
       </div>
       <div className="flex items-center gap-2">
         {!activePruefung && (
           <Button onClick={() => setCreateOpen(true)} className="gap-1.5">
-            <Icon name="add" size={16} /> Neue Lernzielkontrolle
+            <Icon name="add" size={16} /> Neue Lernkontrolle
           </Button>
         )}
       </div>
@@ -98,8 +98,8 @@ export const BeurteilungTab = ({ klassId }: Props) => {
           onOpenChange={(v) => {
             if (!v) setConfirmDeleteId(null);
           }}
-          title="Lernzielkontrolle löschen?"
-          description="Alle Ergebnisse dieser Lernzielkontrolle werden unwiderruflich gelöscht."
+          title="Lernkontrolle löschen?"
+          description="Alle Ergebnisse dieser Lernkontrolle werden unwiderruflich gelöscht."
           confirmLabel="Löschen"
           onConfirm={() => {
             if (confirmDeleteId) {
@@ -155,17 +155,17 @@ export const BeurteilungTab = ({ klassId }: Props) => {
               className="text-muted-foreground"
             />
           }
-          title="Noch keine Lernzielkontrollen"
-          description="Erstelle eine Lernzielkontrolle aus den Lernzielen dieser Klasse."
+          title="Noch keine Lernkontrollen"
+          description="Erstelle eine Lernkontrolle aus den Lernzielen dieser Klasse."
           action={
             <Button onClick={() => setCreateOpen(true)} className="gap-1.5">
-              <Icon name="add" size={16} /> Neue Lernzielkontrolle
+              <Icon name="add" size={16} /> Neue Lernkontrolle
             </Button>
           }
         />
       ) : filteredPruefungen.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">
-          Keine Lernzielkontrollen für die gewählten Filter.
+          Keine Lernkontrollen für die gewählten Filter.
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -199,7 +199,7 @@ export const BeurteilungTab = ({ klassId }: Props) => {
                     setConfirmDeleteId(p.id);
                   }}
                   className="absolute right-3 top-3 hidden text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover:flex"
-                  title="Lernzielkontrolle löschen"
+                  title="Lernkontrolle löschen"
                 >
                   <Icon name="delete" size={16} />
                 </IconButton>
@@ -297,8 +297,8 @@ export const BeurteilungTab = ({ klassId }: Props) => {
         onOpenChange={(v) => {
           if (!v) setConfirmDeleteId(null);
         }}
-        title="Lernzielkontrolle löschen?"
-        description="Alle Ergebnisse dieser Lernzielkontrolle werden unwiderruflich gelöscht."
+        title="Lernkontrolle löschen?"
+        description="Alle Ergebnisse dieser Lernkontrolle werden unwiderruflich gelöscht."
         confirmLabel="Löschen"
         onConfirm={() => {
           if (confirmDeleteId) {

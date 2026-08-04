@@ -70,6 +70,10 @@ const s = StyleSheet.create({
   colHeaderText: { fontSize: 8, textAlign: 'center', color: TEXT_MUTED, marginBottom: 5 },
   lzText: { fontSize: 9.5, lineHeight: 1.45, color: TEXT },
 
+  // ── Empty state ──
+  emptyState: { borderWidth: 0.75, borderColor: BORDER, borderRadius: 4, paddingVertical: 16, alignItems: 'center', marginBottom: 10 },
+  emptyStateText: { fontSize: 9.5, color: TEXT_MUTED },
+
   // ── Bemerkung ──
   bemerkungSection: { borderWidth: 0.75, borderColor: BORDER, marginBottom: 10 },
   bemerkungHeader: {
@@ -144,15 +148,6 @@ export type SchuelerBerichtPDFProps = {
     status: Status
   }>
   kommentar?: string
-  pruefungsErgebnis?: {
-    punkte?: number
-    maxPunkte?: number
-    note?: string
-  }
-  includeInBericht?: {
-    punkte: boolean
-    note: boolean
-  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -170,72 +165,50 @@ const anspruchsvollMark = (status: Status, col: 'nicht' | 'teilweise' | 'erreich
   )
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Component: einzelne Seite ────────────────────────────────────────────────
 
-export const SchuelerBerichtPDF = ({
+export const SchuelerBerichtPage = ({
   studentName, klassenName, fachName, themaName, date, lernziele, kommentar,
-  pruefungsErgebnis, includeInBericht,
 }: SchuelerBerichtPDFProps) => {
   const grundlegend   = lernziele.filter((lz) => lz.kategorie === 'grundlegend')
   const anspruchsvoll = lernziele.filter((lz) => lz.kategorie === 'anspruchsvoll')
 
   return (
-    <Document>
-      <Page size="A4" style={s.page}>
+    <Page size="A4" style={s.page}>
 
-        {/* ── Accent strip ── */}
-        <View style={s.accentStrip} />
+      {/* ── Accent strip ── */}
+      <View style={s.accentStrip} fixed />
 
-        {/* ── Info row: Name / Klasse / Datum ── */}
-        <View style={s.infoRow}>
-          <View style={s.infoField}>
-            <Text style={s.infoLabel}>Schüler/in</Text>
-            <Text style={s.infoValue}>{studentName}</Text>
-          </View>
-          <View style={s.infoField}>
-            <Text style={s.infoLabel}>Klasse</Text>
-            <Text style={s.infoValue}>{klassenName}</Text>
-          </View>
-          <View style={s.infoFieldLast}>
-            <Text style={s.infoLabel}>Datum</Text>
-            <Text style={s.infoValue}>{date}</Text>
-          </View>
+      {/* ── Info row: Name / Klasse / Datum ── */}
+      <View style={s.infoRow} fixed>
+        <View style={s.infoField}>
+          <Text style={s.infoLabel}>Schüler/in</Text>
+          <Text style={s.infoValue}>{studentName}</Text>
         </View>
-
-        {/* ── Title block ── */}
-        <View style={s.titleBlock}>
-          <Text style={s.titleMain}>Beurteilung: {fachName}</Text>
-          <Text style={s.titleSub}>{themaName}</Text>
+        <View style={s.infoField}>
+          <Text style={s.infoLabel}>Klasse</Text>
+          <Text style={s.infoValue}>{klassenName}</Text>
         </View>
+        <View style={s.infoFieldLast}>
+          <Text style={s.infoLabel}>Datum</Text>
+          <Text style={s.infoValue}>{date}</Text>
+        </View>
+      </View>
 
-        {/* ── Prüfungsergebnis (optional) ── */}
-        {pruefungsErgebnis && (includeInBericht?.punkte || includeInBericht?.note) && (
-          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12, borderWidth: 0.75, borderColor: BORDER, borderRadius: 4, padding: 8, backgroundColor: BG_HEADER }}>
-            <Text style={{ fontSize: 8, color: TEXT_MUTED, textTransform: 'uppercase', letterSpacing: 0.4, marginRight: 8, alignSelf: 'center' }}>Ergebnis</Text>
-            {includeInBericht?.punkte && pruefungsErgebnis.punkte != null && (
-              <View style={{ marginRight: 16 }}>
-                <Text style={{ fontSize: 7.5, color: TEXT_MUTED, marginBottom: 2 }}>Punkte</Text>
-                <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', color: TEXT }}>
-                  {pruefungsErgebnis.punkte}{pruefungsErgebnis.maxPunkte != null ? ` / ${pruefungsErgebnis.maxPunkte}` : ''}
-                </Text>
-              </View>
-            )}
-            {includeInBericht?.note && pruefungsErgebnis.note && (
-              <View>
-                <Text style={{ fontSize: 7.5, color: TEXT_MUTED, marginBottom: 2 }}>Note</Text>
-                <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', color: TEXT }}>{pruefungsErgebnis.note}</Text>
-              </View>
-            )}
-          </View>
-        )}
+      {/* ── Title block ── */}
+      <View style={s.titleBlock} fixed>
+        <Text style={s.titleMain}>Beurteilung: {fachName}</Text>
+        <Text style={s.titleSub}>{themaName}</Text>
+      </View>
 
-        {/* ── Grundlegende Lernziele ── */}
+      {/* ── Grundlegende Lernziele ── */}
+      {grundlegend.length > 0 && (
         <View style={s.table}>
-          <View style={s.tableTitleRow}>
+          <View style={s.tableTitleRow} fixed>
             <Text style={s.tableTitleText}>grundlegende Lernziele</Text>
           </View>
 
-          <View style={s.colHeaderRow}>
+          <View style={s.colHeaderRow} fixed>
             <View style={s.lzCell} />
             <View style={s.statusCell}>
               <Text style={s.colHeaderText}>{'noch nicht\nerreicht'}</Text>
@@ -248,7 +221,7 @@ export const SchuelerBerichtPDF = ({
           </View>
 
           {grundlegend.map((lz, i) => (
-            <View key={i} style={s.dataRow}>
+            <View key={i} style={s.dataRow} wrap={false}>
               <View style={s.lzCell}>
                 <Text style={s.lzText}>{lz.label}</Text>
               </View>
@@ -260,23 +233,17 @@ export const SchuelerBerichtPDF = ({
               </View>
             </View>
           ))}
-
-          {Array.from({ length: Math.max(0, 4 - grundlegend.length) }).map((_, i) => (
-            <View key={`eg${i}`} style={s.dataRow}>
-              <View style={s.lzCell} />
-              <View style={s.statusCell} />
-              <View style={s.statusCell} />
-            </View>
-          ))}
         </View>
+      )}
 
-        {/* ── Anspruchsvollere Lernziele ── */}
+      {/* ── Anspruchsvollere Lernziele ── */}
+      {anspruchsvoll.length > 0 && (
         <View style={s.table}>
-          <View style={s.tableTitleRow}>
+          <View style={s.tableTitleRow} fixed>
             <Text style={s.tableTitleText}>anspruchsvollere Lernziele</Text>
           </View>
 
-          <View style={s.colHeaderRow}>
+          <View style={s.colHeaderRow} fixed>
             <View style={s.lzCell} />
             <View style={s.statusCell}>
               <Text style={s.colHeaderText}>{'noch nicht\nerreicht'}</Text>
@@ -293,7 +260,7 @@ export const SchuelerBerichtPDF = ({
           </View>
 
           {anspruchsvoll.map((lz, i) => (
-            <View key={i} style={s.dataRow}>
+            <View key={i} style={s.dataRow} wrap={false}>
               <View style={s.lzCell}>
                 <Text style={s.lzText}>{lz.label}</Text>
               </View>
@@ -308,40 +275,65 @@ export const SchuelerBerichtPDF = ({
               </View>
             </View>
           ))}
-
-          {Array.from({ length: Math.max(0, 4 - anspruchsvoll.length) }).map((_, i) => (
-            <View key={`ea${i}`} style={s.dataRow}>
-              <View style={s.lzCell} />
-              <View style={s.statusCell} />
-              <View style={s.statusCell} />
-              <View style={s.statusCell} />
-            </View>
-          ))}
         </View>
+      )}
 
-        {/* ── Bemerkung Lehrperson ── */}
-        <View style={s.bemerkungSection}>
-          <View style={s.bemerkungHeader}>
-            <Text style={s.bemerkungLabel}>Bemerkung Lehrperson</Text>
-          </View>
-          <View style={s.bemerkungBody}>
-            {kommentar && <Text style={s.bemerkungText}>{kommentar}</Text>}
-          </View>
+      {/* ── Keine Lernziele ── */}
+      {grundlegend.length === 0 && anspruchsvoll.length === 0 && (
+        <View style={s.emptyState}>
+          <Text style={s.emptyStateText}>Keine Lernziele erfasst.</Text>
         </View>
+      )}
 
-        {/* ── Unterschrift Eltern ── */}
-        <View style={s.unterschriftRow}>
-          <Text style={s.unterschriftLabel}>Unterschrift Eltern:</Text>
-          <View style={s.unterschriftLine} />
+      {/* ── Bemerkung Lehrperson ── */}
+      <View style={s.bemerkungSection} wrap={false}>
+        <View style={s.bemerkungHeader}>
+          <Text style={s.bemerkungLabel}>Bemerkung Lehrperson</Text>
         </View>
-
-        {/* ── Footer ── */}
-        <View style={s.footer} fixed>
-          <Text style={s.footerText}>{date}</Text>
-          <Text style={s.footerText}>Lezio</Text>
+        <View style={s.bemerkungBody}>
+          {kommentar && <Text style={s.bemerkungText}>{kommentar}</Text>}
         </View>
+      </View>
 
-      </Page>
-    </Document>
+      {/* ── Unterschrift Eltern ── */}
+      <View style={s.unterschriftRow} wrap={false}>
+        <Text style={s.unterschriftLabel}>Unterschrift Eltern:</Text>
+        <View style={s.unterschriftLine} />
+      </View>
+
+      {/* ── Footer ── */}
+      <View style={s.footer} fixed>
+        <Text style={s.footerText}>{date}</Text>
+        <Text
+          style={s.footerText}
+          render={({ pageNumber, totalPages }) =>
+            totalPages > 1 ? `Lezio · Seite ${pageNumber} / ${totalPages}` : 'Lezio'
+          }
+        />
+      </View>
+
+    </Page>
   )
 }
+
+// ── Component: einzelner Bericht ─────────────────────────────────────────────
+
+export const SchuelerBerichtPDF = (props: SchuelerBerichtPDFProps) => (
+  <Document>
+    <SchuelerBerichtPage {...props} />
+  </Document>
+)
+
+// ── Component: Gesamt-Bericht (alle Berichte in einem PDF, je eigene Seite/n) ──
+
+export type GesamtBerichtPDFProps = {
+  berichte: SchuelerBerichtPDFProps[]
+}
+
+export const GesamtBerichtPDF = ({ berichte }: GesamtBerichtPDFProps) => (
+  <Document>
+    {berichte.map((props, i) => (
+      <SchuelerBerichtPage key={i} {...props} />
+    ))}
+  </Document>
+)
