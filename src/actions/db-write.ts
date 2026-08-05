@@ -207,3 +207,8 @@ export const dbSavePruefungErgebnis = async (e: PruefungErgebnis) => {
     status: e.status ?? null,
   })
 }
+
+export const dbDeletePruefungErgebnis = async (id: string) => {
+  const db = getDrizzle()
+  await db.delete(schema.factPruefungErgebnisse).where(eq(schema.factPruefungErgebnisse.id, id))
+}

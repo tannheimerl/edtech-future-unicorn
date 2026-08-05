@@ -62,7 +62,7 @@ export const SchuelerBearbeitenModal = ({
       <Modal
         open={open}
         onOpenChange={onOpenChange}
-        title="Schüler bearbeiten"
+        title="Schüler*in bearbeiten"
         size="md"
         footer={
           <div className="flex items-center justify-between w-full gap-2">

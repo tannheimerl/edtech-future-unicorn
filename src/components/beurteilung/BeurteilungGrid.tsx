@@ -8,6 +8,7 @@ import { StudentRow } from "@/components/beurteilung/BeurteilungStudentRow";
 import { cn, statusAvgPct, scoreChipClasses } from "@/lib/utils";
 import { formatDateCH } from "@/lib/dates";
 import { Badge } from "@/components/ui/badge";
+import { isPruefungStudentBewertet } from "@/lib/student-kpis";
 
 type Props = {
   pruefungId: string;
@@ -22,9 +23,8 @@ export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
     lernziele,
     lernkontrollen,
     faecher,
-    updateLernzielStatus,
+    setLernzielVersuche,
     upsertPruefungErgebnis,
-    updatePruefung,
   } = useData();
 
   const pruefung = pruefungen.find((p) => p.id === pruefungId);
@@ -79,26 +79,15 @@ export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
       setTableScrollWidth(tableScrollRef.current.scrollWidth);
   }, [allLzIds.length]);
 
-  useEffect(() => {
-    if (
-      !pruefung ||
-      pruefung.status === "abgeschlossen" ||
-      mainStudents.length === 0
-    )
-      return;
-    const allDone = mainStudents.every((s) =>
-      ergebnisse.some((e) => e.schuelerId === s.id && e.abgeschlossen),
-    );
-    if (allDone) updatePruefung(pruefungId, { status: "abgeschlossen" });
-  }, [ergebnisse, mainStudents.length, pruefung?.status]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const selectedFachObj = faecher.find((f) => f.id === pruefungFachId);
 
   if (!pruefung) return null;
 
+  const locked = pruefung.status === "abgeschlossen";
   const nichtTeilnehmend = allStudents.length - mainStudents.length;
+
   const bewertet = mainStudents.filter((s) =>
-    ergebnisse.some((e) => e.schuelerId === s.id && e.abgeschlossen),
+    isPruefungStudentBewertet(pruefung.lernzielIds, s, lernziele, lernkontrollen, nurRilz),
   ).length;
 
   return (
@@ -284,8 +273,9 @@ export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
                   rowIdx={rowIdx}
                   rilzFachIds={nurRilz ? [] : (student.rilzFachIds ?? [])}
                   pruefungFachId={pruefungFachId}
+                  locked={locked}
                   onUpsert={upsertPruefungErgebnis}
-                  onUpdateLz={updateLernzielStatus}
+                  onSetVersuche={setLernzielVersuche}
                 />
               ))}
             </tbody>

@@ -179,7 +179,7 @@ export const SchuelerBerichtPDF = ({
         {/* ── Info row: Name / Klasse / Datum ── */}
         <View style={s.infoRow}>
           <View style={s.infoField}>
-            <Text style={s.infoLabel}>Schüler/in</Text>
+            <Text style={s.infoLabel}>Schüler*in</Text>
             <Text style={s.infoValue}>{studentName}</Text>
           </View>
           <View style={s.infoField}>

@@ -619,7 +619,7 @@ export const StudentAnalytics = ({
             </p>
           ) : !isStudentEligibleForPruefung ? (
             <p className="text-sm text-muted-foreground">
-              Diese Lernkontrolle ist nur für bestimmte Schüler/innen.
+              Diese Lernkontrolle ist nur für bestimmte Schüler*innen.
             </p>
           ) : !hasErgebnis ? (
             <p className="text-sm text-muted-foreground">

@@ -10,7 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/shared/Modal";
 import { ModalRow } from "@/components/shared/ModalRow";
 import { ModalOptionList } from "@/components/shared/ModalOptionList";
-import { LernzielEditSection } from "@/components/shared/LernzielEditSection";
+import {
+  LernzielEditSection,
+  type LernzielDraft,
+} from "@/components/shared/LernzielEditSection";
 
 export const LernkontrolleEditModal = ({
   lernkontrolleId,
@@ -21,9 +24,20 @@ export const LernkontrolleEditModal = ({
   onClose: () => void;
   onRequestDelete: () => void;
 }) => {
-  const { lernkontrollen, faecher, updateLernkontrolle, exportLernkontrolle } =
-    useData();
+  const {
+    lernkontrollen,
+    faecher,
+    lernziele,
+    updateLernkontrolle,
+    exportLernkontrolle,
+    createLernziel,
+    updateLernziel,
+    deleteLernziel,
+  } = useData();
   const lernkontrolle = lernkontrollen.find((t) => t.id === lernkontrolleId);
+  const lernkontrolleLZ = lernziele.filter(
+    (lz) => lz.lernkontrolleId === lernkontrolleId,
+  );
 
   // Step
   const [editStep, setEditStep] = useState<"meta" | "lernziele">("meta");
@@ -39,14 +53,25 @@ export const LernkontrolleEditModal = ({
   );
   const [openRowId, setOpenRowId] = useState<string | null>(null);
 
+  // Lernziele state — nur lokal, wird erst beim Klick auf „Fertig" persistiert
+  const [localLernziele, setLocalLernziele] = useState<LernzielDraft[]>([]);
+
   useEffect(() => {
     if (!lernkontrolle) return;
     setLocalName(lernkontrolle.name);
     setLocalFachId(lernkontrolle.fachId);
     setLocalTyp(lernkontrolle.typ ?? "standard");
     setStufe(lernkontrolle.stufe?.[0]);
+    setLocalLernziele(
+      lernkontrolleLZ.map(({ id, label, kategorie }) => ({
+        id,
+        label,
+        kategorie,
+      })),
+    );
     setOpenRowId(null);
     setEditStep("meta");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lernkontrolleId]);
 
   if (!lernkontrolle) return null;
@@ -61,6 +86,27 @@ export const LernkontrolleEditModal = ({
       typ: localTyp,
       stufe: [stufe],
     });
+
+    const finalLZ = localLernziele.filter((lz) => lz.label.trim());
+    const finalIds = new Set(finalLZ.map((lz) => lz.id));
+    for (const lz of finalLZ) {
+      const original = lernkontrolleLZ.find((o) => o.id === lz.id);
+      if (!original) {
+        createLernziel(lernkontrolleId, lz.label.trim(), lz.kategorie, lz.id);
+      } else if (
+        original.label !== lz.label.trim() ||
+        original.kategorie !== lz.kategorie
+      ) {
+        updateLernziel(lz.id, {
+          label: lz.label.trim(),
+          kategorie: lz.kategorie,
+        });
+      }
+    }
+    for (const lz of lernkontrolleLZ) {
+      if (!finalIds.has(lz.id)) deleteLernziel(lz.id);
+    }
+
     onClose();
   };
 
@@ -94,11 +140,7 @@ export const LernkontrolleEditModal = ({
           </div>
         ) : (
           <div className="flex items-center justify-between w-full gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => setEditStep("meta")}
-              className="text-muted-foreground"
-            >
+            <Button variant="secondary" onClick={() => setEditStep("meta")}>
               <Icon name="chevron_left" size={16} className="mr-0.5" /> Zurück
             </Button>
             <div className="flex items-center gap-2">
@@ -193,7 +235,10 @@ export const LernkontrolleEditModal = ({
 
       {/* Step 2: Lernziele */}
       {editStep === "lernziele" && (
-        <LernzielEditSection lernkontrolleId={lernkontrolleId} />
+        <LernzielEditSection
+          value={localLernziele}
+          onChange={setLocalLernziele}
+        />
       )}
     </Modal>
   );

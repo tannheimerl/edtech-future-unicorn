@@ -39,7 +39,7 @@ export const SchuelerFormModal = ({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Neuer Schüler"
+      title="Neue*r Schüler*in"
       size="md"
       footer={
         <>

@@ -248,7 +248,7 @@ export const LernzielBerichtFlow = ({ klassId }: { klassId: string }) => {
       {selectedThemaId && (
         <StepCard
           step={3}
-          title="Schüler/innen"
+          title="Schüler*innen"
           summary={studentSummary}
           isOpen={openStep === 3}
           onToggle={() => toggleStep(3)}
@@ -393,7 +393,7 @@ export const LernzielBerichtFlow = ({ klassId }: { klassId: string }) => {
             <p className="text-xs text-muted-foreground mt-2">Bitte mindestens ein Lernziel einschliessen.</p>
           )}
           {studentMode === 'individual' && targetStudents.length === 0 && (
-            <p className="text-xs text-muted-foreground mt-2">Bitte mindestens eine/n Schüler/in wählen.</p>
+            <p className="text-xs text-muted-foreground mt-2">Bitte mindestens eine*n Schüler*in wählen.</p>
           )}
         </div>
       )}

@@ -31,7 +31,7 @@ export const GefahrenzoneSettings = ({ klassName, onDelete }: GefahrenzoneSettin
         <div>
           <p className="text-sm font-medium text-foreground">Klasse löschen</p>
           <p className="text-xs text-muted-foreground">
-            Löscht „{klassName}" und alle zugehörigen Schüler dauerhaft.
+            Löscht „{klassName}" und alle zugehörigen Schüler*innen dauerhaft.
           </p>
         </div>
         <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
@@ -44,7 +44,7 @@ export const GefahrenzoneSettings = ({ klassName, onDelete }: GefahrenzoneSettin
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         title="Klasse löschen"
-        description={`Alle Schüler von „${klassName}" werden ebenfalls entfernt.`}
+        description={`Alle Schüler*innen von „${klassName}" werden ebenfalls entfernt.`}
         confirmLabel="Löschen"
         onConfirm={onDelete}
       />

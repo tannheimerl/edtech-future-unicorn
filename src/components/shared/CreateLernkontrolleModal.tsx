@@ -57,8 +57,7 @@ export const CreateLernkontrolleModal = ({
 
   // Wenn nur ein Fach existiert, wird die Fach-Zeile gar nicht angezeigt —
   // dann greift automatisch das einzige Fach statt einer echten Auswahl.
-  const resolvedFachId =
-    faecher.length > 1 ? localFachId : fachId;
+  const resolvedFachId = faecher.length > 1 ? localFachId : fachId;
 
   const openRow = (id: string, isOpen: boolean) => {
     setOpenRowId(isOpen ? id : null);
@@ -137,10 +136,7 @@ export const CreateLernkontrolleModal = ({
   };
 
   const canSubmitMeta =
-    name.trim().length > 0 &&
-    stufe !== undefined &&
-    !!typ &&
-    !!resolvedFachId;
+    name.trim().length > 0 && stufe !== undefined && !!typ && !!resolvedFachId;
 
   const submit = () => {
     if (!canSubmitMeta || stufe === undefined || !typ || !resolvedFachId)
@@ -183,11 +179,7 @@ export const CreateLernkontrolleModal = ({
             </div>
           ) : (
             <div className="flex items-center justify-between w-full gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => setStep("meta")}
-                className="text-muted-foreground"
-              >
+              <Button variant="secondary" onClick={() => setStep("meta")}>
                 <Icon name="chevron_left" size={16} className="mr-0.5" /> Zurück
               </Button>
               <div className="flex items-center gap-2">

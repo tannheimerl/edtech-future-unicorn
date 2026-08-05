@@ -110,10 +110,11 @@ export function useFaecherLernkontrollenLernzielActions(
     })
   }, [setLernziele, setLernkontrollen, reloadData])
 
-  const createLernziel = useCallback((lernkontrolleId: string, label: string, kategorie: LernzielKategorie) => {
-    const newLZ: Lernziel = { id: crypto.randomUUID(), lernkontrolleId, kategorie, label }
+  const createLernziel = useCallback((lernkontrolleId: string, label: string, kategorie: LernzielKategorie, id?: string) => {
+    const newLZ: Lernziel = { id: id ?? crypto.randomUUID(), lernkontrolleId, kategorie, label }
     setLernziele((prev) => [...prev, newLZ])
     dbSaveLernziel(newLZ).catch(notifyDbError)
+    return newLZ.id
   }, [setLernziele])
 
   const updateLernziel = useCallback((id: string, patch: Partial<Pick<Lernziel, 'label' | 'kategorie'>>) => {

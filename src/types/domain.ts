@@ -79,7 +79,7 @@ export type Klasse = {
 // A single assessment attempt for a Lernziel
 export type Versuch = {
   date: string;
-  status: Status;
+  status?: Status;
   withHelp?: boolean;
 };
 

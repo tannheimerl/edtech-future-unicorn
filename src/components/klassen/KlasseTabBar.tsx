@@ -23,7 +23,7 @@ export const KlasseTabBar = ({
   onEditTitle: () => void;
 }) => {
   const tabs: { key: KlasseTab; label: string }[] = [
-    { key: "schueler", label: "Schüler" },
+    { key: "schueler", label: "Schüler*innen" },
     { key: "beurteilung", label: "Lernkontrollen" },
     { key: "berichte", label: "Berichte" },
     { key: "statistik", label: "Statistik" },

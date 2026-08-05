@@ -159,7 +159,7 @@ export const PruefungBerichtFlow = ({ klassId }: { klassId: string }) => {
       {pSelectedPruefungId && (
         <StepCard
           step={2}
-          title="Schüler/innen"
+          title="Schüler*innen"
           summary={
             pStudentMode === "all"
               ? `Alle (${students.length})`
@@ -313,7 +313,7 @@ export const PruefungBerichtFlow = ({ klassId }: { klassId: string }) => {
           </Button>
           {pStudentMode === "individual" && pTargetStudents.length === 0 && (
             <p className="text-xs text-muted-foreground mt-2">
-              Bitte mindestens eine/n Schüler/in wählen.
+              Bitte mindestens eine*n Schüler*in wählen.
             </p>
           )}
         </div>

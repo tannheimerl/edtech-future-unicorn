@@ -22,14 +22,16 @@ import {
 import { useData } from "@/contexts/DataContext";
 import { cn, fullName } from "@/lib/utils";
 import { todayISO } from "@/lib/dates";
-import type { PruefungTyp } from "@/types/domain";
+import type { Pruefung, PruefungTyp } from "@/types/domain";
 import { PRUEFUNG_TYP_GRUPPEN } from "@/types/domain";
 
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   klassId: string;
-  onCreated: (pruefungId: string) => void;
+  onCreated?: (pruefungId: string) => void;
+  /** Wenn gesetzt, wird die bestehende Lernkontrolle bearbeitet statt eine neue zu erstellen. */
+  editPruefung?: Pruefung;
 };
 
 export const PruefungErstellenModal = ({
@@ -37,14 +39,21 @@ export const PruefungErstellenModal = ({
   onOpenChange,
   klassId,
   onCreated,
+  editPruefung,
 }: Props) => {
   const {
     faecher,
     lernkontrollen: themen,
     lernziele,
     createPruefung,
+    updatePruefung,
+    deletePruefungErgebnis,
+    getPruefungErgebnisse,
+    setLernzielVersuche,
     getStudentsForClass,
   } = useData();
+
+  const isEdit = !!editPruefung;
 
   const [step, setStep] = useState(1);
   const [openRowId, setOpenRowId] = useState<string | null>(null);
@@ -67,6 +76,12 @@ export const PruefungErstellenModal = ({
     useState<Set<string> | null>(null);
   const [search, setSearch] = useState("");
   const [onlyRilz, setOnlyRilz] = useState(false);
+
+  // Schnappschuss der ursprünglich Teilnehmenden beim Öffnen im Bearbeiten-Modus —
+  // dient beim Speichern dazu, entfernte Schüler*innen zu erkennen.
+  const [originalSchuelerIds, setOriginalSchuelerIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   const availableFaecher = faecher.filter((f) =>
     themen.some((t) => t.fachId === f.id && t.typ !== "rilz"),
@@ -112,21 +127,39 @@ export const PruefungErstellenModal = ({
     .filter((t) => t.lernziele.length > 0);
 
   useEffect(() => {
-    if (open) {
-      setStep(1);
+    if (!open) return;
+    setStep(1);
+    setSearch("");
+    setOnlyRilz(false);
+    setOpenRowId(null);
+    if (editPruefung) {
+      setTyp(editPruefung.typ);
+      setName(editPruefung.name);
+      setDatum(editPruefung.datum);
+      setFachId(editPruefung.fachId);
+      setNurRilz(editPruefung.nurRilz);
+      const themaIds = new Set(
+        editPruefung.lernzielIds
+          .map((id) => lernziele.find((l) => l.id === id)?.lernkontrolleId)
+          .filter((id): id is string => !!id),
+      );
+      setSelectedThemaIds(themaIds);
+      setSelectedLzIds(new Set(editPruefung.lernzielIds));
+      setChosenSchuelerIds(new Set(editPruefung.schuelerIds));
+      setOriginalSchuelerIds(new Set(editPruefung.schuelerIds));
+    } else {
       setTyp("pruefung_schriftlich");
       setName("");
       setDatum(todayISO());
-      setFachId(availableFaecher[0]?.id ?? "");
+      setFachId("");
       setSelectedThemaIds(new Set());
       setSelectedLzIds(new Set());
       setNurRilz(false);
       setChosenSchuelerIds(null);
-      setSearch("");
-      setOnlyRilz(false);
-      setOpenRowId(null);
+      setOriginalSchuelerIds(new Set());
     }
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleFachChange = (id: string) => {
     setFachId(id);
@@ -156,6 +189,10 @@ export const PruefungErstellenModal = ({
         n.add(themaId);
         return n;
       });
+      const thema = filteredThemen.find((t) => t.id === themaId);
+      if (thema && name.trim().length === 0) {
+        setName(thema.name);
+      }
     }
   };
 
@@ -197,7 +234,7 @@ export const PruefungErstellenModal = ({
 
   const canProceedStep1 =
     name.trim().length > 0 && !!fachId && selectedLzIds.size > 0;
-  const canCreate = selectedSchuelerIds.size > 0;
+  const canSubmit = selectedSchuelerIds.size > 0;
 
   const handleCreate = () => {
     const id = createPruefung({
@@ -212,7 +249,34 @@ export const PruefungErstellenModal = ({
       schuelerIds: Array.from(selectedSchuelerIds),
     });
     onOpenChange(false);
-    onCreated(id);
+    onCreated?.(id);
+  };
+
+  const handleSave = () => {
+    if (!editPruefung) return;
+    // Wird ein/e Schüler*in entfernt, verlieren ihre/seine Bewertungen für
+    // diese Lernkontrolle jede Bedeutung — Ergebnis und Lernziel-Versuche
+    // dieser Lernkontrolle werden daher gelöscht.
+    const removedStudentIds = Array.from(originalSchuelerIds).filter(
+      (id) => !selectedSchuelerIds.has(id),
+    );
+    for (const studentId of removedStudentIds) {
+      const ergebnis = getPruefungErgebnisse(editPruefung.id).find(
+        (e) => e.schuelerId === studentId,
+      );
+      if (ergebnis) deletePruefungErgebnis(ergebnis.id);
+      for (const lzId of editPruefung.lernzielIds) {
+        setLernzielVersuche(studentId, lzId, []);
+      }
+    }
+    updatePruefung(editPruefung.id, {
+      name: name.trim(),
+      typ,
+      datum,
+      lernzielIds: Array.from(selectedLzIds),
+      schuelerIds: Array.from(selectedSchuelerIds),
+    });
+    onOpenChange(false);
   };
 
   return (
@@ -221,8 +285,12 @@ export const PruefungErstellenModal = ({
       onOpenChange={onOpenChange}
       title={
         step === 1
-          ? "Neue Lernkontrolle — Inhalt & Termin"
-          : "Neue Lernkontrolle — Teilnehmende"
+          ? isEdit
+            ? "Lernkontrolle bearbeiten — Inhalt & Termin"
+            : "Neue Lernkontrolle — Inhalt & Termin"
+          : isEdit
+            ? "Lernkontrolle bearbeiten — Teilnehmende"
+            : "Neue Lernkontrolle — Teilnehmende"
       }
       size="lg"
       footer={
@@ -240,8 +308,11 @@ export const PruefungErstellenModal = ({
             <Button variant="secondary" onClick={() => setStep(1)}>
               <Icon name="chevron_left" size={16} className="mr-1" /> Zurück
             </Button>
-            <Button onClick={handleCreate} disabled={!canCreate}>
-              Lernkontrolle erstellen
+            <Button
+              onClick={isEdit ? handleSave : handleCreate}
+              disabled={!canSubmit}
+            >
+              {isEdit ? "Änderungen speichern" : "Lernkontrolle erstellen"}
             </Button>
           </>
         )
@@ -253,10 +324,11 @@ export const PruefungErstellenModal = ({
           <div className="grid gap-1.5">
             <ModalRow
               label="Fach"
-              displayValue={availableFaecher.find((f) => f.id === fachId)?.name}
+              displayValue={faecher.find((f) => f.id === fachId)?.name}
               placeholder="auswählen (Pflichtfeld)"
               open={openRowId === "fach"}
               onOpenChange={(v) => setOpenRowId(v ? "fach" : null)}
+              disabled={isEdit}
             >
               <div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto">
                 {availableFaecher.map((f) => (
@@ -301,6 +373,7 @@ export const PruefungErstellenModal = ({
                 placeholder="auswählen (Pflichtfeld)"
                 open={openRowId === "thema"}
                 onOpenChange={(v) => setOpenRowId(v ? "thema" : null)}
+                disabled={isEdit}
               >
                 <div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto">
                   {filteredThemen.map((t) => {
@@ -371,7 +444,7 @@ export const PruefungErstellenModal = ({
             />
           </div>
 
-          {fachId && (
+          {!isEdit && fachId && (
             <div className="grid gap-1.5">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
@@ -390,8 +463,8 @@ export const PruefungErstellenModal = ({
                     RILZ-Lernkontrolle
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Individuelle Beurteilung durch Heilpädagogen — im nächsten
-                    Schritt sind die RILZ-Schüler dieses Fachs vorausgewählt
+                    Individuelle Beurteilung durch Heilpädagog*innen — im nächsten
+                    Schritt sind die RILZ-Schüler*innen dieses Fachs vorausgewählt
                   </p>
                 </div>
               </label>
@@ -524,7 +597,7 @@ export const PruefungErstellenModal = ({
                   checked={allVisibleSelected}
                   onChange={toggleAllVisible}
                   disabled={visibleSchueler.length === 0}
-                  aria-label="Alle sichtbaren Schüler/innen auswählen"
+                  aria-label="Alle sichtbaren Schüler*innen auswählen"
                   className="shrink-0 accent-primary align-middle"
                 />
               </TableHead>
@@ -535,8 +608,8 @@ export const PruefungErstellenModal = ({
               {visibleSchueler.length === 0 ? (
                 <TableEmpty colSpan={3}>
                   {klassenSchueler.length === 0
-                    ? "Diese Klasse hat noch keine Schüler/innen."
-                    : "Keine Schüler/innen für Suche und Filter."}
+                    ? "Diese Klasse hat noch keine Schüler*innen."
+                    : "Keine Schüler*innen für Suche und Filter."}
                 </TableEmpty>
               ) : (
                 visibleSchueler.map((s) => (
@@ -569,9 +642,9 @@ export const PruefungErstellenModal = ({
             </TableBody>
           </Table>
 
-          {!canCreate && (
+          {!canSubmit && (
             <p className="text-xs text-muted-foreground">
-              Bitte mindestens eine/n Schüler/in auswählen.
+              Bitte mindestens eine*n Schüler*in auswählen.
             </p>
           )}
         </div>

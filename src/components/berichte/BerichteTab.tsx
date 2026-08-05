@@ -31,7 +31,7 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
     <div className="space-y-2 max-w-2xl">
       {/* Subtitle */}
       <p className="text-sm text-muted-foreground pb-1">
-        Wähle Berichtsbasis, Lernkontrolle und Schüler:innen — dann kannst du
+        Wähle Berichtsbasis, Lernkontrolle und Schüler*innen — dann kannst du
         individuelle Berichte herunterladen.
       </p>
 

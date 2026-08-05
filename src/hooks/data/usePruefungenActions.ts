@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import type { Pruefung, PruefungErgebnis, Schueler } from '@/types/domain'
 import {
   dbSavePruefung, dbDeletePruefung,
-  dbSavePruefungErgebnis,
+  dbSavePruefungErgebnis, dbDeletePruefungErgebnis,
   dbSaveLernzielStatus,
 } from '@/actions/db-write'
 import { notifyDbError } from '@/lib/toast'
@@ -56,6 +56,11 @@ export function usePruefungenActions(
     dbDeletePruefung(id).catch(notifyDbError)
   }, [setPruefungen, setPruefungErgebnisse])
 
+  const deletePruefungErgebnis = useCallback((id: string) => {
+    setPruefungErgebnisse((prev) => prev.filter((e) => e.id !== id))
+    dbDeletePruefungErgebnis(id).catch(notifyDbError)
+  }, [setPruefungErgebnisse])
+
   const upsertPruefungErgebnis = useCallback(
     (ergebnis: Omit<PruefungErgebnis, 'createdAt'>) => {
       const full: PruefungErgebnis = { ...ergebnis, createdAt: new Date().toISOString() }
@@ -93,6 +98,7 @@ export function usePruefungenActions(
     createPruefung,
     updatePruefung,
     deletePruefung,
+    deletePruefungErgebnis,
     upsertPruefungErgebnis,
   }
 }

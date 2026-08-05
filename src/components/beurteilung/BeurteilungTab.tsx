@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { Modal } from "@/components/shared/Modal";
 import { FilterDropdown } from "@/components/shared/FilterDropdown";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { PruefungErstellenModal } from "@/components/pruefungen/PruefungErstellenModal";
@@ -15,6 +16,7 @@ import { KpiTile } from "@/components/analytics/shared";
 import { BeurteilungGrid } from "./BeurteilungGrid";
 import { cn } from "@/lib/utils";
 import { formatDateCH } from "@/lib/dates";
+import { isPruefungStudentBewertet } from "@/lib/student-kpis";
 
 type Props = {
   klassId: string;
@@ -23,10 +25,12 @@ type Props = {
 export const BeurteilungTab = ({ klassId }: Props) => {
   const {
     getPruefungenForKlasse,
-    getPruefungErgebnisse,
     getStudentsForClass,
+    lernziele,
+    lernkontrollen,
     faecher,
     deletePruefung,
+    updatePruefung,
   } = useData();
 
   const pruefungen = getPruefungenForKlasse(klassId).sort((a, b) =>
@@ -36,7 +40,9 @@ export const BeurteilungTab = ({ klassId }: Props) => {
 
   const [activePruefungId, setActivePruefungId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterFachId, setFilterFachId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<
@@ -59,14 +65,29 @@ export const BeurteilungTab = ({ klassId }: Props) => {
     .filter((p) => filterStatus === "" || p.status === filterStatus)
     .filter((p) => !q || p.name.toLowerCase().includes(q));
 
+  const activePruefungRelevantStudents = activePruefung
+    ? students.filter((s) => activePruefung.schuelerIds.includes(s.id))
+    : [];
+  const activePruefungAlleBewertet =
+    activePruefungRelevantStudents.length > 0 &&
+    !!activePruefung &&
+    activePruefungRelevantStudents.every((s) =>
+      isPruefungStudentBewertet(
+        activePruefung.lernzielIds,
+        s,
+        lernziele,
+        lernkontrollen,
+        activePruefung.nurRilz,
+      ),
+    );
+
   const activePruefungen = pruefungen.filter((p) => p.status === "laufend");
   const zuBeurteilendeSchueler = activePruefungen.reduce((sum, p) => {
     const relevantStudents = students.filter((s) =>
       p.schuelerIds.includes(s.id),
     );
-    const ergebnisse = getPruefungErgebnisse(p.id);
     const bewertet = relevantStudents.filter((s) =>
-      ergebnisse.some((e) => e.schuelerId === s.id && e.abgeschlossen),
+      isPruefungStudentBewertet(p.lernzielIds, s, lernziele, lernkontrollen, p.nurRilz),
     ).length;
     return sum + (relevantStudents.length - bewertet);
   }, 0);
@@ -94,12 +115,41 @@ export const BeurteilungTab = ({ klassId }: Props) => {
           </div>
           <div className="flex items-center gap-2">
             <IconButton
+              onClick={() => setEditOpen(true)}
+              title="Lernkontrolle bearbeiten"
+              aria-label="Lernkontrolle bearbeiten"
+            >
+              <Icon name="edit" size={16} />
+            </IconButton>
+            <IconButton
               onClick={() => setConfirmDeleteId(activePruefung.id)}
               title="Lernkontrolle löschen"
               aria-label="Lernkontrolle löschen"
             >
               <Icon name="delete" size={16} />
             </IconButton>
+            {activePruefung.status === "abgeschlossen" ? (
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  updatePruefung(activePruefung.id, { status: "laufend" })
+                }
+              >
+                <Icon name="undo" size={16} /> Abschluss aufheben
+              </Button>
+            ) : (
+              <Button
+                onClick={() => setConfirmCompleteOpen(true)}
+                disabled={!activePruefungAlleBewertet}
+                title={
+                  activePruefungAlleBewertet
+                    ? undefined
+                    : "Alle Schüler*innen müssen bewertet sein"
+                }
+              >
+                <Icon name="check" size={16} /> Lernkontrolle abschliessen
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -112,6 +162,12 @@ export const BeurteilungTab = ({ klassId }: Props) => {
       <div className="space-y-4">
         {header}
         <BeurteilungGrid pruefungId={activePruefung.id} klassId={klassId} />
+        <PruefungErstellenModal
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          klassId={klassId}
+          editPruefung={activePruefung}
+        />
         <ConfirmDialog
           open={confirmDeleteId !== null}
           onOpenChange={(v) => {
@@ -128,6 +184,31 @@ export const BeurteilungTab = ({ klassId }: Props) => {
             }
           }}
         />
+        <Modal
+          open={confirmCompleteOpen}
+          onOpenChange={setConfirmCompleteOpen}
+          title="Lernkontrolle abschliessen?"
+          description="Die Lernkontrolle wird als abgeschlossen markiert. Du kannst den Abschluss jederzeit wieder aufheben."
+          size="sm"
+          footer={
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => setConfirmCompleteOpen(false)}
+              >
+                Abbrechen
+              </Button>
+              <Button
+                onClick={() => {
+                  updatePruefung(activePruefung.id, { status: "abgeschlossen" });
+                  setConfirmCompleteOpen(false);
+                }}
+              >
+                <Icon name="check" size={16} /> Abschliessen
+              </Button>
+            </>
+          }
+        />
       </div>
     );
   }
@@ -142,7 +223,7 @@ export const BeurteilungTab = ({ klassId }: Props) => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <KpiTile
             surface="flat"
-            label="Zu beurteilende Schüler"
+            label="Zu beurteilende Schüler*innen"
             value={zuBeurteilendeSchueler}
           />
           <KpiTile
@@ -165,7 +246,7 @@ export const BeurteilungTab = ({ klassId }: Props) => {
             <SearchBar
               value={search}
               onChange={setSearch}
-              placeholder="Lernkontrollen suchen …"
+              placeholder="Suchen …"
               className="flex-1"
             />
             <Button onClick={() => setCreateOpen(true)}>
@@ -228,12 +309,11 @@ export const BeurteilungTab = ({ klassId }: Props) => {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filteredPruefungen.map((p) => {
-            const ergebnisse = getPruefungErgebnisse(p.id);
             const relevantStudents = students.filter((s) =>
               p.schuelerIds.includes(s.id),
             );
             const bewertet = relevantStudents.filter((s) =>
-              ergebnisse.some((e) => e.schuelerId === s.id && e.abgeschlossen),
+              isPruefungStudentBewertet(p.lernzielIds, s, lernziele, lernkontrollen, p.nurRilz),
             ).length;
             const fach = faecher.find((f) => f.id === p.fachId);
             const pct =
