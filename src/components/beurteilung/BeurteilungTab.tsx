@@ -87,7 +87,13 @@ export const BeurteilungTab = ({ klassId }: Props) => {
       p.schuelerIds.includes(s.id),
     );
     const bewertet = relevantStudents.filter((s) =>
-      isPruefungStudentBewertet(p.lernzielIds, s, lernziele, lernkontrollen, p.nurRilz),
+      isPruefungStudentBewertet(
+        p.lernzielIds,
+        s,
+        lernziele,
+        lernkontrollen,
+        p.nurRilz,
+      ),
     ).length;
     return sum + (relevantStudents.length - bewertet);
   }, 0);
@@ -200,7 +206,9 @@ export const BeurteilungTab = ({ klassId }: Props) => {
               </Button>
               <Button
                 onClick={() => {
-                  updatePruefung(activePruefung.id, { status: "abgeschlossen" });
+                  updatePruefung(activePruefung.id, {
+                    status: "abgeschlossen",
+                  });
                   setConfirmCompleteOpen(false);
                 }}
               >
@@ -313,7 +321,13 @@ export const BeurteilungTab = ({ klassId }: Props) => {
               p.schuelerIds.includes(s.id),
             );
             const bewertet = relevantStudents.filter((s) =>
-              isPruefungStudentBewertet(p.lernzielIds, s, lernziele, lernkontrollen, p.nurRilz),
+              isPruefungStudentBewertet(
+                p.lernzielIds,
+                s,
+                lernziele,
+                lernkontrollen,
+                p.nurRilz,
+              ),
             ).length;
             const fach = faecher.find((f) => f.id === p.fachId);
             const pct =

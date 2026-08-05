@@ -463,8 +463,9 @@ export const PruefungErstellenModal = ({
                     RILZ-Lernkontrolle
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Individuelle Beurteilung durch Heilpädagog*innen — im nächsten
-                    Schritt sind die RILZ-Schüler*innen dieses Fachs vorausgewählt
+                    Individuelle Beurteilung durch Heilpädagog*innen — im
+                    nächsten Schritt sind die RILZ-Schüler*innen dieses Fachs
+                    vorausgewählt
                   </p>
                 </div>
               </label>

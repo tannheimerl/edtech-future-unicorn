@@ -21,6 +21,9 @@ type Props = {
   onKommentarChange: (value: string) => void
   inspirationNotes?: { label: string; text: string }[]
   themaKommentar?: string
+  onPrev?: () => void
+  onNext?: () => void
+  position?: { current: number; total: number }
 }
 
 export const BerichtPreviewModal = ({
@@ -35,6 +38,9 @@ export const BerichtPreviewModal = ({
   onKommentarChange,
   inspirationNotes,
   themaKommentar,
+  onPrev,
+  onNext,
+  position,
 }: Props) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -139,11 +145,35 @@ export const BerichtPreviewModal = ({
           {/* Right: Comment input */}
           <div className="flex flex-col gap-3 p-4 overflow-y-auto">
             <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {student.vorname} {student.nachname}
-                </p>
-                <p className="text-xs text-muted-foreground">{thema.name}</p>
+              <div className="flex items-center gap-2 min-w-0">
+                {position && (
+                  <IconButton
+                    onClick={onPrev}
+                    disabled={!onPrev}
+                    className="text-muted-foreground shrink-0"
+                    aria-label="Vorherige/r Schüler/in"
+                  >
+                    <Icon name="chevron_left" size={16} />
+                  </IconButton>
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">
+                    {student.vorname} {student.nachname}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {thema.name}{position ? ` · ${position.current} / ${position.total}` : ''}
+                  </p>
+                </div>
+                {position && (
+                  <IconButton
+                    onClick={onNext}
+                    disabled={!onNext}
+                    className="text-muted-foreground shrink-0"
+                    aria-label="Nächste/r Schüler/in"
+                  >
+                    <Icon name="chevron_right" size={16} />
+                  </IconButton>
+                )}
               </div>
               <IconButton
                 onClick={onClose}
