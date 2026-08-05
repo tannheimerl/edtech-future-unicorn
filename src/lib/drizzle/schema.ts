@@ -3,7 +3,7 @@
 // purely to give the query builder types; keep it in sync by hand when
 // schema.ts changes.
 import { sql } from 'drizzle-orm'
-import { sqliteTable, text, integer, real, primaryKey, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, primaryKey, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 const createdAt = () => text('created_at').default(sql`(datetime('now'))`)
 
@@ -51,7 +51,6 @@ export const dimKlassen = sqliteTable('dim_klassen', {
   name: text('name').notNull(),
   schuljahr: text('schuljahr'),
   vorgaengerKlasseId: text('vorgaenger_klasse_id'),
-  settings: text('settings'),
   createdAt: createdAt(),
 })
 
@@ -113,15 +112,11 @@ export const factPruefungen = sqliteTable('fact_pruefungen', {
   name: text('name').notNull(),
   datum: text('datum').notNull(),
   lernzielIds: text('lernziel_ids').notNull().default('[]'),
-  maxPunkte: real('max_punkte'),
   erstelltVonId: text('erstellt_von_id').references(() => dimLehrpersonen.id),
   status: text('status').$type<'laufend' | 'abgeschlossen'>().notNull().default('laufend'),
-  punkteEnabled: integer('punkte_enabled').notNull().default(0),
-  noteEnabled: integer('note_enabled').notNull().default(0),
-  anhangEnabled: integer('anhang_enabled').notNull().default(0),
   typ: text('typ').notNull().default('pruefung_schriftlich'),
   nurRilz: integer('nur_rilz').notNull().default(0),
-  rilzSchuelerIds: text('rilz_schueler_ids').notNull().default('[]'),
+  schuelerIds: text('schueler_ids').notNull().default('[]'),
   createdAt: createdAt(),
 })
 
@@ -129,11 +124,8 @@ export const factPruefungErgebnisse = sqliteTable('fact_pruefung_ergebnisse', {
   id: text('id').primaryKey(),
   pruefungId: text('pruefung_id').notNull().references(() => factPruefungen.id),
   schuelerId: text('schueler_id').notNull().references(() => dimSchueler.id),
-  punkte: real('punkte'),
-  note: text('note'),
   anzahlVersuche: integer('anzahl_versuche').notNull().default(1),
   kommentar: text('kommentar'),
-  anhangUrls: text('anhang_urls').notNull().default('[]'),
   status: text('status').$type<'not_reached' | 'partially_reached' | 'reached'>(),
   zweiterVersuchAusstehend: integer('zweiter_versuch_ausstehend').notNull().default(0),
   versuchSnapshots: text('versuch_snapshots').notNull().default('[]'),

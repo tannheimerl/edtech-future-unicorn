@@ -8,6 +8,7 @@ export type KlasseTab =
   | "schueler"
   | "beurteilung"
   | "berichte"
+  | "statistik"
   | "einstellungen";
 
 export const KlasseTabBar = ({
@@ -22,9 +23,10 @@ export const KlasseTabBar = ({
   onEditTitle: () => void;
 }) => {
   const tabs: { key: KlasseTab; label: string }[] = [
-    { key: "schueler", label: "Schüler" },
+    { key: "schueler", label: "Schüler*innen" },
     { key: "beurteilung", label: "Lernkontrollen" },
     { key: "berichte", label: "Berichte" },
+    { key: "statistik", label: "Statistik" },
     { key: "einstellungen", label: "Einstellungen" }, // TODO: Keine doppelte Bezeichnung für Einstellungen
   ];
   return (

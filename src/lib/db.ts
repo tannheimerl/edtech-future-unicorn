@@ -1,6 +1,6 @@
 import Database from '@tauri-apps/plugin-sql'
 import { invoke } from '@tauri-apps/api/core'
-import { SCHEMA_STATEMENTS } from '@/lib/schema'
+import { MIGRATION_STATEMENTS, SCHEMA_STATEMENTS } from '@/lib/schema'
 
 let dbPromise: Promise<Database> | null = null
 
@@ -9,6 +9,16 @@ const openDb = async (): Promise<Database> => {
   if (!path) throw new Error('Kein Datenbankpfad konfiguriert.')
   const db = await Database.load(`sqlite:${path}`)
   for (const statement of SCHEMA_STATEMENTS) await db.execute(statement)
+  // Column-level migrations are best-effort by design: SQLite can't express
+  // "ADD/DROP COLUMN IF (NOT) EXISTS", so on an up-to-date database each one
+  // simply errors out and is skipped. Order matters — see MIGRATION_STATEMENTS.
+  for (const statement of MIGRATION_STATEMENTS) {
+    try {
+      await db.execute(statement)
+    } catch {
+      // Already applied (or never applicable) — nothing to do.
+    }
+  }
   return db
 }
 

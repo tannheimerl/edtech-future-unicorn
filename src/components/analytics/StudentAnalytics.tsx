@@ -150,16 +150,9 @@ export const StudentAnalytics = ({
   );
 
   const isStudentEligibleForPruefung =
-    !selectedPruefung?.nurRilz ||
-    (selectedPruefung.rilzSchuelerIds ?? []).includes(student.id);
+    !selectedPruefung || selectedPruefung.schuelerIds.includes(student.id);
 
-  const hasErgebnis =
-    !!studentErgebnis &&
-    (selectedPruefung?.punkteEnabled
-      ? studentErgebnis.punkte !== undefined
-      : selectedPruefung?.noteEnabled
-        ? !!studentErgebnis.note
-        : studentErgebnis.status != null);
+  const hasErgebnis = !!studentErgebnis && studentErgebnis.status != null;
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -213,17 +206,10 @@ export const StudentAnalytics = ({
             onChange={setSelectedPruefungId}
             options={[
               { value: "", label: "Keine Lernkontrolle" },
-              ...klassePruefungen.map((p) => {
-                const modeTag = p.punkteEnabled
-                  ? " [Punkte]"
-                  : p.noteEnabled
-                    ? " [Note]"
-                    : " [Status]";
-                return {
-                  value: p.id,
-                  label: `${p.datum} — ${p.name}${modeTag}`,
-                };
-              }),
+              ...klassePruefungen.map((p) => ({
+                value: p.id,
+                label: `${p.datum} — ${p.name}`,
+              })),
             ]}
           />
         )}
@@ -633,7 +619,7 @@ export const StudentAnalytics = ({
             </p>
           ) : !isStudentEligibleForPruefung ? (
             <p className="text-sm text-muted-foreground">
-              Diese Lernkontrolle ist nur für bestimmte Schüler.
+              Diese Lernkontrolle ist nur für bestimmte Schüler*innen.
             </p>
           ) : !hasErgebnis ? (
             <p className="text-sm text-muted-foreground">
@@ -647,13 +633,7 @@ export const StudentAnalytics = ({
                   <span className="text-sm font-semibold">
                     {selectedPruefung.name}
                   </span>
-                  <Badge variant="primary">
-                    {selectedPruefung.punkteEnabled
-                      ? "Punkte"
-                      : selectedPruefung.noteEnabled
-                        ? "Note"
-                        : "Status"}
-                  </Badge>
+                  <Badge variant="primary">Status</Badge>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                   <span>{selectedPruefung.datum}</span>
@@ -665,59 +645,11 @@ export const StudentAnalytics = ({
                 <p className="text-xs tracking-widest text-muted-foreground mb-2">
                   Mein Ergebnis
                 </p>
-                {selectedPruefung.punkteEnabled ? (
-                  <div className="space-y-2">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl font-bold tabular-nums">
-                        {studentErgebnis?.punkte !== undefined ? (
-                          studentErgebnis.punkte
-                        ) : (
-                          <span className="text-muted-foreground text-lg font-normal">
-                            —
-                          </span>
-                        )}
-                      </span>
-                      {selectedPruefung.maxPunkte && (
-                        <span className="text-sm text-muted-foreground">
-                          / {selectedPruefung.maxPunkte} Punkte
-                        </span>
-                      )}
-                    </div>
-                    {selectedPruefung.maxPunkte &&
-                      studentErgebnis?.punkte !== undefined && (
-                        <ProgressBar
-                          segments={[
-                            {
-                              value:
-                                (studentErgebnis.punkte /
-                                  selectedPruefung.maxPunkte) *
-                                100,
-                              className: "bg-primary",
-                            },
-                          ]}
-                          total={100}
-                          size="sm"
-                        />
-                      )}
-                  </div>
-                ) : selectedPruefung.noteEnabled ? (
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-2xl font-bold tabular-nums">
-                      {studentErgebnis?.note ?? (
-                        <span className="text-muted-foreground text-lg font-normal">
-                          —
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-sm text-muted-foreground">Note</span>
-                  </div>
-                ) : (
-                  <StatusCell
-                    status={studentErgebnis?.status}
-                    readOnly
-                    onSelect={() => {}}
-                  />
-                )}
+                <StatusCell
+                  status={studentErgebnis?.status}
+                  readOnly
+                  onSelect={() => {}}
+                />
               </div>
             </div>
           )}

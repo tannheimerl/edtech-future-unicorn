@@ -57,6 +57,7 @@ const LernzielePage = () => {
     faecher,
     lernkontrollen,
     createFach,
+    updateFach,
     exportLernkontrolle,
     exportFach,
     deleteLernkontrolle,
@@ -91,6 +92,7 @@ const LernzielePage = () => {
     string | null
   >(null);
   const [deleteFachId, setDeleteFachId] = useState<string | null>(null);
+  const [editFachId, setEditFachId] = useState<string | null>(null);
   const newLernkontrolleFachId = faecher[0]?.id ?? null;
 
   const toggleLernkontrolle = (id: string) => {
@@ -240,7 +242,7 @@ const LernzielePage = () => {
               <SearchBar
                 value={search}
                 onChange={setSearch}
-                placeholder="Lernkontrolle suchen…"
+                placeholder="Suchen…"
                 className="flex-1"
               />
               <Button
@@ -385,7 +387,7 @@ const LernzielePage = () => {
                 return (
                   <div key={fach.id}>
                     {/* Fach title — outside the card */}
-                    <div className="flex justify-between items-center px-1 mb-3 select-none">
+                    <div className="group flex justify-between items-center px-1 mb-3 select-none">
                       <h2 className="flex items-center gap-2">
                         <span
                           className={cn(
@@ -395,7 +397,7 @@ const LernzielePage = () => {
                         />
                         {fach.name}
                       </h2>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto">
                         <IconButton
                           onClick={(e) => {
                             e.stopPropagation();
@@ -404,6 +406,15 @@ const LernzielePage = () => {
                           aria-label={`${fach.name} exportieren`}
                         >
                           <Icon name="download" size={16} />
+                        </IconButton>
+                        <IconButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditFachId(fach.id);
+                          }}
+                          aria-label={`${fach.name} bearbeiten`}
+                        >
+                          <Icon name="edit" size={16} />
                         </IconButton>
                         <IconButton
                           onClick={(e) => {
@@ -430,9 +441,14 @@ const LernzielePage = () => {
 
                           return (
                             <div key={lernkontrolle.id}>
-                              <div className="group flex items-center gap-2 px-3 py-2 hover:bg-accent/20 transition-colors">
+                              <div className="group relative flex items-center gap-2 px-3 py-2 select-none hover:bg-accent/20 transition-colors">
+                                {/* `before:inset-0` stretches the hit area over
+                                    the whole row (padding + the gap next to the
+                                    actions), so edge clicks still toggle. */}
                                 <button
-                                  className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                                  type="button"
+                                  className="flex items-center gap-3 flex-1 min-w-0 text-left before:absolute before:inset-0 before:content-['']"
+                                  aria-expanded={isExpanded}
                                   onClick={() =>
                                     toggleLernkontrolle(lernkontrolle.id)
                                   }
@@ -467,7 +483,18 @@ const LernzielePage = () => {
                                 </button>
 
                                 {/* Actions — hover reveal */}
-                                <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="relative flex items-center gap-0.5 shrink-0 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto">
+                                  <IconButton
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void exportLernkontrolle(
+                                        lernkontrolle.id,
+                                      );
+                                    }}
+                                    aria-label="Lernkontrolle exportieren"
+                                  >
+                                    <Icon name="download" size={16} />
+                                  </IconButton>
                                   <IconButton
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -478,14 +505,15 @@ const LernzielePage = () => {
                                     <Icon name="edit" size={16} />
                                   </IconButton>
                                   <IconButton
-                                    className="text-muted-foreground"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      exportLernkontrolle(lernkontrolle.id);
+                                      setDeleteLernkontrolleId(
+                                        lernkontrolle.id,
+                                      );
                                     }}
-                                    aria-label="Lernkontrolle exportieren"
+                                    aria-label="Lernkontrolle löschen"
                                   >
-                                    <Icon name="download" size={16} />
+                                    <Icon name="delete" size={16} />
                                   </IconButton>
                                 </div>
                               </div>
@@ -534,6 +562,23 @@ const LernzielePage = () => {
         }
       />
 
+      {editFachId && (
+        <InputModal
+          open={!!editFachId}
+          onOpenChange={(o) => {
+            if (!o) setEditFachId(null);
+          }}
+          title="Fach bearbeiten"
+          label="Fachbezeichnung"
+          placeholder="z. B. Mathematik"
+          initialValue={faecher.find((f) => f.id === editFachId)?.name ?? ""}
+          submitLabel="Speichern"
+          onSubmit={(name) => {
+            if (editFachId) updateFach(editFachId, name);
+          }}
+        />
+      )}
+
       {lernkontrolleCreateFachId && (
         <CreateLernkontrolleModal
           open={!!lernkontrolleCreateFachId}
@@ -577,6 +622,7 @@ const LernzielePage = () => {
         title="Lernkontrolle löschen"
         description="Soll diese Lernkontrolle und alle zugehörigen Lernziele wirklich dauerhaft gelöscht werden?"
         confirmLabel="Löschen"
+        requireTyping={false}
         onConfirm={() => {
           if (deleteLernkontrolleId) deleteLernkontrolle(deleteLernkontrolleId);
         }}

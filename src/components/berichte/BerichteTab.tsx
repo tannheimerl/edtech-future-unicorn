@@ -1,29 +1,30 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Icon } from '@/components/ui/Icon'
-import { Button } from '@/components/ui/button'
-import { BerichtFlow } from '@/components/berichte/BerichtFlow'
-import { generateBerichtWordTemplateBlob } from '@/lib/berichtWordTemplate'
-import { triggerDownload } from '@/lib/berichtUtils'
+import { useState } from "react";
+import { Icon } from "@/components/ui/Icon";
+import { Button } from "@/components/ui/button";
+import { BerichtFlow } from "@/components/berichte/BerichtFlow";
+import { generateBerichtWordTemplateBlob } from "@/lib/berichtWordTemplate";
+import { triggerDownload } from "@/lib/berichtUtils";
 
 export const BerichteTab = ({ klassId }: { klassId: string }) => {
-  const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false)
+  const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
 
   const handleWordTemplateDownload = async () => {
-    setIsGeneratingTemplate(true)
+    setIsGeneratingTemplate(true);
     try {
-      const blob = await generateBerichtWordTemplateBlob()
-      triggerDownload(blob, 'Bericht_Vorlage.docx')
+      const blob = await generateBerichtWordTemplateBlob();
+      triggerDownload(blob, "Bericht_Vorlage.docx");
     } finally {
-      setIsGeneratingTemplate(false)
+      setIsGeneratingTemplate(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-2 max-w-2xl">
       <p className="text-sm text-muted-foreground pb-1">
-        Wähle Lernkontrolle, Lernziele und Schüler:innen — dann kannst du individuelle Berichte herunterladen.
+        Wähle Lernkontrolle, Lernziele und Schüler:innen — dann kannst du
+        individuelle Berichte herunterladen.
       </p>
       <Button
         variant="secondary"
@@ -31,10 +32,14 @@ export const BerichteTab = ({ klassId }: { klassId: string }) => {
         disabled={isGeneratingTemplate}
         className="gap-2 px-4 py-1.5"
       >
-        <Icon name={isGeneratingTemplate ? 'progress_activity' : 'description'} size={16} className={isGeneratingTemplate ? 'animate-spin' : undefined} />
-        {isGeneratingTemplate ? 'Wird erstellt…' : 'Word-Vorlage herunterladen'}
+        <Icon
+          name={isGeneratingTemplate ? "progress_activity" : "description"}
+          size={16}
+          className={isGeneratingTemplate ? "animate-spin" : undefined}
+        />
+        {isGeneratingTemplate ? "Wird erstellt…" : "Word-Vorlage herunterladen"}
       </Button>
       <BerichtFlow klassId={klassId} />
     </div>
-  )
-}
+  );
+};

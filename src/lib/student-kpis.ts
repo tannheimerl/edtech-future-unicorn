@@ -21,6 +21,21 @@ export const isLZSkipped = (lz: Lernziel, student: Schueler, lernkontrollen: Ler
 }
 
 /**
+ * Ist ein/e Schüler:in für eine Lernkontrolle vollständig bewertet — alle
+ * relevanten Lernziele (RILZ-übersprungene A-Lernziele ausgenommen, außer bei
+ * einer reinen RILZ-Lernkontrolle) haben einen Status.
+ */
+export const isPruefungStudentBewertet = (
+  lernzielIds: string[], student: Schueler, lernziele: Lernziel[], lernkontrollen: Lernkontrolle[], nurRilz: boolean,
+): boolean => {
+  const applicable = lernzielIds.filter((lzId) => {
+    const lz = lernziele.find((l) => l.id === lzId)
+    return !(lz && !nurRilz && isLZSkipped(lz, student, lernkontrollen))
+  })
+  return applicable.every((lzId) => student.lernzielStatus[lzId] !== undefined)
+}
+
+/**
  * Score (0–100, ungerundet) einer/eines Schüler:in über eine LZ-Liste,
  * RILZ-übersprungene Lernziele ausgenommen.
  */

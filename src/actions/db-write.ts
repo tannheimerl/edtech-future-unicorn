@@ -3,8 +3,7 @@ import { toInt } from '@/lib/db'
 import { getDrizzle } from '@/lib/drizzle/client'
 import { upsert } from '@/lib/drizzle/upsert'
 import * as schema from '@/lib/drizzle/schema'
-import { uploadPruefungAnhang, deletePruefungAnhang } from '@/lib/attachments'
-import type { Fach, Lernkontrolle, Lernziel, Klasse, Schueler, AssessmentKommentar, LernkontrolleKommentar, Status, Pruefung, PruefungErgebnis, KlasseBeurteilungSettings } from '@/types/domain'
+import type { Fach, Lernkontrolle, Lernziel, Klasse, Schueler, AssessmentKommentar, LernkontrolleKommentar, Status, Pruefung, PruefungErgebnis } from '@/types/domain'
 
 // ── Klassen ──────────────────────────────────────────────────────────────────
 
@@ -14,7 +13,6 @@ export const dbSaveKlasse = async (klasse: Klasse) => {
     id: klasse.id, name: klasse.name,
     schuljahr: klasse.schuljahr ?? null,
     vorgaengerKlasseId: klasse.vorgaengerKlasseId ?? null,
-    settings: klasse.beurteilungSettings ? JSON.stringify(klasse.beurteilungSettings) : null,
   })
 
   await db.delete(schema.bridgeLpZuweisungen).where(eq(schema.bridgeLpZuweisungen.klasseId, klasse.id))
@@ -26,13 +24,13 @@ export const dbSaveKlasse = async (klasse: Klasse) => {
   }
 }
 
-export const dbSaveBeurteilungSettings = async (klassId: string, settings: KlasseBeurteilungSettings) => {
-  const db = getDrizzle()
-  await db.update(schema.dimKlassen).set({ settings: JSON.stringify(settings) }).where(eq(schema.dimKlassen.id, klassId))
-}
-
 export const dbDeleteKlasse = async (id: string) => {
   const db = getDrizzle()
+  // dim_schueler.klasse_id has no ON DELETE CASCADE (unlike bridge_lp_zuweisungen
+  // and fact_pruefungen), so leftover students would block this delete with a
+  // foreign key violation — remove them first. Their own dependent rows
+  // (Lernziel-Status, Kommentare, Prüfung-Ergebnisse) cascade from dim_schueler.
+  await db.delete(schema.dimSchueler).where(eq(schema.dimSchueler.klasseId, id))
   await db.delete(schema.dimKlassen).where(eq(schema.dimKlassen.id, id))
 }
 
@@ -121,6 +119,16 @@ export const dbSaveFach = async (f: Fach) => {
 
 export const dbDeleteFach = async (id: string) => {
   const db = getDrizzle()
+  // dim_lernkontrollen.fach_id und fact_pruefungen.fach_id haben KEIN ON DELETE
+  // CASCADE, sonst verweigert SQLite das Löschen eines Fachs mit Lernkontrollen
+  // oder Prüfungen (und das Fach taucht nach Refresh wieder auf).
+  const lernkontrollenToDelete = await db.select({ id: schema.dimLernkontrollen.id })
+    .from(schema.dimLernkontrollen)
+    .where(eq(schema.dimLernkontrollen.fachId, id))
+  for (const { id: lkId } of lernkontrollenToDelete) {
+    await dbDeleteLernkontrolle(lkId)
+  }
+  await db.delete(schema.factPruefungen).where(eq(schema.factPruefungen.fachId, id))
   await db.delete(schema.dimFaecher).where(eq(schema.dimFaecher.id, id))
 }
 
@@ -177,13 +185,9 @@ export const dbSavePruefung = async (p: Pruefung) => {
     lernzielIds: JSON.stringify(p.lernzielIds),
     typ: p.typ,
     status: p.status,
-    punkteEnabled: toInt(p.punkteEnabled),
-    noteEnabled: toInt(p.noteEnabled),
-    anhangEnabled: toInt(p.anhangEnabled),
-    maxPunkte: p.maxPunkte ?? null,
     erstelltVonId: p.erstelltVonId ?? null,
     nurRilz: toInt(p.nurRilz),
-    rilzSchuelerIds: JSON.stringify(p.rilzSchuelerIds),
+    schuelerIds: JSON.stringify(p.schuelerIds),
   })
 }
 
@@ -195,31 +199,16 @@ export const dbDeletePruefung = async (id: string) => {
 export const dbSavePruefungErgebnis = async (e: PruefungErgebnis) => {
   await upsert(schema.factPruefungErgebnisse, {
     id: e.id, pruefungId: e.pruefungId, schuelerId: e.schuelerId,
-    punkte: e.punkte ?? null,
-    note: e.note ?? null,
     anzahlVersuche: e.anzahlVersuche,
     zweiterVersuchAusstehend: toInt(e.zweiterVersuchAusstehend),
     abgeschlossen: toInt(e.abgeschlossen),
     versuchSnapshots: JSON.stringify(e.versuchSnapshots),
     kommentar: e.kommentar ?? null,
-    anhangUrls: JSON.stringify(e.anhangUrls),
     status: e.status ?? null,
   })
 }
 
-export const dbUploadPruefungAnhang = async (
-  pruefungId: string,
-  schuelerId: string,
-  file: File,
-): Promise<string | null> => {
-  try {
-    return await uploadPruefungAnhang(pruefungId, schuelerId, file)
-  } catch (err) {
-    console.error('dbUploadPruefungAnhang', err)
-    return null
-  }
-}
-
-export const dbDeletePruefungAnhang = async (url: string): Promise<void> => {
-  await deletePruefungAnhang(url)
+export const dbDeletePruefungErgebnis = async (id: string) => {
+  const db = getDrizzle()
+  await db.delete(schema.factPruefungErgebnisse).where(eq(schema.factPruefungErgebnisse.id, id))
 }

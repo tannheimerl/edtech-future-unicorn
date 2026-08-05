@@ -16,15 +16,12 @@
         "width": 1280,
         "height": 800,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "dragDropEnabled": false
       }
     ],
     "security": {
-      "csp": null,
-      "assetProtocol": {
-        "enable": true,
-        "scope": ["$APPDATA/lezio-anhaenge/**"]
-      }
+      "csp": null
     }
   },
   "bundle": {

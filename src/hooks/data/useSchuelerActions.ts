@@ -111,6 +111,35 @@ export function useSchuelerActions(
     [setStudents]
   )
 
+  // Ersetzt die komplette Versuchs-Historie eines Lernziels und hält
+  // lernzielStatus (der "offizielle" Stand für Analytics/Berichte) auf den
+  // Status des letzten Versuchs synchron.
+  const setLernzielVersuche = useCallback(
+    (studentId: string, lernzielId: string, versuche: Versuch[]) => {
+      setStudents((prev) =>
+        prev.map((s) => {
+          if (s.id !== studentId) return s
+          const updated: Schueler = {
+            ...s,
+            lernzielVersuche: { ...s.lernzielVersuche, [lernzielId]: versuche },
+          }
+          const lastStatus = versuche[versuche.length - 1]?.status
+          if (lastStatus === undefined) {
+            const { [lernzielId]: _, ...rest } = updated.lernzielStatus
+            updated.lernzielStatus = rest
+            dbDeleteLernzielStatus(studentId, lernzielId).catch(notifyDbError)
+          } else {
+            updated.lernzielStatus = { ...updated.lernzielStatus, [lernzielId]: lastStatus }
+            dbSaveLernzielStatus(studentId, lernzielId, lastStatus).catch(notifyDbError)
+          }
+          dbSaveSchueler(updated).catch(notifyDbError)
+          return updated
+        })
+      )
+    },
+    [setStudents]
+  )
+
   return {
     getStudent,
     getStudentsForClass,
@@ -121,5 +150,6 @@ export function useSchuelerActions(
     setRilzFach,
     setBvsa,
     updateLernzielStatus,
+    setLernzielVersuche,
   }
 }

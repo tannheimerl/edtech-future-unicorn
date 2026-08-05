@@ -3,8 +3,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import type { Pruefung, PruefungErgebnis, Schueler } from '@/types/domain'
 import {
   dbSavePruefung, dbDeletePruefung,
-  dbSavePruefungErgebnis,
-  dbUploadPruefungAnhang, dbDeletePruefungAnhang,
+  dbSavePruefungErgebnis, dbDeletePruefungErgebnis,
   dbSaveLernzielStatus,
 } from '@/actions/db-write'
 import { notifyDbError } from '@/lib/toast'
@@ -38,7 +37,7 @@ export function usePruefungenActions(
   )
 
   const updatePruefung = useCallback(
-    (id: string, patch: Partial<Pick<Pruefung, 'name' | 'datum' | 'lernzielIds' | 'maxPunkte' | 'typ' | 'status' | 'punkteEnabled' | 'noteEnabled' | 'anhangEnabled'>>) => {
+    (id: string, patch: Partial<Pick<Pruefung, 'name' | 'datum' | 'lernzielIds' | 'typ' | 'status' | 'schuelerIds'>>) => {
       setPruefungen((prev) =>
         prev.map((p) => {
           if (p.id !== id) return p
@@ -56,6 +55,11 @@ export function usePruefungenActions(
     setPruefungErgebnisse((prev) => prev.filter((e) => e.pruefungId !== id))
     dbDeletePruefung(id).catch(notifyDbError)
   }, [setPruefungen, setPruefungErgebnisse])
+
+  const deletePruefungErgebnis = useCallback((id: string) => {
+    setPruefungErgebnisse((prev) => prev.filter((e) => e.id !== id))
+    dbDeletePruefungErgebnis(id).catch(notifyDbError)
+  }, [setPruefungErgebnisse])
 
   const upsertPruefungErgebnis = useCallback(
     (ergebnis: Omit<PruefungErgebnis, 'createdAt'>) => {
@@ -88,63 +92,13 @@ export function usePruefungenActions(
     [pruefungen, setPruefungErgebnisse, setStudents]
   )
 
-  const uploadAnhang = useCallback(
-    async (pruefungId: string, schuelerId: string, file: File): Promise<string | null> => {
-      let url: string | null
-      try {
-        url = await dbUploadPruefungAnhang(pruefungId, schuelerId, file)
-      } catch {
-        notifyDbError()
-        return null
-      }
-      if (!url) { notifyDbError(); return null }
-      setPruefungErgebnisse((prev) => {
-        const existing = prev.find((e) => e.pruefungId === pruefungId && e.schuelerId === schuelerId)
-        if (existing) {
-          const updated = { ...existing, anhangUrls: [...existing.anhangUrls, url] }
-          dbSavePruefungErgebnis(updated).catch(notifyDbError)
-          return prev.map((e) => e.id === existing.id ? updated : e)
-        }
-        const newE: PruefungErgebnis = {
-          id: crypto.randomUUID(), pruefungId, schuelerId,
-          anzahlVersuche: 1, zweiterVersuchAusstehend: false, abgeschlossen: false, versuchSnapshots: [], anhangUrls: [url], createdAt: new Date().toISOString(),
-        }
-        dbSavePruefungErgebnis(newE).catch(notifyDbError)
-        return [...prev, newE]
-      })
-      return url
-    },
-    [setPruefungErgebnisse]
-  )
-
-  const deleteAnhang = useCallback(
-    async (ergebnisId: string, url: string): Promise<void> => {
-      try {
-        await dbDeletePruefungAnhang(url)
-      } catch {
-        notifyDbError()
-        return
-      }
-      setPruefungErgebnisse((prev) =>
-        prev.map((e) => {
-          if (e.id !== ergebnisId) return e
-          const updated = { ...e, anhangUrls: e.anhangUrls.filter((u) => u !== url) }
-          dbSavePruefungErgebnis(updated).catch(notifyDbError)
-          return updated
-        })
-      )
-    },
-    [setPruefungErgebnisse]
-  )
-
   return {
     getPruefungenForKlasse,
     getPruefungErgebnisse,
     createPruefung,
     updatePruefung,
     deletePruefung,
+    deletePruefungErgebnis,
     upsertPruefungErgebnis,
-    uploadAnhang,
-    deleteAnhang,
   }
 }

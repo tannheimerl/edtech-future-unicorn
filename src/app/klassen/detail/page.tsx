@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { IconLink } from "@/components/ui/icon-link";
 import { useData } from "@/contexts/DataContext";
-import { KlasseKpis } from "@/components/analytics/KlasseKpis";
+import { KlasseStatistikTab } from "@/components/analytics/KlasseStatistikTab";
 import { BeurteilungTab } from "@/components/beurteilung/BeurteilungTab";
 import { BerichteTab } from "@/components/berichte/BerichteTab";
 import {
@@ -27,12 +27,13 @@ import {
   TableEmpty,
 } from "@/components/ui/table";
 import { InputModal } from "@/components/shared/InputModal";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Highlight } from "@/components/shared/Highlight";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { SortMenu } from "@/components/shared/SortMenu";
 import { GefahrenzoneSettings } from "@/components/einstellungen/GefahrenzoneSettings";
-import { cn, getFachColor } from "@/lib/utils";
+import { cn, getFachColor, fullName } from "@/lib/utils";
 
 type SchuelerSortOption =
   | "vorname-asc"
@@ -61,8 +62,6 @@ const KlasseDetailPage = () => {
     updateStudent,
     deleteStudent,
     faecher,
-    lernkontrollen,
-    lernziele,
     setRilzFach,
     setBvsa,
   } = useData();
@@ -76,6 +75,7 @@ const KlasseDetailPage = () => {
   const [sort, setSort] = useState<SchuelerSortOption>("vorname-asc");
   const [editStudentId, setEditStudentId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [deleteStudentId, setDeleteStudentId] = useState<string | null>(null);
 
   const sortedStudents = [...students]
     .filter(
@@ -138,11 +138,11 @@ const KlasseDetailPage = () => {
                   className="text-accent-foreground"
                 />
               }
-              title="Noch keine Schüler"
-              description="Füge Schüler zu dieser Klasse hinzu."
+              title="Noch keine Schüler*innen"
+              description="Füge Schüler*innen zu dieser Klasse hinzu."
               action={
                 <Button onClick={() => setCreateOpen(true)}>
-                  Ersten Schüler hinzufügen
+                  Erste*n Schüler*in hinzufügen
                 </Button>
               }
             />
@@ -153,20 +153,20 @@ const KlasseDetailPage = () => {
               <SearchBar
                 value={adminSearch}
                 onChange={setAdminSearch}
-                placeholder="Schüler suchen …"
-                className="mb-2"
+                placeholder="Suchen …"
+                className="mb-3"
                 right={
                   <Button
                     className="h-auto"
                     onClick={() => setCreateOpen(true)}
                   >
                     <Icon name="add" size={16} />
-                    Neuer Schüler
+                    Neue*r Schüler*in
                   </Button>
                 }
               />
 
-              <div className="flex items-center justify-end mb-2">
+              <div className="flex items-center justify-end mb-3">
                 <SortMenu
                   label="Sortieren"
                   value={sort}
@@ -187,7 +187,7 @@ const KlasseDetailPage = () => {
                 <TableBody>
                   {sortedStudents.length === 0 && (
                     <TableEmpty colSpan={6}>
-                      Keine Schüler gefunden für „{adminSearch}"
+                      Keine Schüler*innen gefunden für „{adminSearch}"
                     </TableEmpty>
                   )}
                   {sortedStudents.map((student) => {
@@ -281,9 +281,18 @@ const KlasseDetailPage = () => {
                                 e.stopPropagation();
                                 setEditStudentId(student.id);
                               }}
-                              aria-label="Schüler bearbeiten"
+                              aria-label="Schüler*in bearbeiten"
                             >
                               <Icon name="edit" size={16} />
+                            </IconButton>
+                            <IconButton
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteStudentId(student.id);
+                              }}
+                              aria-label="Schüler*in löschen"
+                            >
+                              <Icon name="delete" size={16} />
                             </IconButton>
                           </div>
                         </TableCell>
@@ -298,20 +307,13 @@ const KlasseDetailPage = () => {
       )}
 
       {/* Beurteilung tab */}
-      {tab === "beurteilung" && (
-        <div className="space-y-4">
-          <KlasseKpis
-            klassId={klassId}
-            students={students}
-            themen={lernkontrollen}
-            lernziele={lernziele}
-          />
-          <BeurteilungTab klassId={klassId} />
-        </div>
-      )}
+      {tab === "beurteilung" && <BeurteilungTab klassId={klassId} />}
 
       {/* Berichte tab */}
       {tab === "berichte" && <BerichteTab klassId={klassId} />}
+
+      {/* Statistik tab */}
+      {tab === "statistik" && <KlasseStatistikTab />}
 
       {/* Einstellungen tab */}
       {tab === "einstellungen" && (
@@ -339,6 +341,23 @@ const KlasseDetailPage = () => {
         deleteStudent={(id) => {
           deleteStudent(id);
           setEditStudentId(null);
+        }}
+      />
+      <ConfirmDialog
+        open={deleteStudentId !== null}
+        onOpenChange={(v) => {
+          if (!v) setDeleteStudentId(null);
+        }}
+        title="Schüler*in löschen?"
+        description={
+          deleteStudentId
+            ? `${fullName(students.find((s) => s.id === deleteStudentId)!)} wird unwiderruflich gelöscht.`
+            : ""
+        }
+        confirmLabel="Löschen"
+        onConfirm={() => {
+          if (deleteStudentId) deleteStudent(deleteStudentId);
+          setDeleteStudentId(null);
         }}
       />
       <SchuelerFormModal

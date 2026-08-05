@@ -95,7 +95,6 @@ fact_pruefungen (→ dim_klassen, dim_faecher)
 | name | TEXT NOT NULL | z.B. `'5a'` |
 | schuljahr | TEXT | |
 | vorgaenger_klasse_id | TEXT → dim_klassen | Für Klassenübergabe |
-| settings | TEXT (JSON) | Beurteilungs-Einstellungen pro Fach |
 | created_at | TEXT (ISO-Timestamp) | |
 
 ---
@@ -104,7 +103,7 @@ fact_pruefungen (→ dim_klassen, dim_faecher)
 | Spalte | Typ | Bemerkung |
 |--------|-----|-----------|
 | id | TEXT PK | |
-| klasse_id | TEXT → dim_klassen | |
+| klasse_id | TEXT → dim_klassen (CASCADE) | |
 | vorname | TEXT NOT NULL | |
 | nachname | TEXT NOT NULL | |
 | note | TEXT | Freitext-Notiz |
@@ -209,15 +208,11 @@ Freitext-Kommentar pro Schüler + Thema (Beobachtungsnotiz).
 | name | TEXT NOT NULL | |
 | datum | TEXT NOT NULL | ISO YYYY-MM-DD |
 | lernziel_ids | TEXT (JSON-Array) | Verknüpfte Lernziele |
-| max_punkte | REAL | |
 | erstellt_von_id | TEXT → dim_lehrpersonen | |
 | status | TEXT | `'laufend'` \| `'abgeschlossen'`, default `'laufend'` |
-| punkte_enabled | INTEGER (0/1) | Default FALSE |
-| note_enabled | INTEGER (0/1) | Default FALSE |
-| anhang_enabled | INTEGER (0/1) | Default FALSE |
 | typ | TEXT | Prüfungstyp (z.B. `'pruefung_schriftlich'`), default `'pruefung_schriftlich'` |
-| nur_rilz | INTEGER (0/1) | Nur für RILZ-Schüler, default FALSE |
-| rilz_schueler_ids | TEXT (JSON-Array) | Explizite RILZ-Schüler-IDs |
+| nur_rilz | INTEGER (0/1) | RILZ-Lernkontrolle (A-Lernziele werden nicht ausgegraut), default FALSE |
+| schueler_ids | TEXT (JSON-Array) | Teilnehmende Schüler — in Schritt 2 des Erstellen-Modals gewählt |
 | created_at | TEXT (ISO-Timestamp) | |
 
 ---
@@ -228,14 +223,11 @@ Freitext-Kommentar pro Schüler + Thema (Beobachtungsnotiz).
 | id | TEXT PK | UUID |
 | pruefung_id | TEXT → fact_pruefungen (CASCADE) | |
 | schueler_id | TEXT → dim_schueler (CASCADE) | |
-| punkte | REAL | |
-| note | TEXT | Schweizer Note, z.B. `'5.5'` |
 | anzahl_versuche | INTEGER | Default 1 |
 | kommentar | TEXT | |
-| anhang_urls | TEXT (JSON-Array) | Storage-Pfade |
 | status | TEXT | `'not_reached'` \| `'partially_reached'` \| `'reached'` |
 | zweiter_versuch_ausstehend | INTEGER (0/1) | Default FALSE |
-| versuch_snapshots | TEXT (JSON) | `VersuchSnapshot[]` — Punkte/Note je Versuch |
+| versuch_snapshots | TEXT (JSON) | `VersuchSnapshot[]` — Kommentar/Status je Versuch |
 | abgeschlossen | INTEGER (0/1) | Default FALSE |
 | created_at | TEXT (ISO-Timestamp) | |
 
@@ -243,10 +235,24 @@ Freitext-Kommentar pro Schüler + Thema (Beobachtungsnotiz).
 
 ---
 
-## Storage
+## Migrationen
 
-Prüfungs-Anhänge liegen lokal im App-Datenverzeichnis (`$APPDATA/lezio-anhaenge/`,
-siehe `src/lib/attachments.ts`), Pfad-Konvention `{pruefung_id}/{schueler_id}/{uuid}.{ext}`.
-`anhang_urls` speichert dafür `local-file://<absoluter-pfad>`-Referenzen, die
-beim Anzeigen via `convertFileSrc` in eine `asset://`-URL umgewandelt werden
-(freigegeben über `assetProtocol.scope` in `tauri.conf.json`).
+`CREATE TABLE IF NOT EXISTS` in `src/lib/schema.ts` greift auf bestehenden
+Datenbanken nicht, deshalb liegen Spalten-Änderungen in
+`MIGRATION_STATEMENTS` (gleiche Datei). Die laufen bei jedem `Database.load`
+nach dem Schema durch und dürfen einzeln fehlschlagen (siehe `src/lib/db.ts`) —
+SQLite kennt kein `ADD/DROP COLUMN IF (NOT) EXISTS`, auf einer aktuellen
+Datenbank schlagen also alle fehl und werden übersprungen.
+
+Bisherige Migrationen:
+
+- **Punkte / Noten / Anhänge entfernt.** Gestrichen: `fact_pruefungen.max_punkte`,
+  `punkte_enabled`, `note_enabled`, `anhang_enabled`,
+  `fact_pruefung_ergebnisse.punkte`, `note`, `anhang_urls` sowie
+  `dim_klassen.settings` (hielt ausschliesslich diese drei Schalter).
+- **Teilnehmer explizit.** `fact_pruefungen.rilz_schueler_ids` → `schueler_ids`.
+  Backfill: bei `nur_rilz = 1` die bisherigen RILZ-Schüler, sonst alle Schüler
+  der Klasse ohne RILZ in diesem Fach — also genau die Menge, die die alte
+  Version implizit angezeigt hat. Die Backfill-UPDATEs referenzieren
+  `rilz_schueler_ids` und können darum nach dessen DROP nicht erneut feuern
+  (sonst würden sie bei jedem Start die Auswahl der Lehrperson überschreiben).

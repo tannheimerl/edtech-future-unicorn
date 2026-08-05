@@ -69,7 +69,7 @@ const KlassenPage = () => {
                 />
               }
               title="Noch keine Klassen angelegt"
-              description="Erstelle deine erste Klasse und füge Schüler hinzu."
+              description="Erstelle deine erste Klasse und füge Schüler*innen hinzu."
               action={
                 <Button onClick={() => setCreateOpen(true)}>
                   Erste Klasse erstellen
@@ -96,7 +96,7 @@ const KlassenPage = () => {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex gap-2 flex-col">
                   <h4>{klasse.name}</h4>
-                  <span>{students.length} SchülerInnen</span>
+                  <span>{students.length} Schüler*innen</span>
                 </div>
 
                 {/* Actions */}
