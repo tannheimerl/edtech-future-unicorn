@@ -38,6 +38,7 @@ export const BerichtFlow = ({ klassId }: { klassId: string }) => {
     getPruefungenForKlasse,
     faecher,
     lernziele: allLernziele,
+    berichtIcons,
   } = useData()
 
   const klasse = getClass(klassId)!
@@ -126,7 +127,8 @@ export const BerichtFlow = ({ klassId }: { klassId: string }) => {
           return { filename: `Bericht_${sanitizeFilename(fullName(student))}_${sanitizeFilename(pruefung.name)}.pdf`, props }
         }),
         `Berichte_${baseFilename}.zip`,
-        `Gesamt_${baseFilename}.pdf`
+        `Gesamt_${baseFilename}.pdf`,
+        berichtIcons
       )
     } finally {
       setIsGenerating(false)

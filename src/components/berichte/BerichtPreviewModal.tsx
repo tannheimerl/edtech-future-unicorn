@@ -6,6 +6,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { IconButton } from '@/components/ui/icon-button'
 import { Textarea } from '@/components/ui/textarea'
 import { generatePdfBlob } from '@/lib/berichtUtils'
+import { useData } from '@/contexts/DataContext'
 import type { SchuelerBerichtPDFProps } from '@/components/berichte/SchuelerBerichtPDF'
 import type { Fach, Klasse, Lernziel, Schueler, Lernkontrolle } from '@/types/domain'
 
@@ -42,6 +43,7 @@ export const BerichtPreviewModal = ({
   onNext,
   position,
 }: Props) => {
+  const { berichtIcons } = useData()
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -87,7 +89,7 @@ export const BerichtPreviewModal = ({
           })),
           kommentar: kommentar || undefined,
         }
-        const blob = await generatePdfBlob(props)
+        const blob = await generatePdfBlob(props, berichtIcons)
         const url = URL.createObjectURL(blob)
         if (currentUrlRef.current) URL.revokeObjectURL(currentUrlRef.current)
         currentUrlRef.current = url

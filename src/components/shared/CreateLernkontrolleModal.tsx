@@ -196,7 +196,7 @@ export const CreateLernkontrolleModal = ({
       >
         {/* Step 1: Meta */}
         {step === "meta" && (
-          <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden space-y-3">
+          <div className="space-y-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">
                 Bezeichnung
@@ -270,7 +270,7 @@ export const CreateLernkontrolleModal = ({
 
         {/* Step 2: Lernziele */}
         {step === "lernziele" && (
-          <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
+          <div>
             {/* Grundlegend */}
             <div className="border-b border-border/40">
               <div className="px-1 py-1 bg-muted/20">

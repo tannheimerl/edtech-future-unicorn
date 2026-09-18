@@ -131,6 +131,18 @@ CREATE TABLE IF NOT EXISTS fact_pruefung_ergebnisse (
   UNIQUE (pruefung_id, schueler_id)
 );
 
+-- Konfigurierbare Status-Icons für die Berichts-Kopfzeilen. Höchstens drei
+-- Zeilen, eine je Status. Fehlt eine, greift DEFAULT_BERICHT_ICONS. 'value'
+-- hält bei kind='symbol' den Material-Symbols-Ligaturnamen, bei kind='image'
+-- die PNG-Data-URL des hochgeladenen Bildes (die Bytes liegen also inline in
+-- der Datenbank und reisen so bei Export/Import mit).
+CREATE TABLE IF NOT EXISTS dim_bericht_icons (
+  status      TEXT PRIMARY KEY CHECK (status IN ('not_reached', 'partially_reached', 'reached')),
+  kind        TEXT NOT NULL CHECK (kind IN ('symbol', 'image')),
+  value       TEXT NOT NULL,
+  updated_at  TEXT DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_dim_lernkontrollen_fach    ON dim_lernkontrollen(fach_id);
 CREATE INDEX IF NOT EXISTS idx_dim_lernziele_lernkontrolle ON dim_lernziele(lernkontrolle_id);
 CREATE INDEX IF NOT EXISTS idx_dim_schueler_klasse        ON dim_schueler(klasse_id);

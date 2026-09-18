@@ -68,18 +68,21 @@ export const BeurteilungTab = ({ klassId }: Props) => {
   const activePruefungRelevantStudents = activePruefung
     ? students.filter((s) => activePruefung.schuelerIds.includes(s.id))
     : [];
-  const activePruefungAlleBewertet =
-    activePruefungRelevantStudents.length > 0 &&
-    !!activePruefung &&
-    activePruefungRelevantStudents.every((s) =>
-      isPruefungStudentBewertet(
-        activePruefung.lernzielIds,
-        s,
-        lernziele,
-        lernkontrollen,
-        activePruefung.nurRilz,
-      ),
-    );
+  // Anzahl Teilnehmender, bei denen noch mindestens ein Lernziel weder
+  // bearbeitet noch bewertet ist — blockiert den Abschluss nicht, wird aber
+  // im Bestätigungsdialog als Hinweis angezeigt.
+  const offeneBeurteilungen = activePruefung
+    ? activePruefungRelevantStudents.filter(
+        (s) =>
+          !isPruefungStudentBewertet(
+            activePruefung.lernzielIds,
+            s,
+            lernziele,
+            lernkontrollen,
+            activePruefung.nurRilz,
+          ),
+      ).length
+    : 0;
 
   const activePruefungen = pruefungen.filter((p) => p.status === "laufend");
   const zuBeurteilendeSchueler = activePruefungen.reduce((sum, p) => {
@@ -144,15 +147,7 @@ export const BeurteilungTab = ({ klassId }: Props) => {
                 <Icon name="undo" size={16} /> Abschluss aufheben
               </Button>
             ) : (
-              <Button
-                onClick={() => setConfirmCompleteOpen(true)}
-                disabled={!activePruefungAlleBewertet}
-                title={
-                  activePruefungAlleBewertet
-                    ? undefined
-                    : "Alle Schüler*innen müssen bewertet sein"
-                }
-              >
+              <Button onClick={() => setConfirmCompleteOpen(true)}>
                 <Icon name="check" size={16} /> Lernkontrolle abschliessen
               </Button>
             )}
@@ -216,7 +211,20 @@ export const BeurteilungTab = ({ klassId }: Props) => {
               </Button>
             </>
           }
-        />
+        >
+          {offeneBeurteilungen > 0 && (
+            <div className="flex items-start gap-2 rounded-xl bg-status-partial-soft px-3 py-2 text-sm text-status-partial-fg">
+              <Icon name="warning" size={16} className="mt-0.5 shrink-0" />
+              <p>
+                {offeneBeurteilungen === 1
+                  ? "1 Schüler*in ist noch nicht vollständig bewertet."
+                  : `${offeneBeurteilungen} Schüler*innen sind noch nicht vollständig bewertet.`}{" "}
+                Nicht bearbeitete bzw. nicht bewertete Lernziele gelten in
+                Berichten und Statistiken als „nicht erreicht“.
+              </p>
+            </div>
+          )}
+        </Modal>
       </div>
     );
   }

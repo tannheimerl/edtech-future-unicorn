@@ -8,7 +8,7 @@ import { cn, statusChipClasses } from '@/lib/utils'
 import type { Status } from '@/types/domain'
 
 export const STATUS_LABEL: Record<'none' | Status, string> = {
-  none: 'Nicht bewertet',
+  none: 'Nicht bearbeitet / Nicht bewertet',
   reached: 'Erreicht',
   partially_reached: 'Teilweise erreicht',
   not_reached: 'Nicht erreicht',

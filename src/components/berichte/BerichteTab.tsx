@@ -6,14 +6,16 @@ import { Button } from "@/components/ui/button";
 import { BerichtFlow } from "@/components/berichte/BerichtFlow";
 import { generateBerichtWordTemplateBlob } from "@/lib/berichtWordTemplate";
 import { triggerDownload } from "@/lib/berichtUtils";
+import { useData } from "@/contexts/DataContext";
 
 export const BerichteTab = ({ klassId }: { klassId: string }) => {
+  const { berichtIcons } = useData();
   const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
 
   const handleWordTemplateDownload = async () => {
     setIsGeneratingTemplate(true);
     try {
-      const blob = await generateBerichtWordTemplateBlob();
+      const blob = await generateBerichtWordTemplateBlob(berichtIcons);
       triggerDownload(blob, "Bericht_Vorlage.docx");
     } finally {
       setIsGeneratingTemplate(false);

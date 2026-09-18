@@ -3,8 +3,9 @@ import * as schema from '@/lib/drizzle/schema'
 import type {
   Fach, Lernkontrolle, Lernziel, LernzielKategorie, Lehrperson,
   Klasse, Schueler, AssessmentKommentar, LernkontrolleKommentar,
-  Pruefung, PruefungErgebnis, VersuchSnapshot, Status,
+  Pruefung, PruefungErgebnis, VersuchSnapshot, Status, BerichtIcons,
 } from '@/types/domain'
+import { DEFAULT_BERICHT_ICONS } from '@/types/domain'
 
 const parseArr = <T>(v: unknown): T[] => {
   if (v == null) return []
@@ -25,7 +26,7 @@ export const fetchAllData = async () => {
     dbFaecher, dbLernkontrollen, dbLernziele, dbLehrpersonen, dbKlassen,
     dbLpZuweisungen, dbSchueler, dbLernzielStatus,
     dbKommentare, dbLernkontrolleKommentare,
-    dbPruefungen, dbPruefungErg,
+    dbPruefungen, dbPruefungErg, dbBerichtIcons,
   ] = await Promise.all([
     db.select().from(schema.dimFaecher),
     db.select().from(schema.dimLernkontrollen),
@@ -39,7 +40,17 @@ export const fetchAllData = async () => {
     db.select().from(schema.factLernkontrolleKommentare),
     db.select().from(schema.factPruefungen),
     db.select().from(schema.factPruefungErgebnisse),
+    db.select().from(schema.dimBerichtIcons),
   ])
+
+  // Fehlt eine Zeile, gilt für diesen Status der Default — so funktionieren
+  // Datenbanken ohne konfigurierte Icons ohne Seeding.
+  const berichtIcons: BerichtIcons = { ...DEFAULT_BERICHT_ICONS }
+  for (const row of dbBerichtIcons) {
+    berichtIcons[row.status] = row.kind === 'image'
+      ? { kind: 'image', dataUrl: row.value }
+      : { kind: 'symbol', name: row.value }
+  }
 
   const faecher: Fach[] = dbFaecher.map((f) => ({
     id: f.id, name: f.name,
@@ -131,5 +142,5 @@ export const fetchAllData = async () => {
     createdAt: e.createdAt as string,
   }))
 
-  return { faecher, lernkontrollen, lernziele, lehrpersonen, classes, students, kommentare, lernkontrolleKommentare, pruefungen, pruefungErgebnisse }
+  return { faecher, lernkontrollen, lernziele, lehrpersonen, classes, students, kommentare, lernkontrolleKommentare, pruefungen, pruefungErgebnisse, berichtIcons }
 }

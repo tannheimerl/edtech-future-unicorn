@@ -2,25 +2,36 @@ import { createElement } from "react";
 import type { DocumentProps } from "@react-pdf/renderer";
 import type { ReactElement } from "react";
 import type { SchuelerBerichtPDFProps } from "@/components/berichte/SchuelerBerichtPDF";
+import type { BerichtIcons } from "@/types/domain";
+import { DEFAULT_BERICHT_ICONS } from "@/types/domain";
+import {
+  resolveBerichtIcons,
+  type ResolvedBerichtIcons,
+} from "@/lib/berichtIcons";
 import { saveBlobToDisk } from "@/lib/tauriFile";
 
-export const generatePdfBlob = async (
+// Die `*WithResolved`-Varianten nehmen bereits gerasterte Icons entgegen,
+// damit downloadBerichte für einen ganzen Stapel nur einmal rastern muss statt
+// einmal pro Schüler/in. Die exportierten Funktionen darunter erledigen das
+// Auflösen selbst und bleiben für Einzelaufrufe bequem.
+const renderSingle = async (
   props: SchuelerBerichtPDFProps,
+  statusIcons: ResolvedBerichtIcons,
 ): Promise<Blob> => {
   const [{ pdf }, { SchuelerBerichtPDF }] = await Promise.all([
     import("@react-pdf/renderer"),
     import("@/components/berichte/SchuelerBerichtPDF"),
   ]);
-  const el = createElement(
-    SchuelerBerichtPDF,
-    props,
-  ) as unknown as ReactElement<DocumentProps>;
+  const el = createElement(SchuelerBerichtPDF, {
+    ...props,
+    statusIcons,
+  }) as unknown as ReactElement<DocumentProps>;
   return pdf(el).toBlob();
 };
 
-// Ein einzelnes PDF mit allen übergebenen Berichten, je Schüler/in eigene Seite(n).
-export const generateCombinedPdfBlob = async (
+const renderCombined = async (
   berichte: SchuelerBerichtPDFProps[],
+  statusIcons: ResolvedBerichtIcons,
 ): Promise<Blob> => {
   const [{ pdf }, { GesamtBerichtPDF }] = await Promise.all([
     import("@react-pdf/renderer"),
@@ -28,9 +39,21 @@ export const generateCombinedPdfBlob = async (
   ]);
   const el = createElement(GesamtBerichtPDF, {
     berichte,
+    statusIcons,
   }) as unknown as ReactElement<DocumentProps>;
   return pdf(el).toBlob();
 };
+
+export const generatePdfBlob = async (
+  props: SchuelerBerichtPDFProps,
+  icons: BerichtIcons = DEFAULT_BERICHT_ICONS,
+): Promise<Blob> => renderSingle(props, await resolveBerichtIcons(icons));
+
+// Ein einzelnes PDF mit allen übergebenen Berichten, je Schüler/in eigene Seite(n).
+export const generateCombinedPdfBlob = async (
+  berichte: SchuelerBerichtPDFProps[],
+  icons: BerichtIcons = DEFAULT_BERICHT_ICONS,
+): Promise<Blob> => renderCombined(berichte, await resolveBerichtIcons(icons));
 
 // Unterordner für die Einzel-PDFs im ZIP, wenn ein Gesamt-PDF mitgeliefert wird.
 const EINZELBERICHTE_FOLDER = "Einzelberichte";
@@ -39,7 +62,7 @@ export const downloadZip = async (
   entries: Array<{ filename: string; blob: Blob }>,
   zipName: string,
   combined?: { filename: string; blob: Blob },
-): Promise<void> => {
+): Promise<string | null> => {
   const JSZip = (await import("jszip")).default;
   const zip = new JSZip();
   if (combined) {
@@ -58,17 +81,19 @@ export const downloadZip = async (
     type: "blob",
     compression: "DEFLATE",
   });
-  await triggerDownload(zipBlob, zipName);
+  return triggerDownload(zipBlob, zipName);
 };
 
+// Gibt den gewählten Zielpfad zurück bzw. null, wenn der Speichern-Dialog
+// abgebrochen wurde — Aufrufer sollen einen Abbruch nicht als Erfolg werten.
 export const triggerDownload = async (
   blob: Blob,
   filename: string,
-): Promise<void> => {
+): Promise<string | null> => {
   const extension = filename.includes(".")
     ? filename.split(".").pop()
     : undefined;
-  await saveBlobToDisk(
+  return saveBlobToDisk(
     blob,
     filename,
     extension
@@ -87,28 +112,39 @@ export const sanitizeFilename = (name: string): string => {
 };
 
 /**
- * Erzeugt alle Berichts-PDFs und lädt sie herunter: ein einzelnes PDF direkt,
- * mehrere gebündelt als ZIP (Gesamt-PDF oben, Einzel-PDFs in Einzelberichte/).
+ * Erzeugt alle Berichts-PDFs und lädt sie in genau einem Speichern-Dialog
+ * herunter: bei einer/einem Schüler/in das einzelne PDF direkt, sonst ein ZIP
+ * mit dem Gesamt-PDF zuoberst und den Einzel-PDFs in Einzelberichte/.
  */
 export const downloadBerichte = async (
   berichte: Array<{ filename: string; props: SchuelerBerichtPDFProps }>,
   zipName: string,
   combinedFilename: string,
+  icons: BerichtIcons = DEFAULT_BERICHT_ICONS,
 ): Promise<void> => {
-  const entries = await Promise.all(
-    berichte.map(async ({ filename, props }) => ({
-      filename,
-      blob: await generatePdfBlob(props),
-    })),
-  );
-  if (entries.length === 1) {
+  if (berichte.length === 0) return;
+  // Einmal rastern für den ganzen Stapel; die Data-URLs leben nur bis zum Ende
+  // dieser Funktion und werden nirgends gespeichert.
+  const statusIcons = await resolveBerichtIcons(icons);
+  // Bei einer/einem Schüler/in wäre das Gesamt-PDF eine Kopie des
+  // Einzelberichts — dann lohnt sich weder der Umweg über ein ZIP noch die
+  // zweite Rendering-Runde.
+  const withCombined = berichte.length > 1;
+  const [entries, combinedBlob] = await Promise.all([
+    Promise.all(
+      berichte.map(async ({ filename, props }) => ({
+        filename,
+        blob: await renderSingle(props, statusIcons),
+      })),
+    ),
+    withCombined
+      ? renderCombined(berichte.map(({ props }) => props), statusIcons)
+      : null,
+  ]);
+  if (!combinedBlob) {
     await triggerDownload(entries[0].blob, entries[0].filename);
-  } else {
-    await downloadZip(entries, zipName);
+    return;
   }
-  const combinedBlob = await generateCombinedPdfBlob(
-    berichte.map(({ props }) => props),
-  );
   await downloadZip(entries, zipName, {
     filename: combinedFilename,
     blob: combinedBlob,

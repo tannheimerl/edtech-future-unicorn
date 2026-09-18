@@ -13,6 +13,29 @@ export const STATUS_LABELS: Record<Status, string> = {
   reached: "erreicht",
 };
 
+/**
+ * Icon, das im Berichts-Output die Spalte eines Status markiert.
+ *
+ * `symbol` speichert nur den Material-Symbols-Ligaturnamen — das PNG für
+ * PDF/Word entsteht erst beim Rendern (siehe lib/berichtIconRender) und wird
+ * danach verworfen. `image` trägt die Bytes des hochgeladenen Bildes als
+ * Data-URL, weil die sich nicht regenerieren lassen.
+ */
+export type BerichtIcon =
+  | { kind: "symbol"; name: string }
+  | { kind: "image"; dataUrl: string };
+
+export type BerichtIcons = Record<Status, BerichtIcon>;
+
+// Bilden die zuvor fest verdrahteten SVG-Kreise nach, damit bestehende
+// Berichte unverändert aussehen, solange nichts konfiguriert wurde.
+// ("contrast" ist der halb gefüllte Kreis.)
+export const DEFAULT_BERICHT_ICONS: BerichtIcons = {
+  not_reached: { kind: "symbol", name: "radio_button_unchecked" },
+  partially_reached: { kind: "symbol", name: "contrast" },
+  reached: { kind: "symbol", name: "circle" },
+};
+
 export type Fach = {
   id: string;
   name: string;
