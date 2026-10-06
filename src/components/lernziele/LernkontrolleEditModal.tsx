@@ -157,7 +157,7 @@ export const LernkontrolleEditModal = ({
     >
       {/* Step 1: Meta */}
       {editStep === "meta" && (
-        <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden space-y-3">
+        <div className="space-y-3">
           {/* Name */}
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Bezeichnung</Label>

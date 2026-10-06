@@ -3,7 +3,7 @@ import { toInt } from '@/lib/db'
 import { getDrizzle } from '@/lib/drizzle/client'
 import { upsert } from '@/lib/drizzle/upsert'
 import * as schema from '@/lib/drizzle/schema'
-import type { Fach, Lernkontrolle, Lernziel, Klasse, Schueler, AssessmentKommentar, LernkontrolleKommentar, Status, Pruefung, PruefungErgebnis } from '@/types/domain'
+import type { Fach, Lernkontrolle, Lernziel, Klasse, Schueler, AssessmentKommentar, LernkontrolleKommentar, Status, Pruefung, PruefungErgebnis, BerichtIcon } from '@/types/domain'
 
 // ── Klassen ──────────────────────────────────────────────────────────────────
 
@@ -109,6 +109,27 @@ export const dbDeleteLernkontrolleKommentar = async (studentId: string, lernkont
       eq(schema.factLernkontrolleKommentare.lernkontrolleId, lernkontrolleId),
     ),
   )
+}
+
+// ── Bericht-Icons ─────────────────────────────────────────────────────────────
+
+export const dbSaveBerichtIcon = async (status: Status, icon: BerichtIcon) => {
+  await upsert(
+    schema.dimBerichtIcons,
+    {
+      status,
+      kind: icon.kind,
+      value: icon.kind === 'image' ? icon.dataUrl : icon.name,
+      updatedAt: new Date().toISOString(),
+    },
+    ['status'],
+  )
+}
+
+// Zurücksetzen heisst: Zeile weg — dann greift beim Lesen wieder der Default.
+export const dbDeleteBerichtIcon = async (status: Status) => {
+  const db = getDrizzle()
+  await db.delete(schema.dimBerichtIcons).where(eq(schema.dimBerichtIcons.status, status))
 }
 
 // ── Fächer ────────────────────────────────────────────────────────────────────

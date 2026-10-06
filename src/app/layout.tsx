@@ -30,9 +30,14 @@ const RootLayout = ({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
+        {/* Material Symbols wird selbst gehostet (@font-face in globals.css),
+            damit die App und die Berichts-Icons auch offline funktionieren. */}
         <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+          rel="preload"
+          as="font"
+          type="font/woff2"
+          href="/fonts/material-symbols-outlined.woff2"
+          crossOrigin="anonymous"
         />
       </head>
       <body className="flex min-h-full flex-col">

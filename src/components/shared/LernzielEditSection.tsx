@@ -222,7 +222,7 @@ export const LernzielEditSection = ({
   };
 
   return (
-    <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
+    <div>
       {/* Grundlegend */}
       <div
         className={cn(

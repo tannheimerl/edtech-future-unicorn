@@ -320,7 +320,7 @@ export const PruefungErstellenModal = ({
     >
       {/* ── Step 1: Inhalt & Termin ─────────────────────────────────────────── */}
       {step === 1 && (
-        <div className="grid gap-4 max-h-[65vh] overflow-y-auto pr-1">
+        <div className="grid gap-4">
           <div className="grid gap-1.5">
             <ModalRow
               label="Fach"

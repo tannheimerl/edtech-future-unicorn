@@ -78,6 +78,13 @@ export const dimSchueler = sqliteTable('dim_schueler', {
   createdAt: createdAt(),
 })
 
+export const dimBerichtIcons = sqliteTable('dim_bericht_icons', {
+  status: text('status').$type<'not_reached' | 'partially_reached' | 'reached'>().primaryKey(),
+  kind: text('kind').$type<'symbol' | 'image'>().notNull(),
+  value: text('value').notNull(),
+  updatedAt: text('updated_at').default(sql`(datetime('now'))`),
+})
+
 export const factLernzielStatus = sqliteTable('fact_lernziel_status', {
   schuelerId: text('schueler_id').notNull().references(() => dimSchueler.id),
   lernzielId: text('lernziel_id').notNull().references(() => dimLernziele.id),

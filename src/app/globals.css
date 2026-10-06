@@ -384,7 +384,20 @@
 }
 
 /* ── Material Symbols (icon font) ────────────────────────────────────────
-   Base class for the <Icon> component. Per-icon size, weight and fill are
+   Self-hosted variable font instead of the Google Fonts CDN: Lezio is an
+   offline-first desktop app, and without a connection every <Icon> used to
+   degrade to its raw ligature name ("chevron_right"). The report export
+   rasterises these glyphs to PNG for PDF/Word (lib/berichtIcons), so a missing
+   font would land in printed reports too. */
+@font-face {
+  font-family: "Material Symbols Outlined";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url("/fonts/material-symbols-outlined.woff2") format("woff2");
+}
+
+/* Base class for the <Icon> component. Per-icon size, weight and fill are
    applied inline via font-size + font-variation-settings. */
 .material-symbols-outlined {
   font-family: "Material Symbols Outlined";

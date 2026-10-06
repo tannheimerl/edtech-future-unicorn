@@ -2,71 +2,37 @@
 // (Info-Zeile, Titel, Lernziel-Tabellen mit Titel-Leiste, Bemerkung,
 // Unterschrift), zum manuellen Ausfüllen durch die Lehrperson in Word.
 
-const ACCENT = '1E3A8A'
+import type { BerichtIcons, Status } from '@/types/domain'
+import { DEFAULT_BERICHT_ICONS } from '@/types/domain'
+import {
+  BERICHT_ACCENT, BERICHT_BORDER, resolveBerichtIcons, dataUrlToBytes,
+} from '@/lib/berichtIcons'
+
+// docx erwartet Hex ohne '#'.
+const ACCENT = BERICHT_ACCENT.slice(1).toUpperCase()
 const ACCENT_LIGHT = 'EFF6FF'
 const TEXT = '0F172A'
 const TEXT_MUTED = '64748B'
-const BORDER_COLOR = 'CBD5E1'
+const BORDER_COLOR = BERICHT_BORDER.slice(1).toUpperCase()
 const BG_HEADER = 'F8FAFC'
 
-type IconKind = 'empty' | 'half' | 'full'
+export const generateBerichtWordTemplateBlob = async (
+  icons: BerichtIcons = DEFAULT_BERICHT_ICONS,
+): Promise<Blob> => {
+  const [
+    {
+      Document, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell,
+      AlignmentType, BorderStyle, WidthType, LineRuleType, Packer,
+    },
+    resolved,
+  ] = await Promise.all([import('docx'), resolveBerichtIcons(icons)])
 
-// Zeichnet die Status-Icons aus SchuelerBerichtPDF.tsx (IconEmpty/IconHalf/
-// IconFull) als PNG nach, statt sie mit Unicode-Zeichen anzunähern — bei
-// 4-facher Auflösung für scharfe Darstellung auch bei Ausdruck.
-const createCircleIconPng = (kind: IconKind): Uint8Array => {
-  const scale = 4
-  const size = 16 * scale
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')!
-  const cx = size / 2
-  const cy = size / 2
-  const r = size / 2 - 3 * scale
-
-  if (kind === 'full') {
-    ctx.beginPath()
-    ctx.arc(cx, cy, r, 0, Math.PI * 2)
-    ctx.fillStyle = `#${ACCENT}`
-    ctx.fill()
-  } else if (kind === 'half') {
-    ctx.lineWidth = 1.5 * scale
-    ctx.strokeStyle = `#${ACCENT}`
-    ctx.beginPath()
-    ctx.arc(cx, cy, r, 0, Math.PI * 2)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(cx, cy - r)
-    ctx.arc(cx, cy, r, -Math.PI / 2, Math.PI / 2)
-    ctx.closePath()
-    ctx.fillStyle = `#${ACCENT}`
-    ctx.fill()
-  } else {
-    ctx.lineWidth = 1.5 * scale
-    ctx.strokeStyle = `#${BORDER_COLOR}`
-    ctx.beginPath()
-    ctx.arc(cx, cy, r, 0, Math.PI * 2)
-    ctx.stroke()
-  }
-
-  const base64 = canvas.toDataURL('image/png').split(',')[1]
-  const binary = atob(base64)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-  return bytes
-}
-
-export const generateBerichtWordTemplateBlob = async (): Promise<Blob> => {
-  const {
-    Document, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell,
-    AlignmentType, BorderStyle, WidthType, LineRuleType, Packer,
-  } = await import('docx')
-
-  const icons: Record<IconKind, Uint8Array> = {
-    empty: createCircleIconPng('empty'),
-    half: createCircleIconPng('half'),
-    full: createCircleIconPng('full'),
+  // docx kann kein SVG — die in den Einstellungen gewählten Icons kommen
+  // deshalb über denselben Canvas-Umweg wie im PDF als PNG herein.
+  const iconBytes: Record<Status, Uint8Array> = {
+    not_reached: dataUrlToBytes(resolved.not_reached),
+    partially_reached: dataUrlToBytes(resolved.partially_reached),
+    reached: dataUrlToBytes(resolved.reached),
   }
 
   const thinBorder = { style: BorderStyle.SINGLE, size: 6, color: BORDER_COLOR }
@@ -120,7 +86,7 @@ export const generateBerichtWordTemplateBlob = async (): Promise<Blob> => {
     }),
   ]
 
-  // ── Titel-Leiste einer Tabelle (blau hinterlegt, linker Akzentstrich) ─────
+  // ── Titel-Leiste einer Tabelle (blau hinterlegt) ──────────────────────────
   const titleBarRow = (text: string, colSpan: number) =>
     new TableRow({
       children: [
@@ -130,7 +96,7 @@ export const generateBerichtWordTemplateBlob = async (): Promise<Blob> => {
           borders: {
             top: thinBorder,
             bottom: thinBorder,
-            left: { style: BorderStyle.SINGLE, size: 24, color: ACCENT },
+            left: thinBorder,
             right: thinBorder,
           },
           margins: { top: 80, bottom: 80, left: 140 },
@@ -139,16 +105,16 @@ export const generateBerichtWordTemplateBlob = async (): Promise<Blob> => {
       ],
     })
 
-  const headerCell = (text: string, widthPct: number, icon?: IconKind) =>
+  const headerCell = (text: string, widthPct: number, status?: Status) =>
     new TableCell({
       width: { size: widthPct, type: WidthType.PERCENTAGE },
       borders: cellBorders,
       shading: { fill: BG_HEADER },
       children: [
-        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: icon ? 60 : 0 }, children: [new TextRun({ text, size: 16, color: TEXT_MUTED })] }),
-        ...(icon ? [new Paragraph({
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: status ? 60 : 0 }, children: [new TextRun({ text, size: 16, color: TEXT_MUTED })] }),
+        ...(status ? [new Paragraph({
           alignment: AlignmentType.CENTER,
-          children: [new ImageRun({ type: 'png', data: icons[icon], transformation: { width: 16, height: 16 } })],
+          children: [new ImageRun({ type: 'png', data: iconBytes[status], transformation: { width: 16, height: 16 } })],
         })] : []),
       ],
     })
@@ -172,7 +138,7 @@ export const generateBerichtWordTemplateBlob = async (): Promise<Blob> => {
     })
 
   // ── Lernziel-Tabelle: Titel-Leiste + Spaltenköpfe (mit Status-Icon) + leere Zeilen ──
-  const lzTable = (title: string, columns: Array<{ label: string; icon: IconKind }>) => {
+  const lzTable = (title: string, columns: Array<{ label: string; status: Status }>) => {
     const lzColWidth = 100 - columns.length * 15
     return new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
@@ -181,7 +147,7 @@ export const generateBerichtWordTemplateBlob = async (): Promise<Blob> => {
         new TableRow({
           children: [
             headerCell('', lzColWidth),
-            ...columns.map(c => headerCell(c.label, (100 - lzColWidth) / columns.length, c.icon)),
+            ...columns.map(c => headerCell(c.label, (100 - lzColWidth) / columns.length, c.status)),
           ],
         }),
         ...Array.from({ length: 5 }).map(() => blankLzRow(columns.length, lzColWidth)),
@@ -222,15 +188,15 @@ export const generateBerichtWordTemplateBlob = async (): Promise<Blob> => {
         accentStrip,
         infoRow,
         ...titleBlock,
-        lzTable('grundlegende Lernziele', [
-          { label: 'noch nicht erreicht', icon: 'empty' },
-          { label: 'erreicht', icon: 'full' },
+        lzTable('Grundlegende Lernziele', [
+          { label: 'noch nicht erreicht', status: 'not_reached' },
+          { label: 'erreicht', status: 'reached' },
         ]),
         new Paragraph({ text: '', spacing: { after: 200 } }),
-        lzTable('anspruchsvollere Lernziele', [
-          { label: 'noch nicht erreicht', icon: 'empty' },
-          { label: 'teilweise erreicht', icon: 'half' },
-          { label: 'erreicht', icon: 'full' },
+        lzTable('Anspruchsvollere Lernziele', [
+          { label: 'noch nicht erreicht', status: 'not_reached' },
+          { label: 'teilweise erreicht', status: 'partially_reached' },
+          { label: 'erreicht', status: 'reached' },
         ]),
         new Paragraph({ text: '', spacing: { after: 200 } }),
         bemerkungBox,
@@ -240,10 +206,6 @@ export const generateBerichtWordTemplateBlob = async (): Promise<Blob> => {
             new TextRun({ text: 'Unterschrift Eltern: ', size: 20, color: TEXT_MUTED }),
             new TextRun({ text: '_'.repeat(40), size: 20 }),
           ],
-        }),
-        new Paragraph({
-          alignment: AlignmentType.RIGHT,
-          children: [new TextRun({ text: 'Lezio', size: 15, color: TEXT_MUTED })],
         }),
       ],
     }],

@@ -6,6 +6,7 @@ import { FACH_COLORS, getFachColor, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { DatenbankSettings } from "@/components/einstellungen/DatenbankSettings";
+import { BerichtIconSettings } from "@/components/einstellungen/BerichtIconSettings";
 import { IconLink } from "@/components/ui/icon-link";
 
 const COLOR_LABELS = [
@@ -28,6 +29,8 @@ const EinstellungenPage = () => {
       <h1 className="mb-6">Passe Lezio nach deinen Wünschen an.</h1>
 
       <DatenbankSettings onDataChanged={reloadData} />
+
+      <BerichtIconSettings />
 
       {faecher.length === 0 ? (
         loadError ? (

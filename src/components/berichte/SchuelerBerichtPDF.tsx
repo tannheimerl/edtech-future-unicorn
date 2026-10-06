@@ -3,21 +3,25 @@ import {
   Page,
   View,
   Text,
+  Image,
   StyleSheet,
   Svg,
   Line,
-  Circle,
-  Path,
 } from "@react-pdf/renderer";
 import type { Status } from "@/types/domain";
+import {
+  BERICHT_ACCENT,
+  BERICHT_BORDER,
+  type ResolvedBerichtIcons,
+} from "@/lib/berichtIcons";
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 
-const ACCENT = "#1e3a8a";
+const ACCENT = BERICHT_ACCENT;
 const ACCENT_LIGHT = "#eff6ff";
 const TEXT = "#0f172a";
 const TEXT_MUTED = "#64748b";
-const BORDER = "#cbd5e1";
+const BORDER = BERICHT_BORDER;
 const BG_HEADER = "#f8fafc";
 const PAGE_PAD = 36;
 
@@ -67,8 +71,6 @@ const s = StyleSheet.create({
   // ── Table title row ──
   tableTitleRow: {
     backgroundColor: ACCENT_LIGHT,
-    borderLeftWidth: 3,
-    borderLeftColor: ACCENT,
     borderBottomWidth: 0.75,
     borderBottomColor: BORDER,
     paddingVertical: 5,
@@ -112,6 +114,11 @@ const s = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 4,
   },
+
+  // Ersetzt die früheren 12×12-SVG-Kreise — gleiche Kantenlänge, damit die
+  // Kopfzeilenhöhe unverändert bleibt. `objectFit` hält hochgeladene Bilder
+  // mit abweichendem Seitenverhältnis unverzerrt.
+  legendIcon: { width: 12, height: 12, objectFit: "contain" },
 
   // ── Text ──
   colHeaderText: {
@@ -157,10 +164,19 @@ const s = StyleSheet.create({
   bemerkungText: { fontSize: 9.5, lineHeight: 1.55, color: TEXT },
 
   // ── Unterschrift ──
-  unterschriftRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },
+  // Die Linie ist eine View, die nur aus ihrem unteren Rahmen besteht:
+  // `flex-end` legt diesen Rahmen auf die Unterkante des Labels (Unterstrich
+  // statt Strich quer durch den Text), `height` schafft den Schreibraum
+  // darüber.
+  unterschriftRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    marginTop: 18,
+  },
   unterschriftLabel: { fontSize: 10, color: TEXT_MUTED, marginRight: 14 },
   unterschriftLine: {
     flex: 1,
+    height: 24,
     borderBottomWidth: 0.75,
     borderBottomColor: BORDER,
   },
@@ -177,45 +193,17 @@ const s = StyleSheet.create({
   footerText: { fontSize: 7.5, color: "#94a3b8" },
 });
 
-// ── SVG Icons ─────────────────────────────────────────────────────────────────
+// ── Icons ─────────────────────────────────────────────────────────────────────
 
-const IconEmpty = () => {
-  return (
-    <Svg width={12} height={12} viewBox="0 0 12 12">
-      <Circle
-        cx="6"
-        cy="6"
-        r="5"
-        fill="none"
-        stroke={BORDER}
-        strokeWidth={1.5}
-      />
-    </Svg>
-  );
-};
-
-const IconHalf = () => {
-  return (
-    <Svg width={12} height={12} viewBox="0 0 12 12">
-      <Circle
-        cx="6"
-        cy="6"
-        r="5"
-        fill="none"
-        stroke={ACCENT}
-        strokeWidth={1.5}
-      />
-      <Path d="M6,1 A5,5 0 0,1 6,11 Z" fill={ACCENT} />
-    </Svg>
-  );
-};
-
-const IconFull = () => {
-  return (
-    <Svg width={12} height={12} viewBox="0 0 12 12">
-      <Circle cx="6" cy="6" r="5" fill={ACCENT} />
-    </Svg>
-  );
+/**
+ * Legenden-Icon im Spaltenkopf. Die Quelle ist eine PNG-Data-URL, die der
+ * Aufrufer über `resolveBerichtIcons` erzeugt hat — entweder aus dem in den
+ * Einstellungen gewählten Material Symbol oder aus einem hochgeladenen Bild.
+ */
+const StatusLegendIcon = ({ src }: { src: string }) => {
+  // eslint-disable-next-line jsx-a11y/alt-text -- react-pdfs <Image> ist keine
+  // HTML-Grafik und kennt kein alt-Attribut.
+  return <Image src={src} style={s.legendIcon} />;
 };
 
 const CrossMark = () => {
@@ -291,7 +279,12 @@ export const SchuelerBerichtPage = ({
   date,
   lernziele,
   kommentar,
-}: SchuelerBerichtPDFProps) => {
+  statusIcons,
+  hidePageNumbers,
+}: SchuelerBerichtPDFProps & {
+  statusIcons: ResolvedBerichtIcons;
+  hidePageNumbers?: boolean;
+}) => {
   const grundlegend = lernziele.filter((lz) => lz.kategorie === "grundlegend");
   const anspruchsvoll = lernziele.filter(
     (lz) => lz.kategorie === "anspruchsvoll",
@@ -328,18 +321,18 @@ export const SchuelerBerichtPage = ({
       {grundlegend.length > 0 && (
         <View style={s.table}>
           <View style={s.tableTitleRow} fixed>
-            <Text style={s.tableTitleText}>grundlegende Lernziele</Text>
+            <Text style={s.tableTitleText}>Grundlegende Lernziele</Text>
           </View>
 
           <View style={s.colHeaderRow} fixed>
             <View style={s.lzCell} />
             <View style={s.statusCell}>
               <Text style={s.colHeaderText}>{"noch nicht\nerreicht"}</Text>
-              <IconEmpty />
+              <StatusLegendIcon src={statusIcons.not_reached} />
             </View>
             <View style={s.statusCell}>
               <Text style={s.colHeaderText}>erreicht</Text>
-              <IconFull />
+              <StatusLegendIcon src={statusIcons.reached} />
             </View>
           </View>
 
@@ -363,22 +356,22 @@ export const SchuelerBerichtPage = ({
       {anspruchsvoll.length > 0 && (
         <View style={s.table}>
           <View style={s.tableTitleRow} fixed>
-            <Text style={s.tableTitleText}>anspruchsvollere Lernziele</Text>
+            <Text style={s.tableTitleText}>Anspruchsvollere Lernziele</Text>
           </View>
 
           <View style={s.colHeaderRow} fixed>
             <View style={s.lzCell} />
             <View style={s.statusCell}>
               <Text style={s.colHeaderText}>{"noch nicht\nerreicht"}</Text>
-              <IconEmpty />
+              <StatusLegendIcon src={statusIcons.not_reached} />
             </View>
             <View style={s.statusCell}>
               <Text style={s.colHeaderText}>{"teilweise\nerreicht"}</Text>
-              <IconHalf />
+              <StatusLegendIcon src={statusIcons.partially_reached} />
             </View>
             <View style={s.statusCell}>
               <Text style={s.colHeaderText}>erreicht</Text>
-              <IconFull />
+              <StatusLegendIcon src={statusIcons.reached} />
             </View>
           </View>
 
@@ -427,14 +420,17 @@ export const SchuelerBerichtPage = ({
       {/* ── Footer ── */}
       <View style={s.footer} fixed>
         <Text style={s.footerText}>{date}</Text>
-        <Text
-          style={s.footerText}
-          render={({ pageNumber, totalPages }) =>
-            totalPages > 1
-              ? `Lezio · Seite ${pageNumber} / ${totalPages}`
-              : "Lezio"
-          }
-        />
+        {/* Seitenzahl nur beim Einzelbericht: im Gesamt-PDF zählt `totalPages`
+            über alle Schüler/innen hinweg, auf dem einzelnen Blatt wäre
+            «Seite 3 / 24» irreführend. */}
+        {!hidePageNumbers && (
+          <Text
+            style={s.footerText}
+            render={({ pageNumber, totalPages }) =>
+              totalPages > 1 ? `Seite ${pageNumber} / ${totalPages}` : ""
+            }
+          />
+        )}
       </View>
     </Page>
   );
@@ -442,7 +438,9 @@ export const SchuelerBerichtPage = ({
 
 // ── Component: einzelner Bericht ─────────────────────────────────────────────
 
-export const SchuelerBerichtPDF = (props: SchuelerBerichtPDFProps) => (
+export const SchuelerBerichtPDF = (
+  props: SchuelerBerichtPDFProps & { statusIcons: ResolvedBerichtIcons },
+) => (
   <Document>
     <SchuelerBerichtPage {...props} />
   </Document>
@@ -450,14 +448,26 @@ export const SchuelerBerichtPDF = (props: SchuelerBerichtPDFProps) => (
 
 // ── Component: Gesamt-Bericht (alle Berichte in einem PDF, je eigene Seite/n) ──
 
+// `statusIcons` steht einmal auf oberster Ebene statt in jedem Bericht: die
+// Icons sind dokumentweit gleich, und so behalten die Aufrufer beim Bauen der
+// Einzelberichte ihre bisherige Props-Form.
 export type GesamtBerichtPDFProps = {
   berichte: SchuelerBerichtPDFProps[];
+  statusIcons: ResolvedBerichtIcons;
 };
 
-export const GesamtBerichtPDF = ({ berichte }: GesamtBerichtPDFProps) => (
+export const GesamtBerichtPDF = ({
+  berichte,
+  statusIcons,
+}: GesamtBerichtPDFProps) => (
   <Document>
     {berichte.map((props, i) => (
-      <SchuelerBerichtPage key={i} {...props} />
+      <SchuelerBerichtPage
+        key={i}
+        {...props}
+        statusIcons={statusIcons}
+        hidePageNumbers
+      />
     ))}
   </Document>
 );

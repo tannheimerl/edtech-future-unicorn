@@ -46,6 +46,27 @@ fact_pruefungen (→ dim_klassen, dim_faecher)
 
 ---
 
+### `dim_bericht_icons`
+
+Konfigurierbare Status-Icons für die Spaltenköpfe der Lernziel-Tabellen im
+Bericht (PDF, Vorschau, Word-Vorlage). Höchstens drei Zeilen — eine je Status.
+Fehlt eine Zeile, gilt `DEFAULT_BERICHT_ICONS` aus `src/types/domain.ts`; es
+wird also nichts geseedet.
+
+| Spalte | Typ | Bemerkung |
+|--------|-----|-----------|
+| status | TEXT PK | `'not_reached'` \| `'partially_reached'` \| `'reached'` |
+| kind | TEXT NOT NULL | `'symbol'` \| `'image'` |
+| value | TEXT NOT NULL | Bei `symbol`: Material-Symbols-Ligaturname (z.B. `'check'`). Bei `image`: vollständige PNG-Data-URL des hochgeladenen Bildes — die Bytes liegen inline in der Datenbank und reisen so bei Export/Import mit |
+| updated_at | TEXT (ISO-Timestamp) | |
+
+Ein `symbol` wird bewusst **nicht** als Bild gespeichert: das PNG für
+PDF/Word entsteht erst beim Rendern per Canvas (`src/lib/berichtIcons.ts`,
+`resolveBerichtIcons`) und wird danach verworfen. Hochgeladene Bilder werden
+vor dem Speichern auf 128×128 PNG normalisiert (max. 256 KB).
+
+---
+
 ### `dim_themen`
 | Spalte | Typ | Bemerkung |
 |--------|-----|-----------|

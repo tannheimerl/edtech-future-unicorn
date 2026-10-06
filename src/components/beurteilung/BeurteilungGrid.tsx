@@ -114,12 +114,12 @@ export const BeurteilungGrid = ({ pruefungId, klassId }: Props) => {
                 "bg-status-not-reached-soft border border-status-not-reached",
                 "Nicht erreicht",
               ],
-              ["bg-status-none-soft", "Nicht bewertet"],
+              ["bg-status-none-soft", "Nicht bearbeitet / Nicht bewertet"],
             ] as const
           ).map(([cls, label]) => (
             <span
               key={label}
-              className="flex items-center gap-1 text-xs text-muted-foreground/70"
+              className="flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground/70"
             >
               <span
                 className={cn("inline-block size-2.5 rounded-sm shrink-0", cls)}

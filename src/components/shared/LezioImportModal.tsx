@@ -22,6 +22,12 @@ export const LezioImportModal = ({ imp }: { imp: LezioImportState }) => {
         title="Fächer zuordnen"
         description={`${imp.distinctFaecher.length} ${imp.distinctFaecher.length === 1 ? 'Fach' : 'Fächer'} · ${imp.importItems.length} ${imp.importItems.length === 1 ? 'Lernkontrolle' : 'Lernkontrollen'} importieren. Ordne jedes Fach einem deiner Fächer zu oder lege es neu an:`}
         size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={imp.closeZuordnen}>Abbrechen</Button>
+            <Button onClick={imp.confirmZuordnen}>Importieren</Button>
+          </>
+        }
       >
         <div className="flex flex-col divide-y divide-border/40">
           {imp.distinctFaecher.map(({ name, count }) => {
@@ -37,10 +43,6 @@ export const LezioImportModal = ({ imp }: { imp: LezioImportState }) => {
               />
             )
           })}
-        </div>
-        <div className="mt-4 flex justify-end gap-2 border-t pt-3">
-          <Button variant="secondary" onClick={imp.closeZuordnen}>Abbrechen</Button>
-          <Button onClick={imp.confirmZuordnen}>Importieren</Button>
         </div>
       </Modal>
 

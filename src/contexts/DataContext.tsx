@@ -16,14 +16,16 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import type {
   Klasse, Kompetenz, Schueler, Fach, Lernkontrolle, Lernziel,
   AssessmentKommentar, LernkontrolleKommentar, Lehrperson, Pruefung, PruefungErgebnis,
+  BerichtIcons,
 } from '@/types/domain'
-import { SEED_COMPETENCIES } from '@/types/domain'
+import { SEED_COMPETENCIES, DEFAULT_BERICHT_ICONS } from '@/types/domain'
 import { fetchAllData } from '@/actions/db-read'
 import { useKlassenActions } from '@/hooks/data/useKlassenActions'
 import { useSchuelerActions } from '@/hooks/data/useSchuelerActions'
 import { useKommentareActions } from '@/hooks/data/useKommentareActions'
 import { useFaecherLernkontrollenLernzielActions } from '@/hooks/data/useFaecherLernkontrollenLernzielActions'
 import { usePruefungenActions } from '@/hooks/data/usePruefungenActions'
+import { useEinstellungenActions } from '@/hooks/data/useEinstellungenActions'
 
 // ── Public interface ─────────────────────────────────────────────────────────
 
@@ -45,11 +47,13 @@ type DataContextValue = {
   lernkontrolleKommentare: LernkontrolleKommentar[]
   pruefungen: Pruefung[]
   pruefungErgebnisse: PruefungErgebnis[]
+  berichtIcons: BerichtIcons
 } & ReturnType<typeof useKlassenActions>
   & ReturnType<typeof useSchuelerActions>
   & ReturnType<typeof useKommentareActions>
   & ReturnType<typeof useFaecherLernkontrollenLernzielActions>
   & ReturnType<typeof usePruefungenActions>
+  & ReturnType<typeof useEinstellungenActions>
 
 const DataContext = createContext<DataContextValue | null>(null)
 
@@ -68,6 +72,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [lernkontrolleKommentare, setLernkontrolleKommentare] = useState<LernkontrolleKommentar[]>([])
   const [pruefungen, setPruefungen] = useState<Pruefung[]>([])
   const [pruefungErgebnisse, setPruefungErgebnisse] = useState<PruefungErgebnis[]>([])
+  const [berichtIcons, setBerichtIcons] = useState<BerichtIcons>(DEFAULT_BERICHT_ICONS)
   const competencies = SEED_COMPETENCIES
 
   // Reload all data from SQLite into context state. Used on mount and to
@@ -85,6 +90,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setLernkontrolleKommentare(data.lernkontrolleKommentare)
         setPruefungen(data.pruefungen)
         setPruefungErgebnisse(data.pruefungErgebnisse)
+        setBerichtIcons(data.berichtIcons)
         setLoadError(false)
       })
       .catch((err) => {
@@ -105,6 +111,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     faecher, setFaecher, lernkontrollen, setLernkontrollen, lernziele, setLernziele, reloadData
   )
   const pruefungenActions = usePruefungenActions(pruefungen, setPruefungen, pruefungErgebnisse, setPruefungErgebnisse, setStudents)
+  const einstellungenActions = useEinstellungenActions(setBerichtIcons)
 
   return (
     <DataContext.Provider
@@ -123,11 +130,13 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         lernkontrolleKommentare,
         pruefungen,
         pruefungErgebnisse,
+        berichtIcons,
         ...klassenActions,
         ...schuelerActions,
         ...kommentareActions,
         ...faecherLernkontrollenLernzielActions,
         ...pruefungenActions,
+        ...einstellungenActions,
       }}
     >
       {children}
